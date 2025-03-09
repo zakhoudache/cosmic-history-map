@@ -5,6 +5,7 @@ import TextInput from "@/components/TextInput";
 import { FormattedHistoricalEntity } from "@/types/supabase";
 import VisualizationPlaceholder from "@/components/VisualizationPlaceholder";
 import CosmicVisualization from "@/components/CosmicVisualization";
+import Timeline from "@/components/Timeline";
 import VisualizationControls from "@/components/VisualizationControls";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -56,10 +57,18 @@ const Visualize = () => {
             {showPlaceholder ? (
               <VisualizationPlaceholder />
             ) : (
-              <CosmicVisualization 
-                entities={entities}
-                visualizationType={visualizationType}
-              />
+              <>
+                {visualizationType === "graph" ? (
+                  <CosmicVisualization 
+                    entities={entities}
+                    visualizationType={visualizationType}
+                  />
+                ) : (
+                  <Timeline 
+                    entities={entities}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
