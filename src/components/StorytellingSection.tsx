@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -147,7 +146,7 @@ const StorytellingSection: React.FC<StorytellingProps> = ({ entities, text }) =>
         events: groupEntities.map((entity, i) => ({
           id: entity.id || `e-${index}-${i}`,
           title: entity.name,
-          date: entity.date || entity.startDate || entity.endDate || 'Unknown date',
+          date: entity.startDate || entity.endDate || 'Unknown date',
           description: entity.description || `A historical ${entity.type.toLowerCase()} discovered in the analysis.`,
           impact: entity.significance || Math.floor(Math.random() * 5) + 5, // Default to medium-high significance if not specified
           category: entity.type.toLowerCase()
