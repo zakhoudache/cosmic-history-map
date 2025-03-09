@@ -5,11 +5,16 @@
 export interface HistoricalEntity {
   id: string;
   name: string;
-  type: 'person' | 'event' | 'place' | 'concept';
+  type: 'person' | 'event' | 'place' | 'concept' | 'artifact';
   startDate?: Date | string;
   endDate?: Date | string;
   description: string;
-  connections: string[]; // IDs of connected entities
+  connections?: string[]; // IDs of connected entities (used in mock data)
+  relations?: Array<{  // Used by Gemini API response
+    targetId: string;
+    type: string;
+    strength: number;
+  }>;
   significance: number; // 1-10 scale of importance
   coordinates?: {
     x: number;
@@ -120,22 +125,41 @@ export const getEntityConnections = () => {
   const links: { source: string; target: string; value: number }[] = [];
   
   mockHistoricalData.forEach(entity => {
-    entity.connections.forEach(connectionId => {
-      // Avoid duplicate links
-      const existingLink = links.find(
-        link => 
-          (link.source === entity.id && link.target === connectionId) || 
-          (link.source === connectionId && link.target === entity.id)
-      );
-      
-      if (!existingLink) {
-        links.push({
-          source: entity.id,
-          target: connectionId,
-          value: 1
-        });
-      }
-    });
+    if (entity.connections) {
+      entity.connections.forEach(connectionId => {
+        // Avoid duplicate links
+        const existingLink = links.find(
+          link => 
+            (link.source === entity.id && link.target === connectionId) || 
+            (link.source === connectionId && link.target === entity.id)
+        );
+        
+        if (!existingLink) {
+          links.push({
+            source: entity.id,
+            target: connectionId,
+            value: 1
+          });
+        }
+      });
+    } else if (entity.relations) {
+      entity.relations.forEach(relation => {
+        // Avoid duplicate links
+        const existingLink = links.find(
+          link => 
+            (link.source === entity.id && link.target === relation.targetId) || 
+            (link.source === relation.targetId && link.target === entity.id)
+        );
+        
+        if (!existingLink) {
+          links.push({
+            source: entity.id,
+            target: relation.targetId,
+            value: relation.strength || 1
+          });
+        }
+      });
+    }
   });
   
   return links;

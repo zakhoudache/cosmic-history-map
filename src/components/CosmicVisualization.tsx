@@ -103,16 +103,28 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .force("x", d3.forceX(centerX).strength(0.05))
       .force("y", d3.forceY(centerY).strength(0.05));
     
+    // Extract entity connections
+    // Check if entities have 'connections' or 'relations' property
+    const getEntityConnections = (entity: HistoricalEntity) => {
+      if ('connections' in entity && Array.isArray(entity.connections)) {
+        return entity.connections.map(connId => ({
+          source: entity,
+          target: visualizationData.find(e => e.id === connId)
+        })).filter(link => link.target); // Filter out undefined targets
+      } else if ('relations' in entity && Array.isArray((entity as any).relations)) {
+        return (entity as any).relations.map((relation: any) => ({
+          source: entity,
+          target: visualizationData.find(e => e.id === relation.targetId)
+        })).filter(link => link.target); // Filter out undefined targets
+      }
+      return [];
+    };
+    
     // Create entity links
     const links = svg.append("g")
       .attr("class", "links")
       .selectAll("line")
-      .data(visualizationData.flatMap(entity => 
-        entity.connections.map(connId => ({
-          source: entity,
-          target: visualizationData.find(e => e.id === connId)
-        })).filter(link => link.target) // Filter out any undefined targets
-      ))
+      .data(visualizationData.flatMap(entity => getEntityConnections(entity)))
       .enter()
       .append("line")
       .attr("stroke", "rgba(255, 255, 255, 0.1)")
