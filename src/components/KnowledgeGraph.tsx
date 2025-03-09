@@ -1,9 +1,9 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, getEntityConnections, mockHistoricalData } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import { Network, Star, Focus, Lightbulb, FileSpreadsheet } from 'lucide-react';
+import VisualizationPlaceholder from './VisualizationPlaceholder';
 
 interface KnowledgeGraphProps {
   entities?: HistoricalEntity[];
@@ -11,12 +11,13 @@ interface KnowledgeGraphProps {
 }
 
 const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ 
-  entities = mockHistoricalData, 
+  entities = [], 
   onEntitySelect 
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const isVisible = useAnimateOnMount(500);
   const [dimensions, setDimensions] = useState({ width: 500, height: 400 });
+  const hasData = entities && entities.length > 0;
 
   // Initialize layout and resize handling
   useEffect(() => {
@@ -37,7 +38,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
   // Create and update visualization
   useEffect(() => {
-    if (!svgRef.current || !isVisible || !entities || entities.length === 0) return;
+    if (!hasData || !svgRef.current || !isVisible) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -544,6 +545,15 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     }
   };
 
+  if (!hasData) {
+    return (
+      <VisualizationPlaceholder 
+        title="Knowledge Graph"
+        description="Discover complex interconnections between historical entities with the Knowledge Graph visualization."
+      />
+    );
+  }
+
   return (
     <div className="w-full h-full min-h-[500px] relative overflow-hidden rounded-lg">
       <div className="absolute inset-0 bg-gradient-to-br from-cosmic-dark/30 to-cosmic/10 z-0"></div>
@@ -561,12 +571,6 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           transition: 'opacity 0.5s ease-in-out'
         }}
       />
-      {(!entities || entities.length === 0) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-          <Network className="h-12 w-12 mb-4 opacity-50" />
-          <p>No network data to display</p>
-        </div>
-      )}
     </div>
   );
 };

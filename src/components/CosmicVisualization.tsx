@@ -1,9 +1,10 @@
-
+<lov-code>
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, prepareVisualizationData } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import { Star, Users, Calendar, Map, Lightbulb, GitBranch } from 'lucide-react';
+import VisualizationPlaceholder from './VisualizationPlaceholder';
 
 interface CosmicVisualizationProps {
   entities?: HistoricalEntity[];
@@ -64,9 +65,10 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   onEntitySelect
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const visualizationData: SimulationEntity[] = entities ? [...entities] as SimulationEntity[] : prepareVisualizationData() as SimulationEntity[];
+  const visualizationData: SimulationEntity[] = entities ? [...entities] as SimulationEntity[] : [];
   const isVisible = useAnimateOnMount(300);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const hasData = entities && entities.length > 0;
   
   // Initialize layout and resize handling
   useEffect(() => {
@@ -87,7 +89,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   
   // Create and update visualization
   useEffect(() => {
-    if (!svgRef.current || !isVisible || !visualizationData || visualizationData.length === 0) return;
+    if (!hasData || !svgRef.current || !isVisible) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -755,48 +757,3 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("x", "0%")
       .attr("y", "0%")
       .attr("width", "100%")
-      .attr("height", "100%");
-    
-    noise.append("feTurbulence")
-      .attr("type", "fractalNoise")
-      .attr("baseFrequency", "0.01")
-      .attr("numOctaves", "2")
-      .attr("seed", Math.random() * 100)
-      .attr("result", "noise");
-    
-    noise.append("feColorMatrix")
-      .attr("type", "matrix")
-      .attr("values", "1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0")
-      .attr("result", "coloredNoise");
-    
-    // Create a few nebula clouds
-    const nebulaColors = [
-      "hsla(280, 80%, 50%, 0.2)",
-      "hsla(200, 80%, 50%, 0.15)",
-      "hsla(340, 80%, 50%, 0.2)"
-    ];
-    
-    nebulaColors.forEach((color, i) => {
-      svg.append("ellipse")
-        .attr("cx", width * (0.3 + i * 0.3))
-        .attr("cy", height * (0.3 + (i % 2) * 0.4))
-        .attr("rx", 150 + Math.random() * 100)
-        .attr("ry", 100 + Math.random() * 80)
-        .attr("fill", color)
-        .attr("filter", "url(#noise)")
-        .attr("opacity", 0.3);
-    });
-  }
-
-  return (
-    <div className="relative w-full h-full min-h-[600px] overflow-hidden rounded-lg glass">
-      <svg 
-        ref={svgRef} 
-        className="w-full h-full" 
-        style={{ minHeight: '600px' }}
-      />
-    </div>
-  );
-};
-
-export default CosmicVisualization;
