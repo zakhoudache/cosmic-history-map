@@ -7,7 +7,8 @@ import { Book, ArrowDown, ArrowUp, HistoryIcon, Sparkles } from 'lucide-react';
 import VisualizationControls from '@/components/VisualizationControls';
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
-import { useIntersectionObserver, useStaggeredAnimation } from '@/utils/animations';
+import { useIntersectionObserver } from '@/utils/animations';
+import { FormattedHistoricalEntity } from "@/types/supabase";
 
 interface TimelineEvent {
   id: string;
@@ -26,128 +27,10 @@ interface StoryPoint {
   connections: string[]; // ids of connected points
 }
 
-const mockStoryData: StoryPoint[] = [
-  {
-    id: "p1",
-    title: "Dawn of the Renaissance",
-    description: "The early 15th century saw the rebirth of classical arts and learning in Italy.",
-    events: [
-      {
-        id: "e1",
-        title: "Fall of Constantinople",
-        date: "1453",
-        description: "Byzantine scholars fled to Italy, bringing ancient Greek texts.",
-        impact: 8,
-        category: "political"
-      },
-      {
-        id: "e2",
-        title: "Gutenberg's Printing Press",
-        date: "1440",
-        description: "The invention of the printing press revolutionized information sharing.",
-        impact: 10,
-        category: "technological"
-      }
-    ],
-    connections: ["p2"]
-  },
-  {
-    id: "p2",
-    title: "Artistic Revolution",
-    description: "New techniques in perspective, realism, and expression transformed visual arts.",
-    events: [
-      {
-        id: "e3",
-        title: "Brunelleschi's Dome",
-        date: "1436",
-        description: "The architectural marvel of Florence Cathedral's dome was completed.",
-        impact: 7,
-        category: "cultural"
-      },
-      {
-        id: "e4",
-        title: "Da Vinci's Workshop",
-        date: "1470s",
-        description: "Leonardo da Vinci began his career as an artist and inventor.",
-        impact: 9,
-        category: "cultural"
-      }
-    ],
-    connections: ["p1", "p3"]
-  },
-  {
-    id: "p3",
-    title: "Scientific Advancement",
-    description: "Observation and experimentation became foundations of the scientific method.",
-    events: [
-      {
-        id: "e5",
-        title: "Copernicus' Heliocentric Theory",
-        date: "1543",
-        description: "The revolutionary idea that the Earth orbits the Sun was published.",
-        impact: 10,
-        category: "scientific"
-      },
-      {
-        id: "e6",
-        title: "Vesalius' Anatomy Studies",
-        date: "1543",
-        description: "Modern anatomical study began with detailed human dissection illustrations.",
-        impact: 8,
-        category: "scientific"
-      }
-    ],
-    connections: ["p2", "p4"]
-  },
-  {
-    id: "p4",
-    title: "Global Exploration",
-    description: "European powers launched voyages of discovery, connecting continents.",
-    events: [
-      {
-        id: "e7",
-        title: "Columbus Reaches Americas",
-        date: "1492",
-        description: "The voyage initiated sustained European contact with the Americas.",
-        impact: 10,
-        category: "exploration"
-      },
-      {
-        id: "e8",
-        title: "Magellan's Circumnavigation",
-        date: "1522",
-        description: "The first expedition to circle the globe was completed.",
-        impact: 9,
-        category: "exploration"
-      }
-    ],
-    connections: ["p3", "p5"]
-  },
-  {
-    id: "p5",
-    title: "Renaissance Legacy",
-    description: "The ideas and achievements of the Renaissance shaped the modern world.",
-    events: [
-      {
-        id: "e9",
-        title: "Reformation Begins",
-        date: "1517",
-        description: "Martin Luther's 95 Theses sparked religious reform across Europe.",
-        impact: 9,
-        category: "religious"
-      },
-      {
-        id: "e10",
-        title: "Shakespeare's First Plays",
-        date: "1590",
-        description: "The Renaissance spirit lived on in literature and theater.",
-        impact: 8,
-        category: "cultural"
-      }
-    ],
-    connections: ["p4"]
-  }
-];
+interface StorytellingProps {
+  entities: FormattedHistoricalEntity[];
+  text: string;
+}
 
 interface StoryPointNodeProps {
   point: StoryPoint;
@@ -240,7 +123,53 @@ const TimelineWalker: React.FC<{ isActive: boolean }> = ({ isActive }) => {
   );
 };
 
-const StorytellingSection: React.FC = () => {
+const StorytellingSection: React.FC<StorytellingProps> = ({ entities, text }) => {
+  // Convert real entities to StoryPoint format
+  const generateStoryPoints = (): StoryPoint[] => {
+    // Group entities by type or domain
+    const groupedEntities: Record<string, FormattedHistoricalEntity[]> = {};
+    
+    entities.forEach(entity => {
+      const groupKey = entity.type || 'Other';
+      if (!groupedEntities[groupKey]) {
+        groupedEntities[groupKey] = [];
+      }
+      groupedEntities[groupKey].push(entity);
+    });
+    
+    // Convert groups to story points
+    return Object.entries(groupedEntities).map(([group, groupEntities], index) => {
+      // Create a story point for each group
+      return {
+        id: `sp-${index}`,
+        title: group === 'Other' ? 'Key Historical Elements' : `${group}s`,
+        description: `Exploring ${groupEntities.length} historical ${group.toLowerCase()} elements and their connections.`,
+        events: groupEntities.map((entity, i) => ({
+          id: entity.id || `e-${index}-${i}`,
+          title: entity.name,
+          date: entity.date || entity.startDate || entity.endDate || 'Unknown date',
+          description: entity.description || `A historical ${entity.type.toLowerCase()} discovered in the analysis.`,
+          impact: entity.significance || Math.floor(Math.random() * 5) + 5, // Default to medium-high significance if not specified
+          category: entity.type.toLowerCase()
+        })),
+        connections: [] // We'll add connections between story points in the next step
+      };
+    });
+  };
+  
+  // Create connections between story points based on entity relationships
+  const connectStoryPoints = (points: StoryPoint[]): StoryPoint[] => {
+    // For simplicity, we'll create sequential connections
+    return points.map((point, index) => {
+      const connections = [];
+      if (index > 0) connections.push(points[index - 1].id); // Connect to previous
+      if (index < points.length - 1) connections.push(points[index + 1].id); // Connect to next
+      return { ...point, connections };
+    });
+  };
+  
+  const storyData = connectStoryPoints(generateStoryPoints());
+  
   const [selectedPoint, setSelectedPoint] = useState<StoryPoint | null>(null);
   const [activeTab, setActiveTab] = useState("vertical");
   const [zoom, setZoom] = useState(1);
@@ -262,6 +191,13 @@ const StorytellingSection: React.FC = () => {
       setWalkerActive(false);
     }
   }, [isSectionVisible]);
+
+  // Set the first story point as selected by default
+  useEffect(() => {
+    if (storyData.length > 0 && !selectedPoint) {
+      setSelectedPoint(storyData[0]);
+    }
+  }, [storyData]);
 
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 0.2, 2));
@@ -318,12 +254,27 @@ const StorytellingSection: React.FC = () => {
     setSelectedPoint(prev => prev?.id === point.id ? null : point);
   };
 
+  // Fallback message if no entities are available
+  if (entities.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[500px] w-full">
+        <div className="text-center p-8 rounded-lg border border-muted bg-muted/20">
+          <Book className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-semibold mb-2">No Story Available</h3>
+          <p className="text-muted-foreground">
+            No historical entities were found to create a story. Try analyzing a different text with more historical context.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section ref={sectionRef as React.RefObject<HTMLDivElement>} className="mb-10">
       <div className="mb-6 text-center">
         <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Historical Storyline</h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          Explore the narrative flow of historical events through an interactive visual storyline.
+          Explore the narrative flow of {entities.length} historical entities through an interactive visual storyline.
         </p>
       </div>
       
@@ -378,7 +329,7 @@ const StorytellingSection: React.FC = () => {
                 
                 {/* Story points */}
                 <div className="grid grid-cols-1 gap-28 w-full max-w-2xl relative z-10">
-                  {mockStoryData.map((point, index) => (
+                  {storyData.map((point, index) => (
                     <div key={point.id} className="relative">
                       {/* Timeline node */}
                       <div 
@@ -427,12 +378,12 @@ const StorytellingSection: React.FC = () => {
               <div className="p-10 w-full h-full">
                 <div className="max-w-4xl mx-auto glass rounded-lg border border-galaxy-nova/30 p-8 shadow-lg shadow-galaxy-core/10">
                   <h3 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-galaxy-star to-galaxy-nova bg-clip-text text-transparent">
-                    The Renaissance: Europe's Rebirth
+                    {text.slice(0, 50)}...
                   </h3>
                   
                   <div className="prose prose-invert max-w-none prose-headings:text-galaxy-nova prose-p:text-foreground/80">
                     <p className="lead text-lg">
-                      The Renaissance marked a period of explosive growth in art, science, literature, and exploration that forever changed European civilization and laid foundations for the modern world.
+                      This story explores {entities.length} historical entities and their interconnections based on the analyzed text.
                     </p>
                     
                     <div className="my-8 relative">
@@ -443,7 +394,7 @@ const StorytellingSection: React.FC = () => {
                       <TimelineWalker isActive={walkerActive && isContentVisible} />
                       
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {mockStoryData.map((point, index) => (
+                        {storyData.map((point, index) => (
                           <div 
                             key={point.id}
                             className={cn(
@@ -472,51 +423,25 @@ const StorytellingSection: React.FC = () => {
                     </div>
                     
                     <p>
-                      Beginning in 15th century Italy, the Renaissance represented a bridge between the Middle Ages and the Modern era. The period was characterized by a renewed interest in the classical learning of ancient Greece and Rome, as well as an emphasis on individual achievement and expression.
+                      {text.slice(0, 200)}...
                     </p>
                     
                     <div className={cn(
                       "my-6 rounded-lg border border-galaxy-nova/20 p-4 bg-galaxy-core/10 transition-all duration-700",
                       isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
                     )}>
-                      <h5 className="font-semibold text-galaxy-nova mb-2">Major Contributions</h5>
+                      <h5 className="font-semibold text-galaxy-nova mb-2">Major Elements</h5>
                       <ul className="list-disc pl-5 space-y-2 text-sm">
-                        <li className={cn(
-                          "transition-all duration-500",
-                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
-                        )} style={{ transitionDelay: "100ms" }}>
-                          <span className="text-galaxy-star">Art:</span> Perspective, realism, and emotional expression
-                        </li>
-                        <li className={cn(
-                          "transition-all duration-500",
-                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
-                        )} style={{ transitionDelay: "200ms" }}>
-                          <span className="text-galaxy-star">Science:</span> Observation-based research and the scientific method
-                        </li>
-                        <li className={cn(
-                          "transition-all duration-500",
-                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
-                        )} style={{ transitionDelay: "300ms" }}>
-                          <span className="text-galaxy-star">Technology:</span> Printing press, improved navigation tools
-                        </li>
-                        <li className={cn(
-                          "transition-all duration-500",
-                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
-                        )} style={{ transitionDelay: "400ms" }}>
-                          <span className="text-galaxy-star">Exploration:</span> Age of Discovery connecting continents
-                        </li>
-                        <li className={cn(
-                          "transition-all duration-500",
-                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
-                        )} style={{ transitionDelay: "500ms" }}>
-                          <span className="text-galaxy-star">Philosophy:</span> Humanism focusing on human potential
-                        </li>
+                        {entities.slice(0, 5).map((entity, idx) => (
+                          <li key={entity.id || idx} className={cn(
+                            "transition-all duration-500",
+                            isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                          )} style={{ transitionDelay: `${idx * 100}ms` }}>
+                            <span className="text-galaxy-star">{entity.name}:</span> {entity.description || `A ${entity.type.toLowerCase()} in the historical context`}
+                          </li>
+                        ))}
                       </ul>
                     </div>
-                    
-                    <p>
-                      The Renaissance spirit of inquiry and innovation created a cultural environment where genius could flourish. Figures like Leonardo da Vinci, Michelangelo, Copernicus, and Shakespeare changed our understanding of art, science, and the human condition.
-                    </p>
                     
                     <div className="mt-8 text-center">
                       <Button 
