@@ -1,133 +1,71 @@
-
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, FileText, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { SendHorizonal } from "lucide-react";
 
 interface TextInputProps {
   onSubmit: (text: string, analysisResult: any) => void;
-  isLoading?: boolean;
+  isLoading: boolean;
 }
 
-const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading = false }) => {
-  const [text, setText] = useState("");
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
+  const [text, setText] = useState<string>("");
+  
+  const handleSubmit = async () => {
     if (!text.trim()) return;
     
-    try {
-      setIsAnalyzing(true);
-      
-      // Call the Supabase Edge Function to analyze the text
-      const { data, error } = await supabase.functions.invoke('analyze-historical-text', {
-        body: { text },
-      });
-      
-      if (error) {
-        console.error("Error analyzing text:", error);
-        toast.error("Failed to analyze text. Please try again.");
-        return;
+    // Mock analysis result - in a real app this would come from an API
+    const mockAnalysisResult = {
+      entities: [
+        // Mock data format would match what your API returns
+      ],
+      timeline: {
+        // Mock timeline data
       }
-      
-      if (!data || !data.entities) {
-        console.error("Invalid response format:", data);
-        toast.error("Failed to analyze text. Response format is invalid.");
-        return;
-      }
-      
-      // Pass both the text and the analysis result to the parent component
-      onSubmit(text, data);
-      
-      toast.success("Text analyzed successfully!");
-    } catch (error) {
-      console.error("Error analyzing text:", error);
-      toast.error("Failed to analyze text. Please try again.");
-    } finally {
-      setIsAnalyzing(false);
-    }
+    };
+    
+    onSubmit(text, mockAnalysisResult);
   };
-
-  const exampleTexts = [
-    "The Renaissance was a period in European history marking the transition from the Middle Ages to modernity and covering the 15th and 16th centuries.",
-    "World War II was a global war that lasted from 1939 to 1945. It involved the vast majority of the world's countries—including all of the great powers.",
-    "The Industrial Revolution was the transition to new manufacturing processes in Great Britain, continental Europe, and the United States, from 1760 to 1840."
-  ];
-
-  const handleExampleClick = (example: string) => {
-    setText(example);
-    setIsExpanded(true);
-  };
-
+  
   return (
     <div className="text-input-container">
-      <div className="text-center mb-4">
-        <h2 className="text-2xl font-bold">Enter historical text to visualize</h2>
-      </div>
-      
       <div className="text-input-wrapper">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Enter historical text or select an example below..."
-            className="w-full resize-none bg-white/5 border-gray-700 focus:ring-cosmic-light text-base h-32"
-            onFocus={() => setIsExpanded(true)}
-          />
-          
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2 items-center">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setText("")}
-                disabled={!text.length}
-                className="text-xs"
-              >
-                Clear
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                {text.length} characters
-              </span>
-            </div>
-            
-            <Button 
-              type="submit" 
-              disabled={!text.trim() || isLoading || isAnalyzing}
-              className="visualize-button"
-            >
-              {isLoading || isAnalyzing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <ArrowRight className="h-4 w-4 mr-2" />
-              )}
-              Visualize
-            </Button>
-          </div>
-        </form>
+        <Textarea
+          placeholder="Enter historical text to analyze... (e.g. 'The Renaissance was a period of European cultural, artistic, political, and scientific rebirth after the Middle Ages...')"
+          className="min-h-32 glass border-galaxy-nova/20 focus:border-galaxy-nova/50 transition-all shadow-inner shadow-galaxy-nova/5 mb-4"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
         
-        <div className="mt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Examples</span>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={() => setText("")}
+              disabled={!text.trim() || isLoading}
+              className="border-galaxy-nova/30 hover:border-galaxy-nova/60"
+            >
+              Clear
+            </Button>
+            <span className="text-xs text-muted-foreground">{text.length} characters</span>
           </div>
           
-          <div className="grid gap-2">
-            {exampleTexts.map((example, index) => (
-              <button
-                key={index}
-                onClick={() => handleExampleClick(example)}
-                className="example-item"
-              >
-                {example.length > 100 ? `${example.substring(0, 100)}...` : example}
-              </button>
-            ))}
-          </div>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isLoading || !text.trim()}
+            className="cosmic-button group"
+          >
+            {isLoading ? (
+              <>Processing<span className="loading-dots"></span></>
+            ) : (
+              <>
+                Visualize 
+                <SendHorizonal className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>
