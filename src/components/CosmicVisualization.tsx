@@ -1,8 +1,8 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, prepareVisualizationData } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
+import VisualizationPlaceholder from './VisualizationPlaceholder';
 
 interface CosmicVisualizationProps {
   entities?: HistoricalEntity[];
@@ -14,9 +14,10 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   onEntitySelect
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const visualizationData = entities || prepareVisualizationData();
+  const visualizationData = entities && entities.length > 0 ? entities : [];
   const isVisible = useAnimateOnMount(300);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const hasData = entities && entities.length > 0;
   
   // Initialize layout and resize handling
   useEffect(() => {
@@ -35,9 +36,10 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     };
   }, []);
   
-  // Create and update visualization
+  // Create and update visualization only if we have data
   useEffect(() => {
-    if (!svgRef.current || !isVisible || !visualizationData || visualizationData.length === 0) return;
+    if (!svgRef.current || !isVisible || !hasData) return;
+    
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -66,6 +68,23 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("offset", "100%")
       .attr("stop-color", "transparent");
     
+    // Add glow filter
+    const glowFilter = defs.append("filter")
+      .attr("id", "cosmic-glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+      
+    glowFilter.append("feGaussianBlur")
+      .attr("stdDeviation", "5")
+      .attr("result", "blur");
+      
+    glowFilter.append("feComposite")
+      .attr("in", "SourceGraphic")
+      .attr("in2", "blur")
+      .attr("operator", "over");
+    
     // Add the background
     svg.append("circle")
       .attr("cx", centerX)
@@ -75,15 +94,16 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("class", "animate-pulse-subtle");
     
     // Add some ambient stars
-    const starsCount = 100;
+    const starsCount = 150;
     const starData = Array.from({ length: starsCount }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
       r: Math.random() * 1.5,
-      opacity: Math.random() * 0.8 + 0.2
+      opacity: Math.random() * 0.8 + 0.2,
+      pulsate: Math.random() > 0.7
     }));
     
-    svg.selectAll(".star")
+    const stars = svg.selectAll(".star")
       .data(starData)
       .enter()
       .append("circle")
@@ -91,8 +111,30 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("cy", d => d.y)
       .attr("r", d => d.r)
       .attr("fill", "white")
-      .attr("opacity", d => d.opacity)
+      .attr("opacity", d => d.opacity);
+    
+    // Add pulsating animation to some stars
+    stars.filter(d => d.pulsate)
       .attr("class", "animate-pulse-subtle");
+    
+    // Add nebula clouds
+    const nebulaCount = 5;
+    for (let i = 0; i < nebulaCount; i++) {
+      const x = width * 0.2 + Math.random() * width * 0.6;
+      const y = height * 0.2 + Math.random() * height * 0.6;
+      const size = 50 + Math.random() * 100;
+      const hue = Math.random() * 360;
+      
+      svg.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", size)
+        .attr("fill", `hsla(${hue}, 70%, 50%, 0.05)`)
+        .attr("filter", "url(#cosmic-glow)")
+        .attr("class", "animate-pulse-subtle")
+        .style("animation-duration", `${5 + Math.random() * 5}s`)
+        .style("animation-delay", `${Math.random() * 2}s`);
+    }
     
     // Set up force simulation
     const simulation = d3.forceSimulation()
@@ -108,7 +150,6 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Extract entity connections
     const getEntityConnections = (entity: HistoricalEntity) => {
-      // Handle both 'connections' (from mock data) and 'relations' (from API)
       if (entity.relations && Array.isArray(entity.relations)) {
         return entity.relations
           .map(relation => {
@@ -129,15 +170,33 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .flatMap(entity => getEntityConnections(entity))
       .filter(link => link !== null);
     
-    // Create entity links
+    // Create entity links with gradient effects
     const links = svg.append("g")
       .attr("class", "links")
-      .selectAll("line")
+      .selectAll(".link-path")
       .data(allLinks)
       .enter()
-      .append("line")
-      .attr("stroke", "rgba(255, 255, 255, 0.1)")
+      .append("path")
+      .attr("class", "link-path")
+      .attr("stroke", (d: any) => {
+        // Determine link color based on entity types
+        const sourceType = d.source.type;
+        const targetType = d.target.type;
+        
+        if (sourceType === targetType) {
+          switch(sourceType) {
+            case "person": return "rgba(200, 100, 255, 0.2)";
+            case "event": return "rgba(100, 200, 255, 0.2)";
+            case "place": return "rgba(100, 255, 200, 0.2)";
+            case "concept": return "rgba(255, 200, 100, 0.2)";
+            default: return "rgba(200, 200, 200, 0.2)";
+          }
+        } else {
+          return "rgba(200, 200, 255, 0.15)";
+        }
+      })
       .attr("stroke-width", 1)
+      .attr("fill", "none")
       .attr("opacity", 0)
       .transition()
       .delay((_, i) => i * 20)
@@ -174,20 +233,42 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           d.fy = null;
         }) as any);
     
-    // Add circles for each entity
+    // Add auras for each entity
     nodeGroups.append("circle")
+      .attr("class", "entity-aura")
+      .attr("r", d => (d.significance || 5) * 6 + 15)
+      .attr("fill", d => {
+        // Color based on entity type with more cosmic feel
+        switch(d.type) {
+          case "person": return "hsla(280, 90%, 60%, 0.1)";
+          case "event": return "hsla(220, 90%, 60%, 0.1)";
+          case "place": return "hsla(180, 90%, 60%, 0.1)";
+          case "concept": return "hsla(320, 90%, 60%, 0.1)";
+          default: return "hsla(240, 90%, 60%, 0.1)";
+        }
+      })
+      .attr("filter", "url(#cosmic-glow)")
+      .attr("opacity", 0)
+      .transition()
+      .delay((_, i) => i * 100)
+      .duration(1000)
+      .attr("opacity", 0.8);
+    
+    // Add glowing core for each entity
+    nodeGroups.append("circle")
+      .attr("class", "entity-core")
       .attr("r", d => (d.significance || 5) * 4 + 8)
       .attr("fill", d => {
         // Color based on entity type
         switch(d.type) {
-          case "person": return "hsl(280, 80%, 60%)";
-          case "event": return "hsl(240, 70%, 50%)";
-          case "place": return "hsl(200, 70%, 50%)";
-          case "concept": return "hsl(320, 70%, 50%)";
-          default: return "hsl(240, 70%, 50%)";
+          case "person": return "hsl(280, 90%, 60%)";
+          case "event": return "hsl(220, 90%, 60%)";
+          case "place": return "hsl(180, 90%, 60%)";
+          case "concept": return "hsl(320, 90%, 60%)";
+          default: return "hsl(240, 90%, 60%)";
         }
       })
-      .attr("stroke", "rgba(255, 255, 255, 0.3)")
+      .attr("stroke", "rgba(255, 255, 255, 0.5)")
       .attr("stroke-width", 1)
       .attr("opacity", 0)
       .transition()
@@ -197,26 +278,26 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
 
     // Add ripple effect
     nodeGroups.append("circle")
+      .attr("class", "entity-ripple")
       .attr("r", d => (d.significance || 5) * 4 + 8)
       .attr("fill", "none")
       .attr("stroke", d => {
         // Color based on entity type
         switch(d.type) {
-          case "person": return "hsl(280, 80%, 60%)";
-          case "event": return "hsl(240, 70%, 50%)";
-          case "place": return "hsl(200, 70%, 50%)";
-          case "concept": return "hsl(320, 70%, 50%)";
-          default: return "hsl(240, 70%, 50%)";
+          case "person": return "hsla(280, 90%, 60%, 0.5)";
+          case "event": return "hsla(220, 90%, 60%, 0.5)";
+          case "place": return "hsla(180, 90%, 60%, 0.5)";
+          case "concept": return "hsla(320, 90%, 60%, 0.5)";
+          default: return "hsla(240, 90%, 60%, 0.5)";
         }
       })
       .attr("stroke-width", 1)
-      .attr("opacity", 0.5)
-      .attr("class", d => `ripple-effect-${d.id}`)
-      .style("pointer-events", "none");
+      .attr("opacity", 0.5);
     
     // Animate ripple effects
-    visualizationData.forEach(entity => {
-      const ripple = svg.select(`.ripple-effect-${entity.id}`);
+    visualizationData.forEach((entity, i) => {
+      const node = nodeGroups.filter((d, j) => j === i);
+      const ripple = node.select(".entity-ripple");
       
       function animateRipple() {
         ripple
@@ -233,22 +314,14 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       setTimeout(animateRipple, (entity.significance || 5) * 300);
     });
     
-    // Add labels
+    // Add entity type indicators
     nodeGroups.append("text")
-      .text(d => d.name)
+      .attr("class", "entity-type")
       .attr("text-anchor", "middle")
-      .attr("dy", d => -(d.significance || 5) * 4 - 12)
-      .attr("fill", "white")
+      .attr("dy", "0.3em")
       .attr("font-size", d => 10 + (d.significance || 5) / 2)
+      .attr("fill", "white")
       .attr("pointer-events", "none")
-      .attr("opacity", 0)
-      .transition()
-      .delay((_, i) => i * 100 + 500)
-      .duration(1000)
-      .attr("opacity", 0.9);
-    
-    // Add type indicator
-    nodeGroups.append("text")
       .text(d => {
         switch(d.type) {
           case "person": return "👤";
@@ -258,23 +331,59 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           default: return "•";
         }
       })
-      .attr("text-anchor", "middle")
-      .attr("dy", "0.3em")
-      .attr("font-size", d => 10 + (d.significance || 5) / 2)
-      .attr("pointer-events", "none")
       .attr("opacity", 0)
       .transition()
       .delay((_, i) => i * 100 + 800)
       .duration(1000)
       .attr("opacity", 1);
     
+    // Add labels
+    nodeGroups.append("text")
+      .attr("class", "entity-label")
+      .attr("text-anchor", "middle")
+      .attr("dy", d => (d.significance || 5) * 4 + 20)
+      .attr("fill", "white")
+      .attr("font-size", d => 10 + (d.significance || 5) / 2)
+      .attr("pointer-events", "none")
+      .text(d => d.name)
+      .attr("opacity", 0)
+      .transition()
+      .delay((_, i) => i * 100 + 500)
+      .duration(1000)
+      .attr("opacity", 0.9);
+    
+    // Add temporal indicators for entities with dates
+    nodeGroups.filter(d => d.startDate)
+      .append("text")
+      .attr("class", "temporal-indicator")
+      .attr("text-anchor", "middle")
+      .attr("dy", d => (d.significance || 5) * 4 + 35)
+      .attr("fill", "rgba(255, 255, 255, 0.7)")
+      .attr("font-size", 9)
+      .attr("pointer-events", "none")
+      .text(d => {
+        const startYear = new Date(d.startDate as string).getFullYear();
+        const endYear = d.endDate ? new Date(d.endDate as string).getFullYear() : null;
+        return endYear ? `${startYear}-${endYear}` : `${startYear}`;
+      })
+      .attr("opacity", 0)
+      .transition()
+      .delay((_, i) => i * 100 + 600)
+      .duration(1000)
+      .attr("opacity", 0.7);
+    
     // Update positions on each simulation tick
     simulation.on("tick", () => {
       links
-        .attr("x1", d => (d.source as any).x)
-        .attr("y1", d => (d.source as any).y)
-        .attr("x2", d => (d.target as any).x)
-        .attr("y2", d => (d.target as any).y);
+        .attr("d", (d: any) => {
+          if (!d.source.x || !d.target.x) return "";
+          
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+          
+          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        });
       
       nodeGroups.attr("transform", d => `translate(${d.x}, ${d.y})`);
     });
@@ -289,6 +398,11 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     };
   }, [visualizationData, isVisible, dimensions, onEntitySelect]);
   
+  // If no data, render placeholder
+  if (!hasData) {
+    return <VisualizationPlaceholder type="cosmic" />;
+  }
+  
   return (
     <div className="w-full h-full min-h-[500px] relative overflow-hidden rounded-lg glass">
       <svg
@@ -301,11 +415,6 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           transition: 'opacity 1s ease-in-out'
         }}
       />
-      {(!visualizationData || visualizationData.length === 0) && (
-        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-          No entities to display
-        </div>
-      )}
     </div>
   );
 };

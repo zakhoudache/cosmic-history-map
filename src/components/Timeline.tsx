@@ -1,8 +1,8 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { HistoricalEntity, mockHistoricalData } from '@/utils/mockData';
+import { HistoricalEntity } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
+import VisualizationPlaceholder from './VisualizationPlaceholder';
 
 interface TimelineProps {
   entities?: HistoricalEntity[];
@@ -11,13 +11,14 @@ interface TimelineProps {
 }
 
 const Timeline: React.FC<TimelineProps> = ({ 
-  entities = mockHistoricalData,
+  entities = [],
   onEntitySelect,
   timelineData
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const isVisible = useAnimateOnMount(700);
   const [dimensions, setDimensions] = useState({ width: 800, height: 120 });
+  const hasData = entities && entities.length > 0;
 
   // Filter entities that have start dates
   const timelineEntities = entities.filter(entity => entity.startDate);
@@ -39,9 +40,9 @@ const Timeline: React.FC<TimelineProps> = ({
     };
   }, []);
 
-  // Create and update visualization
+  // Create and update visualization only if we have data
   useEffect(() => {
-    if (!svgRef.current || !isVisible || !timelineEntities || timelineEntities.length === 0) return;
+    if (!svgRef.current || !isVisible || !timelineEntities.length) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -55,6 +56,26 @@ const Timeline: React.FC<TimelineProps> = ({
     // Create a group for the chart content
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
+    
+    // Add defs for patterns and filters
+    const defs = svg.append("defs");
+    
+    // Add glow filter
+    const glowFilter = defs.append("filter")
+      .attr("id", "timeline-glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+      
+    glowFilter.append("feGaussianBlur")
+      .attr("stdDeviation", "2")
+      .attr("result", "blur");
+      
+    glowFilter.append("feComposite")
+      .attr("in", "SourceGraphic")
+      .attr("in2", "blur")
+      .attr("operator", "over");
     
     // Parse dates and find min/max
     const parseDate = (dateStr: string | Date) => {
@@ -87,6 +108,12 @@ const Timeline: React.FC<TimelineProps> = ({
       maxDate = d3.max(endDates) || new Date(1900, 0, 1);
     }
     
+    // Add buffer to min and max dates
+    const timeRange = maxDate.getTime() - minDate.getTime();
+    const buffer = timeRange * 0.05; // 5% buffer
+    minDate = new Date(minDate.getTime() - buffer);
+    maxDate = new Date(maxDate.getTime() + buffer);
+    
     // Create scales
     const xScale = d3.scaleTime()
       .domain([minDate, maxDate])
@@ -96,8 +123,15 @@ const Timeline: React.FC<TimelineProps> = ({
       .domain([0, 3]) // Layers for different entity types
       .range([0, innerHeight]);
     
+    // Add background gradient
+    svg.append("rect")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("fill", "url(#cosmic-background)")
+      .attr("opacity", 0.1);
+    
     // Create and append the x-axis
-    const xAxis = d3.axisBottom(xScale);
+    const xAxis = d3.axisBottom(xScale).tickSize(-innerHeight).tickPadding(10);
     
     g.append("g")
       .attr("class", "x-axis")
@@ -105,36 +139,14 @@ const Timeline: React.FC<TimelineProps> = ({
       .call(xAxis)
       .selectAll("text")
       .attr("font-size", 10)
-      .attr("fill", "rgba(255, 255, 255, 0.7)");
+      .attr("fill", "rgba(255, 255, 255, 0.7)")
+      .attr("filter", "url(#timeline-glow)");
     
     g.selectAll(".x-axis line")
       .attr("stroke", "rgba(255, 255, 255, 0.2)");
     
     g.selectAll(".x-axis path")
       .attr("stroke", "rgba(255, 255, 255, 0.2)");
-    
-    // Add background grid
-    g.append("g")
-      .attr("class", "grid")
-      .selectAll("line")
-      .data(xScale.ticks())
-      .enter()
-      .append("line")
-      .attr("x1", d => xScale(d))
-      .attr("x2", d => xScale(d))
-      .attr("y1", 0)
-      .attr("y2", innerHeight)
-      .attr("stroke", "rgba(255, 255, 255, 0.1)")
-      .attr("stroke-dasharray", "2,2");
-
-    // Add a baseline
-    g.append("line")
-      .attr("x1", 0)
-      .attr("x2", innerWidth)
-      .attr("y1", innerHeight / 2)
-      .attr("y2", innerHeight / 2)
-      .attr("stroke", "rgba(255, 255, 255, 0.3)")
-      .attr("stroke-width", 1);
     
     // Add title
     svg.append("text")
@@ -143,6 +155,7 @@ const Timeline: React.FC<TimelineProps> = ({
       .attr("text-anchor", "middle")
       .attr("font-size", 14)
       .attr("fill", "white")
+      .attr("filter", "url(#timeline-glow)")
       .text("Historical Timeline");
     
     // Render timeline periods if available
@@ -162,10 +175,15 @@ const Timeline: React.FC<TimelineProps> = ({
         })
         .attr("y", 0)
         .attr("height", innerHeight)
-        .attr("fill", "rgba(100, 100, 255, 0.05)")
-        .attr("stroke", "rgba(100, 100, 255, 0.2)")
+        .attr("fill", (_, i) => `rgba(100, 100, ${200 + i * 20}, 0.05)`)
+        .attr("stroke", (_, i) => `rgba(100, 100, ${200 + i * 20}, 0.2)`)
         .attr("stroke-width", 1)
-        .attr("rx", 4);
+        .attr("rx", 4)
+        .attr("opacity", 0)
+        .transition()
+        .duration(1000)
+        .delay((_, i) => i * 200)
+        .attr("opacity", 1);
       
       periods.append("text")
         .attr("x", d => {
@@ -173,11 +191,17 @@ const Timeline: React.FC<TimelineProps> = ({
           const end = xScale(new Date(d.endYear, 11, 31));
           return start + (end - start) / 2;
         })
-        .attr("y", 10)
+        .attr("y", 15)
         .attr("text-anchor", "middle")
-        .attr("font-size", 8)
-        .attr("fill", "rgba(255, 255, 255, 0.7)")
-        .text(d => d.name);
+        .attr("font-size", 11)
+        .attr("fill", "rgba(255, 255, 255, 0.8)")
+        .attr("filter", "url(#timeline-glow)")
+        .text(d => d.name)
+        .attr("opacity", 0)
+        .transition()
+        .duration(1000)
+        .delay((_, i) => i * 200 + 200)
+        .attr("opacity", 1);
     }
     
     // Add events
@@ -190,7 +214,6 @@ const Timeline: React.FC<TimelineProps> = ({
         try {
           const parsedDate = parseDate(d.startDate!);
           if (isNaN(parsedDate.getTime())) {
-            // Skip invalid dates
             return `translate(-100, -100)`;
           }
           
@@ -234,25 +257,50 @@ const Timeline: React.FC<TimelineProps> = ({
           if (entity.type === "person") y = innerHeight / 4;
           if (entity.type === "concept") y = (innerHeight / 4) * 3;
           
+          // Create gradient for time span
+          const spanGradient = defs.append("linearGradient")
+            .attr("id", `span-gradient-${entity.id}`)
+            .attr("gradientUnits", "userSpaceOnUse")
+            .attr("x1", startX)
+            .attr("x2", endX);
+            
+          spanGradient.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", d => {
+              switch (entity.type) {
+                case "person": return "hsla(280, 70%, 50%, 0.7)";
+                case "event": return "hsla(240, 70%, 50%, 0.7)";
+                case "place": return "hsla(200, 70%, 50%, 0.7)";
+                case "concept": return "hsla(320, 70%, 50%, 0.7)";
+                default: return "hsla(240, 70%, 50%, 0.7)";
+              }
+            });
+            
+          spanGradient.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", d => {
+              switch (entity.type) {
+                case "person": return "hsla(280, 70%, 50%, 0.3)";
+                case "event": return "hsla(240, 70%, 50%, 0.3)";
+                case "place": return "hsla(200, 70%, 50%, 0.3)";
+                case "concept": return "hsla(320, 70%, 50%, 0.3)";
+                default: return "hsla(240, 70%, 50%, 0.3)";
+              }
+            });
+          
           g.append("line")
             .attr("x1", startX)
             .attr("x2", endX)
             .attr("y1", y)
             .attr("y2", y)
-            .attr("stroke", d => {
-              switch (entity.type) {
-                case "person": return "hsl(280, 70%, 50%)";
-                case "event": return "hsl(240, 70%, 50%)";
-                case "place": return "hsl(200, 70%, 50%)";
-                case "concept": return "hsl(320, 70%, 50%)";
-                default: return "hsl(240, 70%, 50%)";
-              }
-            })
-            .attr("stroke-width", 2)
+            .attr("stroke", `url(#span-gradient-${entity.id})`)
+            .attr("stroke-width", Math.max(2, entity.significance || 1))
+            .attr("filter", "url(#timeline-glow)")
             .attr("opacity", 0)
             .transition()
             .duration(1000)
-            .attr("opacity", 0.5);
+            .delay(500)
+            .attr("opacity", 0.8);
         } catch (error) {
           console.error("Error creating timeline span for entity:", entity.name, error);
         }
@@ -272,6 +320,7 @@ const Timeline: React.FC<TimelineProps> = ({
       })
       .attr("stroke", "white")
       .attr("stroke-width", 1)
+      .attr("filter", "url(#timeline-glow)")
       .attr("opacity", 0)
       .transition()
       .delay((_, i) => i * 100)
@@ -285,6 +334,7 @@ const Timeline: React.FC<TimelineProps> = ({
       .attr("dy", -10)
       .attr("font-size", 9)
       .attr("fill", "white")
+      .attr("filter", "url(#timeline-glow)")
       .attr("opacity", 0)
       .transition()
       .delay((_, i) => i * 100 + 300)
@@ -311,7 +361,7 @@ const Timeline: React.FC<TimelineProps> = ({
         
         return 0;
       })
-      .attr("stroke", "rgba(255, 255, 255, 0.2)")
+      .attr("stroke", "rgba(255, 255, 255, 0.3)")
       .attr("stroke-width", 1)
       .attr("stroke-dasharray", "2,2")
       .attr("opacity", 0)
@@ -319,8 +369,12 @@ const Timeline: React.FC<TimelineProps> = ({
       .delay((_, i) => i * 100 + 200)
       .duration(500)
       .attr("opacity", 0.5);
-    
   }, [timelineEntities, isVisible, dimensions, onEntitySelect, timelineData]);
+
+  // If no data, render placeholder
+  if (!hasData) {
+    return <VisualizationPlaceholder type="timeline" />;
+  }
 
   return (
     <div className="w-full relative glass rounded-lg overflow-hidden">
@@ -333,11 +387,6 @@ const Timeline: React.FC<TimelineProps> = ({
           transition: 'opacity 0.5s ease-in-out'
         }}
       />
-      {(!timelineEntities || timelineEntities.length === 0) && (
-        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-          No timeline data to display
-        </div>
-      )}
     </div>
   );
 };

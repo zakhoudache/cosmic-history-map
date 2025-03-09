@@ -1,178 +1,130 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
 
-@layer base {
-  :root {
-    --background: 230 25% 98%;
-    --foreground: 240 10% 4%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 4%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 4%;
-
-    --primary: 240 6% 10%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
-
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
-
-    --accent: 240 5% 96%;
-    --accent-foreground: 240 6% 10%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 240 6% 70%;
-
-    --radius: 0.5rem;
-
-    --cosmic: 240 70% 40%;
-    --cosmic-dark: 240 60% 20%;
-    --cosmic-light: 240 70% 70%;
-    --cosmic-accent: 280 80% 60%;
-    --cosmic-muted: 240 30% 60%;
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
   }
-
-  .dark {
-    --background: 240 20% 2%;
-    --foreground: 0 0% 95%;
-
-    --card: 240 15% 6%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 240 15% 6%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 0 0% 95%;
-    --primary-foreground: 240 10% 4%;
-
-    --secondary: 240 15% 12%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 240 15% 12%;
-    --muted-foreground: 240 5% 65%;
-
-    --accent: 240 15% 12%;
-    --accent-foreground: 0 0% 95%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 95%;
-
-    --border: 240 15% 12%;
-    --input: 240 15% 12%;
-    --ring: 240 5% 65%;
-
-    --cosmic: 240 70% 50%;
-    --cosmic-dark: 240 60% 30%;
-    --cosmic-light: 240 70% 80%;
-    --cosmic-accent: 280 80% 70%;
-    --cosmic-muted: 240 30% 50%;
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-light tracking-tight;
-  }
-
-  h1 {
-    @apply text-4xl md:text-5xl lg:text-6xl;
-  }
-
-  h2 {
-    @apply text-3xl md:text-4xl lg:text-5xl;
-  }
-
-  h3 {
-    @apply text-2xl md:text-3xl;
-  }
-
-  h4 {
-    @apply text-xl md:text-2xl;
-  }
-
-  .glass {
-    @apply bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl;
-  }
-
-  .cosmic-gradient {
-    @apply bg-gradient-to-br from-cosmic-light via-cosmic to-cosmic-dark;
-  }
-
-  .cosmic-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-cosmic to-cosmic-accent;
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
   }
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+.card {
+  padding: 2em;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.read-the-docs {
+  color: #888;
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-muted rounded-full;
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground;
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Animation utilities */
-.animate-delay-100 {
-  animation-delay: 100ms;
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
 }
 
-.animate-delay-200 {
-  animation-delay: 200ms;
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
 }
 
-.animate-delay-300 {
-  animation-delay: 300ms;
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
 }
 
-.animate-delay-400 {
-  animation-delay: 400ms;
+.cosmic-gradient {
+  background: linear-gradient(135deg, hsl(240, 50%, 15%), hsl(260, 50%, 10%));
+  background-size: 200% 200%;
+  animation: gradientBG 15s ease infinite;
 }
 
-.animate-delay-500 {
-  animation-delay: 500ms;
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-/* Intersection Observer Animations */
-.animate-on-scroll {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+.glass {
+  background: rgba(30, 30, 50, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.animate-on-scroll.is-visible {
-  opacity: 1;
-  transform: translateY(0);
+.cosmic-button {
+  background: linear-gradient(135deg, hsl(240, 70%, 50%), hsl(260, 70%, 40%));
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.cosmic-button::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  transform: rotate(45deg);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cosmic-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(86, 71, 255, 0.3);
+}
+
+.loading-dots::after {
+  content: '';
+  animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
 }
