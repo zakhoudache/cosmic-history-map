@@ -7,11 +7,13 @@ import { useAnimateOnMount } from '@/utils/animations';
 interface TimelineProps {
   entities?: HistoricalEntity[];
   onEntitySelect?: (entity: HistoricalEntity) => void;
+  timelineData?: any; // Add the timelineData prop to the interface
 }
 
 const Timeline: React.FC<TimelineProps> = ({ 
   entities = mockHistoricalData,
-  onEntitySelect
+  onEntitySelect,
+  timelineData
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const isVisible = useAnimateOnMount(700);
@@ -60,11 +62,19 @@ const Timeline: React.FC<TimelineProps> = ({
       return new Date(dateStr);
     };
     
-    const dates = timelineEntities.map(d => parseDate(d.startDate!));
-    const minDate = d3.min(dates) || new Date(1400, 0, 1);
-    const maxDate = d3.max(timelineEntities.map(d => 
-      d.endDate ? parseDate(d.endDate) : parseDate(d.startDate!)
-    )) || new Date(1600, 0, 1);
+    // Use timelineData if provided, otherwise calculate from entities
+    let minDate, maxDate;
+    
+    if (timelineData && timelineData.startYear && timelineData.endYear) {
+      minDate = new Date(timelineData.startYear, 0, 1);
+      maxDate = new Date(timelineData.endYear, 11, 31);
+    } else {
+      const dates = timelineEntities.map(d => parseDate(d.startDate!));
+      minDate = d3.min(dates) || new Date(1400, 0, 1);
+      maxDate = d3.max(timelineEntities.map(d => 
+        d.endDate ? parseDate(d.endDate) : parseDate(d.startDate!)
+      )) || new Date(1600, 0, 1);
+    }
     
     // Create scales
     const xScale = d3.scaleTime()
@@ -123,6 +133,37 @@ const Timeline: React.FC<TimelineProps> = ({
       .attr("font-size", 14)
       .attr("fill", "white")
       .text("Historical Timeline");
+    
+    // Render timeline periods if available
+    if (timelineData && timelineData.periods && timelineData.periods.length > 0) {
+      const periods = g.selectAll(".period")
+        .data(timelineData.periods)
+        .enter()
+        .append("g")
+        .attr("class", "period");
+      
+      periods.append("rect")
+        .attr("x", d => xScale(new Date(d.startYear, 0, 1)))
+        .attr("width", d => xScale(new Date(d.endYear, 11, 31)) - xScale(new Date(d.startYear, 0, 1)))
+        .attr("y", 0)
+        .attr("height", innerHeight)
+        .attr("fill", "rgba(100, 100, 255, 0.05)")
+        .attr("stroke", "rgba(100, 100, 255, 0.2)")
+        .attr("stroke-width", 1)
+        .attr("rx", 4);
+      
+      periods.append("text")
+        .attr("x", d => {
+          const start = xScale(new Date(d.startYear, 0, 1));
+          const end = xScale(new Date(d.endYear, 11, 31));
+          return start + (end - start) / 2;
+        })
+        .attr("y", 10)
+        .attr("text-anchor", "middle")
+        .attr("font-size", 8)
+        .attr("fill", "rgba(255, 255, 255, 0.7)")
+        .text(d => d.name);
+    }
     
     // Add events
     const events = g.selectAll(".event")
@@ -242,7 +283,7 @@ const Timeline: React.FC<TimelineProps> = ({
       .duration(500)
       .attr("opacity", 0.5);
     
-  }, [timelineEntities, isVisible, dimensions, onEntitySelect]);
+  }, [timelineEntities, isVisible, dimensions, onEntitySelect, timelineData]);
 
   return (
     <div className="w-full relative glass rounded-lg overflow-hidden">

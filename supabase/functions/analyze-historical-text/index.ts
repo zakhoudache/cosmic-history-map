@@ -119,12 +119,18 @@ serve(async (req: Request) => {
     }
     `;
 
+    // Retrieve the Gemini API key from environment variable
+    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not set in environment variables");
+    }
+
     // Call the Gemini API for text analysis
     const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': Deno.env.get('GEMINI_API_KEY') || '',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
         contents: [
@@ -138,61 +144,16 @@ serve(async (req: Request) => {
         ],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 8192,
-          responseSchema: {
-            type: "object",
-            properties: {
-              entities: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string" },
-                    name: { type: "string" },
-                    type: { type: "string", enum: ["person", "event", "place", "concept", "artifact"] },
-                    startDate: { type: "string", optional: true },
-                    endDate: { type: "string", optional: true },
-                    description: { type: "string" },
-                    significance: { type: "number" },
-                    group: { type: "string" },
-                    relations: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          targetId: { type: "string" },
-                          type: { type: "string" },
-                          strength: { type: "number" }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              summary: { type: "string" },
-              timeline: {
-                type: "object",
-                properties: {
-                  startYear: { type: "number" },
-                  endYear: { type: "number" },
-                  periods: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        startYear: { type: "number" },
-                        endYear: { type: "number" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+          maxOutputTokens: 8192
         }
       })
     });
+
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text();
+      console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
+      throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
+    }
 
     const geminiData = await geminiResponse.json();
     console.log("Gemini API response received");

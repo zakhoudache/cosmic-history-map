@@ -34,6 +34,12 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading = false }) =>
         return;
       }
       
+      if (!data || !data.entities) {
+        console.error("Invalid response format:", data);
+        toast.error("Failed to analyze text. Response format is invalid.");
+        return;
+      }
+      
       // Pass both the text and the analysis result to the parent component
       onSubmit(text, data);
       
