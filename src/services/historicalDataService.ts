@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { HistoricalEntity, HistoricalRelation, FormattedHistoricalEntity, RelationType } from "@/types/supabase";
 import { toast } from "sonner";
@@ -86,9 +87,18 @@ export const analyzeHistoricalText = async (text: string): Promise<FormattedHist
 
     console.log('Analysis successful, entities found:', data.entities.length);
     
-    // For public demonstration purposes, just return the analyzed entities without storing them
-    // This bypasses the RLS policy restrictions until proper authentication is implemented
-    return formatAnalyzedEntitiesWithoutStoring(data.entities);
+    // Check if user is authenticated to determine if we store data
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // If user is authenticated, store entities in database
+    if (user) {
+      console.log('User authenticated, storing entities in database');
+      return await storeAnalyzedEntities(data.entities);
+    } else {
+      // For non-authenticated users, format without storing
+      console.log('User not authenticated, using in-memory processing');
+      return formatAnalyzedEntitiesWithoutStoring(data.entities);
+    }
   } catch (error) {
     console.error('Error analyzing historical text:', error);
     toast.error('Failed to analyze text. Please try again later.');
@@ -140,13 +150,12 @@ const formatAnalyzedEntitiesWithoutStoring = (analyzedEntities: any[]): Formatte
   }
 };
 
-// This function will be used once proper authentication is implemented
-// Keeping it here for reference but not using it until auth is set up
+// Store analyzed entities in the database for authenticated users
 const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<FormattedHistoricalEntity[]> => {
   try {
     console.log('Storing analyzed entities:', analyzedEntities.length);
     
-    // Get current user's ID if logged in
+    // Get current user's ID
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
     
@@ -245,6 +254,7 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
   } catch (error) {
     console.error('Error storing analyzed entities:', error);
     toast.error('Failed to store analyzed entities.');
-    throw error;
+    // Fallback to in-memory processing
+    return formatAnalyzedEntitiesWithoutStoring(analyzedEntities);
   }
 };
