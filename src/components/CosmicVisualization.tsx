@@ -22,7 +22,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const fullscreenSvgRef = useRef<SVGSVGElement>(null);
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null);
   const visualizationData = entities && entities.length > 0 ? entities : [];
   const isVisible = useAnimateOnMount(300);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -135,80 +135,12 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     setZoomLevel(1);
   };
   
-  // Handle fullscreen visualization rendering
-  useEffect(() => {
-    if (!isFullScreen || !fullscreenSvgRef.current || !hasData) return;
+  // Create visualization function that we can reuse for both main and fullscreen view
+  const createVisualization = (svgElement: SVGSVGElement | null, width: number, height: number) => {
+    if (!svgElement || !hasData) return;
     
-    // Clone the main visualization to the fullscreen dialog
-    if (svgRef.current && fullscreenSvgRef.current) {
-      const clone = svgRef.current.cloneNode(true) as SVGSVGElement;
-      
-      // Clear the fullscreen svg and append the clone
-      while (fullscreenSvgRef.current.firstChild) {
-        fullscreenSvgRef.current.removeChild(fullscreenSvgRef.current.firstChild);
-      }
-      
-      // Copy all children from the clone to the fullscreen svg
-      Array.from(clone.childNodes).forEach(node => {
-        fullscreenSvgRef.current?.appendChild(node.cloneNode(true));
-      });
-      
-      // Apply current zoom transformation
-      if (zoomTransform) {
-        const container = fullscreenSvgRef.current.querySelector("g.visualization-container");
-        if (container) {
-          container.setAttribute("transform", zoomTransform.toString());
-        }
-      }
-    }
-  }, [isFullScreen, hasData, zoomTransform]);
-  
-  const handleExport = () => {
-    if (!svgRef.current) return;
-    
-    try {
-      // Clone the SVG to avoid modifying the original
-      const svgCopy = svgRef.current.cloneNode(true) as SVGSVGElement;
-      
-      // Set the SVG dimensions and viewBox
-      svgCopy.setAttribute('width', dimensions.width.toString());
-      svgCopy.setAttribute('height', dimensions.height.toString());
-      svgCopy.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
-      
-      // Convert SVG to string
-      const svgData = new XMLSerializer().serializeToString(svgCopy);
-      
-      // Create a Blob and URL
-      const blob = new Blob([svgData], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create a temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'cosmic-visualization.svg';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success("Visualization exported as SVG");
-    } catch (error) {
-      console.error('Error exporting visualization:', error);
-      toast.error("Failed to export visualization");
-    }
-  };
-  
-  const toggleFullScreen = () => {
-    setIsFullScreen(!isFullScreen);
-  };
-  
-  // Create and update visualization only if we have data
-  useEffect(() => {
-    if (!svgRef.current || !isVisible || !hasData) return;
-    
-    const svg = d3.select(svgRef.current);
+    // Clear the SVG
+    const svg = d3.select(svgElement);
     svg.selectAll("*").remove();
     
     // Create main container for zoom transformations
@@ -216,7 +148,6 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("class", "visualization-container");
     
     // Set up the SVG
-    const { width, height } = dimensions;
     const centerX = width / 2;
     const centerY = height / 2;
     
@@ -225,7 +156,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Add a radial gradient for the background
     const gradient = defs.append("radialGradient")
-      .attr("id", "cosmic-background")
+      .attr("id", `cosmic-background-${isFullScreen ? 'fullscreen' : 'main'}`)
       .attr("cx", "50%")
       .attr("cy", "50%")
       .attr("r", "50%");
@@ -241,7 +172,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Add glow filter
     const glowFilter = defs.append("filter")
-      .attr("id", "cosmic-glow")
+      .attr("id", `cosmic-glow-${isFullScreen ? 'fullscreen' : 'main'}`)
       .attr("x", "-50%")
       .attr("y", "-50%")
       .attr("width", "200%")
@@ -260,17 +191,17 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Person - Stylized star with halo
     defs.append("symbol")
-      .attr("id", "cosmic-person")
+      .attr("id", `cosmic-person-${isFullScreen ? 'fullscreen' : 'main'}`)
       .attr("viewBox", "0 0 100 100")
       .html(`
-        <circle cx="50" cy="50" r="40" fill="url(#person-gradient)" />
+        <circle cx="50" cy="50" r="40" fill="url(#person-gradient-${isFullScreen ? 'fullscreen' : 'main'})" />
         <circle cx="50" cy="50" r="35" fill="hsla(280, 90%, 60%, 0.8)" />
         <path d="M50,15 L52,44 L82,44 L58,62 L67,89 L50,73 L33,89 L42,62 L18,44 L48,44 Z" fill="white" opacity="0.6" />
       `);
     
     // Event - Cosmic explosion
     defs.append("symbol")
-      .attr("id", "cosmic-event")
+      .attr("id", `cosmic-event-${isFullScreen ? 'fullscreen' : 'main'}`)
       .attr("viewBox", "0 0 100 100")
       .html(`
         <circle cx="50" cy="50" r="30" fill="hsla(220, 90%, 60%, 0.8)" />
@@ -288,7 +219,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Place - Planetary ring system
     defs.append("symbol")
-      .attr("id", "cosmic-place")
+      .attr("id", `cosmic-place-${isFullScreen ? 'fullscreen' : 'main'}`)
       .attr("viewBox", "0 0 100 100")
       .html(`
         <circle cx="50" cy="50" r="30" fill="hsla(180, 90%, 60%, 0.8)" />
@@ -300,16 +231,16 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Concept - Cosmic nebula
     defs.append("symbol")
-      .attr("id", "cosmic-concept")
+      .attr("id", `cosmic-concept-${isFullScreen ? 'fullscreen' : 'main'}`)
       .attr("viewBox", "0 0 100 100")
       .html(`
-        <radialGradient id="concept-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <radialGradient id="concept-gradient-${isFullScreen ? 'fullscreen' : 'main'}" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
           <stop offset="0%" stop-color="hsla(320, 90%, 70%, 0.9)" />
           <stop offset="70%" stop-color="hsla(320, 90%, 50%, 0.7)" />
           <stop offset="100%" stop-color="hsla(320, 90%, 30%, 0.5)" />
         </radialGradient>
         <g opacity="0.9">
-          <path d="M50,10 C75,15 85,40 80,65 C75,85 40,85 25,70 C10,55 15,25 35,15 C40,12 45,10 50,10 Z" fill="url(#concept-gradient)" />
+          <path d="M50,10 C75,15 85,40 80,65 C75,85 40,85 25,70 C10,55 15,25 35,15 C40,12 45,10 50,10 Z" fill="url(#concept-gradient-${isFullScreen ? 'fullscreen' : 'main'})" />
           ${Array.from({ length: 15 }).map(() => {
             const x = 20 + Math.random() * 60;
             const y = 20 + Math.random() * 60;
@@ -321,7 +252,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Create animated connection marker for edges
     defs.append("marker")
-      .attr("id", "connection-arrow")
+      .attr("id", `connection-arrow-${isFullScreen ? 'fullscreen' : 'main'}`)
       .attr("viewBox", "0 0 10 10")
       .attr("refX", 5)
       .attr("refY", 5)
@@ -334,7 +265,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Add gradients for entity types
     defs.append("radialGradient")
-      .attr("id", "person-gradient")
+      .attr("id", `person-gradient-${isFullScreen ? 'fullscreen' : 'main'}`)
       .html(`
         <stop offset="0%" stop-color="hsla(280, 90%, 80%, 1)" />
         <stop offset="100%" stop-color="hsla(280, 90%, 40%, 0.5)" />
@@ -345,7 +276,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("cx", centerX)
       .attr("cy", centerY)
       .attr("r", Math.min(width, height) * 0.4)
-      .attr("fill", "url(#cosmic-background)")
+      .attr("fill", `url(#cosmic-background-${isFullScreen ? 'fullscreen' : 'main'})`)
       .attr("class", "animate-pulse-subtle");
     
     // Add some ambient stars
@@ -385,7 +316,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         .attr("cy", y)
         .attr("r", size)
         .attr("fill", `hsla(${hue}, 70%, 50%, 0.05)`)
-        .attr("filter", "url(#cosmic-glow)")
+        .attr("filter", `url(#cosmic-glow-${isFullScreen ? 'fullscreen' : 'main'})`)
         .attr("class", "animate-pulse-subtle")
         .style("animation-duration", `${5 + Math.random() * 5}s`)
         .style("animation-delay", `${Math.random() * 2}s`);
@@ -432,7 +363,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Create cosmic link paths with animated flows
     allLinks.forEach((link: any, i) => {
-      const linkId = `link-${link.source.id}-${link.target.id}`;
+      const linkId = `link-${link.source.id}-${link.target.id}-${isFullScreen ? 'fullscreen' : 'main'}`;
       
       // Create a gradient for this link
       const linkGradient = defs.append("linearGradient")
@@ -473,7 +404,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         .attr("stroke-width", link.strength * 1.5 || 1.5)
         .attr("fill", "none")
         .attr("opacity", 0)
-        .attr("marker-end", "url(#connection-arrow)")
+        .attr("marker-end", `url(#connection-arrow-${isFullScreen ? 'fullscreen' : 'main'})`)
         .transition()
         .delay(i * 50)
         .duration(1000)
@@ -488,7 +419,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           .attr("r", 2)
           .attr("fill", "white")
           .attr("opacity", 0.8)
-          .attr("filter", "url(#cosmic-glow)")
+          .attr("filter", `url(#cosmic-glow-${isFullScreen ? 'fullscreen' : 'main'})`)
           .append("animateMotion")
           .attr("dur", `${6 - Math.min(4, (link.strength || 1))}s`)
           .attr("repeatCount", "indefinite")
@@ -507,7 +438,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("class", "node")
       .style("cursor", "pointer")
       .on("click", (event, d) => {
-        if (onEntitySelect) {
+        if (onEntitySelect && !isFullScreen) {
           onEntitySelect(d);
         }
       })
@@ -541,7 +472,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           default: return "hsla(240, 90%, 60%, 0.1)";
         }
       })
-      .attr("filter", "url(#cosmic-glow)")
+      .attr("filter", `url(#cosmic-glow-${isFullScreen ? 'fullscreen' : 'main'})`)
       .attr("opacity", 0)
       .transition()
       .delay((_, i) => i * 100)
@@ -556,7 +487,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       switch(d.type.toLowerCase()) {
         case "person":
           node.append("use")
-            .attr("href", "#cosmic-person")
+            .attr("href", `#cosmic-person-${isFullScreen ? 'fullscreen' : 'main'}`)
             .attr("width", size * 2)
             .attr("height", size * 2)
             .attr("x", -size)
@@ -569,7 +500,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           break;
         case "event":
           node.append("use")
-            .attr("href", "#cosmic-event")
+            .attr("href", `#cosmic-event-${isFullScreen ? 'fullscreen' : 'main'}`)
             .attr("width", size * 2)
             .attr("height", size * 2)
             .attr("x", -size)
@@ -582,7 +513,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           break;
         case "place":
           node.append("use")
-            .attr("href", "#cosmic-place")
+            .attr("href", `#cosmic-place-${isFullScreen ? 'fullscreen' : 'main'}`)
             .attr("width", size * 2)
             .attr("height", size * 2)
             .attr("x", -size)
@@ -595,7 +526,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           break;
         case "concept":
           node.append("use")
-            .attr("href", "#cosmic-concept")
+            .attr("href", `#cosmic-concept-${isFullScreen ? 'fullscreen' : 'main'}`)
             .attr("width", size * 2)
             .attr("height", size * 2)
             .attr("x", -size)
@@ -715,7 +646,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         const path = `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
         
         // Update link path
-        linkGroup.select(`#link-${link.source.id}-${link.target.id}`)
+        linkGroup.select(`#link-${link.source.id}-${link.target.id}-${isFullScreen ? 'fullscreen' : 'main'}`)
           .attr("d", path);
           
         // Update animated particles path
@@ -729,11 +660,80 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       nodeGroups.attr("transform", d => `translate(${d.x}, ${d.y})`);
     });
     
-    // Clean up the simulation when component unmounts
+    // Return the simulation for cleanup
+    return simulation;
+  };
+  
+  // Handle fullscreen visualization rendering
+  useEffect(() => {
+    if (isFullScreen && fullscreenContainerRef.current) {
+      const fullscreenSvg = fullscreenContainerRef.current.querySelector('svg');
+      if (fullscreenSvg) {
+        const rect = fullscreenContainerRef.current.getBoundingClientRect();
+        const simulation = createVisualization(fullscreenSvg as SVGSVGElement, rect.width, rect.height);
+        
+        return () => {
+          if (simulation) simulation.stop();
+        };
+      }
+    }
+  }, [isFullScreen, entities, hasData]);
+  
+  // Handle main view visualization rendering
+  useEffect(() => {
+    if (!svgRef.current || !isVisible || !hasData) return;
+    
+    const simulation = createVisualization(svgRef.current, dimensions.width, dimensions.height);
+    
     return () => {
-      simulation.stop();
+      if (simulation) simulation.stop();
     };
   }, [entities, dimensions, hasData, isVisible, onEntitySelect]);
+  
+  const handleExport = () => {
+    if (!svgRef.current) return;
+    
+    try {
+      // Clone the SVG to avoid modifying the original
+      const svgCopy = svgRef.current.cloneNode(true) as SVGSVGElement;
+      
+      // Set the SVG dimensions and viewBox
+      svgCopy.setAttribute('width', dimensions.width.toString());
+      svgCopy.setAttribute('height', dimensions.height.toString());
+      svgCopy.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
+      
+      // Convert SVG to string
+      const svgData = new XMLSerializer().serializeToString(svgCopy);
+      
+      // Create a Blob and URL
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cosmic-visualization.svg';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Visualization exported as SVG");
+    } catch (error) {
+      console.error('Error exporting visualization:', error);
+      toast.error("Failed to export visualization");
+    }
+  };
+  
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+    
+    // Reset zoom when toggling fullscreen
+    setZoomLevel(1);
+    setZoomTransform(null);
+  };
   
   return (
     <div ref={containerRef} className="relative w-full h-full flex flex-col">
@@ -745,7 +745,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           title="Zoom In"
           aria-label="Zoom In"
         >
-          <ZoomIn />
+          <ZoomIn className="h-4 w-4" />
         </Button>
         <Button
           variant="starfield"
@@ -754,7 +754,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           title="Zoom Out"
           aria-label="Zoom Out"
         >
-          <ZoomOut />
+          <ZoomOut className="h-4 w-4" />
         </Button>
         <Button
           variant="starfield"
@@ -763,7 +763,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           title="Reset Zoom"
           aria-label="Reset Zoom"
         >
-          <Maximize />
+          <Maximize className="h-4 w-4" />
         </Button>
         <Button
           variant="starfield"
@@ -772,7 +772,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           title="Toggle Fullscreen"
           aria-label="Toggle Fullscreen"
         >
-          {isFullScreen ? <Minimize /> : <Maximize />}
+          {isFullScreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
         </Button>
         <Button
           variant="starfield"
@@ -781,7 +781,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           title="Export as SVG"
           aria-label="Export as SVG"
         >
-          <Download />
+          <Download className="h-4 w-4" />
         </Button>
       </div>
       
@@ -798,12 +798,41 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
         <DialogContent className="max-w-screen-xl w-[90vw] h-[90vh] max-h-screen flex flex-col p-0">
           <DialogTitle className="p-4 border-b">Cosmic Visualization</DialogTitle>
-          <div className="flex-1 overflow-hidden bg-black">
+          <div ref={fullscreenContainerRef} className="flex-1 overflow-hidden bg-black">
             <svg 
-              ref={fullscreenSvgRef} 
               className="w-full h-full" 
               style={{ minHeight: "600px" }}
             />
+            
+            <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+              <Button
+                variant="starfield"
+                size="icon"
+                onClick={handleZoomIn}
+                title="Zoom In"
+                aria-label="Zoom In"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="starfield"
+                size="icon"
+                onClick={handleZoomOut}
+                title="Zoom Out"
+                aria-label="Zoom Out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="starfield"
+                size="icon"
+                onClick={handleZoomReset}
+                title="Reset Zoom"
+                aria-label="Reset Zoom"
+              >
+                <Maximize className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
