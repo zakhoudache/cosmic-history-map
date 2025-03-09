@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, prepareSimulationData } from '@/utils/mockData';
@@ -709,3 +710,105 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         const dx = targetX - sourceX;
         const dy = targetY - sourceY;
         const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+        
+        // Create curved SVG path
+        const path = `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+        
+        // Update link path
+        linkGroup.select(`#link-${link.source.id}-${link.target.id}`)
+          .attr("d", path);
+          
+        // Update animated particles path
+        linkGroup.selectAll(`.link-particle`)
+          .filter((d, j) => j === i)
+          .selectAll("animateMotion")
+          .attr("path", path);
+      });
+      
+      // Update node positions
+      nodeGroups.attr("transform", d => `translate(${d.x}, ${d.y})`);
+    });
+    
+    // Clean up the simulation when component unmounts
+    return () => {
+      simulation.stop();
+    };
+  }, [entities, dimensions, hasData, isVisible, onEntitySelect]);
+  
+  return (
+    <div ref={containerRef} className="relative w-full h-full flex flex-col">
+      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+        <Button
+          variant="starfield"
+          size="icon"
+          onClick={handleZoomIn}
+          title="Zoom In"
+          aria-label="Zoom In"
+        >
+          <ZoomIn />
+        </Button>
+        <Button
+          variant="starfield"
+          size="icon"
+          onClick={handleZoomOut}
+          title="Zoom Out"
+          aria-label="Zoom Out"
+        >
+          <ZoomOut />
+        </Button>
+        <Button
+          variant="starfield"
+          size="icon"
+          onClick={handleZoomReset}
+          title="Reset Zoom"
+          aria-label="Reset Zoom"
+        >
+          <Maximize />
+        </Button>
+        <Button
+          variant="starfield"
+          size="icon"
+          onClick={toggleFullScreen}
+          title="Toggle Fullscreen"
+          aria-label="Toggle Fullscreen"
+        >
+          {isFullScreen ? <Minimize /> : <Maximize />}
+        </Button>
+        <Button
+          variant="starfield"
+          size="icon"
+          onClick={handleExport}
+          title="Export as SVG"
+          aria-label="Export as SVG"
+        >
+          <Download />
+        </Button>
+      </div>
+      
+      {hasData ? (
+        <svg 
+          ref={svgRef} 
+          className="w-full h-full"
+          style={{ minHeight: "600px" }}
+        />
+      ) : (
+        <VisualizationPlaceholder />
+      )}
+      
+      <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
+        <DialogContent className="max-w-screen-xl w-[90vw] h-[90vh] max-h-screen flex flex-col p-0">
+          <DialogTitle className="p-4 border-b">Cosmic Visualization</DialogTitle>
+          <div className="flex-1 overflow-hidden bg-black">
+            <svg 
+              ref={fullscreenSvgRef} 
+              className="w-full h-full" 
+              style={{ minHeight: "600px" }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default CosmicVisualization;
