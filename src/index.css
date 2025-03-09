@@ -241,3 +241,18 @@
 .entity-default {
   @apply bg-cosmic/20 border-cosmic-light;
 }
+
+/* Animation for connection particles */
+@keyframes flowParticle {
+  0% {
+    offset-distance: 0%;
+  }
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.link-particle {
+  offset-path: path(attr(data-path));
+  animation: flowParticle 5s infinite linear;
+}

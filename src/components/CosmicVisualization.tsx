@@ -149,6 +149,19 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         </g>
       `);
     
+    // Create animated connection marker for edges
+    defs.append("marker")
+      .attr("id", "connection-arrow")
+      .attr("viewBox", "0 0 10 10")
+      .attr("refX", 5)
+      .attr("refY", 5)
+      .attr("markerWidth", 4)
+      .attr("markerHeight", 4)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M 0 0 L 10 5 L 0 10 z")
+      .attr("fill", "rgba(255, 255, 255, 0.6)");
+    
     // Add gradients for entity types
     defs.append("radialGradient")
       .attr("id", "person-gradient")
@@ -228,7 +241,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
             const targetId = relation.target;
             const target = visualizationData.find(e => e.id === targetId);
             if (target) {
-              return { source: entity, target };
+              return { source: entity, target, type: relation.type || "default", strength: relation.strength || 1 };
             }
             return null;
           })
@@ -242,38 +255,76 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .flatMap(entity => getEntityConnections(entity))
       .filter(link => link !== null);
     
-    // Create entity links with gradient effects
-    const links = svg.append("g")
-      .attr("class", "links")
-      .selectAll(".link-path")
-      .data(allLinks)
-      .enter()
-      .append("path")
-      .attr("class", "link-path")
-      .attr("stroke", (d: any) => {
-        // Determine link color based on entity types
-        const sourceType = d.source.type.toLowerCase();
-        const targetType = d.target.type.toLowerCase();
+    // Create entity links group
+    const linkGroup = svg.append("g")
+      .attr("class", "links");
+    
+    // Create cosmic link paths with animated flows
+    allLinks.forEach((link: any, i) => {
+      const linkId = `link-${link.source.id}-${link.target.id}`;
+      
+      // Create a gradient for this link
+      const linkGradient = defs.append("linearGradient")
+        .attr("id", linkId)
+        .attr("gradientUnits", "userSpaceOnUse");
         
-        if (sourceType === targetType) {
-          switch(sourceType) {
-            case "person": return "rgba(200, 100, 255, 0.2)";
-            case "event": return "rgba(100, 200, 255, 0.2)";
-            case "place": return "rgba(100, 255, 200, 0.2)";
-            case "concept": return "rgba(255, 200, 100, 0.2)";
-            default: return "rgba(200, 200, 200, 0.2)";
+      linkGradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", () => {
+          // Determine color based on source entity type
+          switch(link.source.type.toLowerCase()) {
+            case "person": return "rgba(200, 100, 255, 0.8)";
+            case "event": return "rgba(100, 200, 255, 0.8)";
+            case "place": return "rgba(100, 255, 200, 0.8)";
+            case "concept": return "rgba(255, 200, 100, 0.8)";
+            default: return "rgba(200, 200, 200, 0.8)";
           }
-        } else {
-          return "rgba(200, 200, 255, 0.15)";
-        }
-      })
-      .attr("stroke-width", 1)
-      .attr("fill", "none")
-      .attr("opacity", 0)
-      .transition()
-      .delay((_, i) => i * 20)
-      .duration(1000)
-      .attr("opacity", 0.3);
+        });
+        
+      linkGradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", () => {
+          // Determine color based on target entity type
+          switch(link.target.type.toLowerCase()) {
+            case "person": return "rgba(200, 100, 255, 0.8)";
+            case "event": return "rgba(100, 200, 255, 0.8)";
+            case "place": return "rgba(100, 255, 200, 0.8)";
+            case "concept": return "rgba(255, 200, 100, 0.8)";
+            default: return "rgba(200, 200, 200, 0.8)";
+          }
+        });
+      
+      // Create the main path
+      const path = linkGroup.append("path")
+        .attr("class", "link-path")
+        .attr("id", linkId)
+        .attr("stroke", `url(#${linkId})`)
+        .attr("stroke-width", link.strength * 1.5 || 1.5)
+        .attr("fill", "none")
+        .attr("opacity", 0)
+        .attr("marker-end", "url(#connection-arrow)")
+        .transition()
+        .delay(i * 50)
+        .duration(1000)
+        .attr("opacity", 0.6);
+      
+      // Create animated particles flowing along the path
+      const flowCount = Math.max(1, Math.round((link.strength || 1) * 2));
+      
+      for (let j = 0; j < flowCount; j++) {
+        linkGroup.append("circle")
+          .attr("class", "link-particle")
+          .attr("r", 2)
+          .attr("fill", "white")
+          .attr("opacity", 0.8)
+          .attr("filter", "url(#cosmic-glow)")
+          .append("animateMotion")
+          .attr("dur", `${6 - Math.min(4, (link.strength || 1))}s`)
+          .attr("repeatCount", "indefinite")
+          .attr("path", "") // Path will be set on simulation tick
+          .attr("begin", `${j * 1.5}s`);
+      }
+    });
     
     // Create entity nodes
     const nodeGroups = svg.append("g")
@@ -475,17 +526,43 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Update positions on each simulation tick
     simulation.on("tick", () => {
-      links
-        .attr("d", (d: any) => {
-          if (!d.source.x || !d.target.x) return "";
-          
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          
-          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      // Update links
+      allLinks.forEach((link: any, i) => {
+        if (!link.source.x || !link.target.x) return;
+        
+        const sourceX = link.source.x;
+        const sourceY = link.source.y;
+        const targetX = link.target.x;
+        const targetY = link.target.y;
+        
+        // Calculate curved path
+        const dx = targetX - sourceX;
+        const dy = targetY - sourceY;
+        const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+        
+        // Update the link path
+        const path = d3.select(`#link-${link.source.id}-${link.target.id}`);
+        const pathData = `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+        path.attr("d", pathData);
+        
+        // Update the flow particles
+        d3.selectAll(`.link-particle`).each(function() {
+          const motion = d3.select(this).select("animateMotion");
+          if (!motion.empty()) {
+            motion.attr("path", pathData);
+          }
         });
+        
+        // Update the gradient coordinates
+        const gradient = d3.select(`#link-${link.source.id}-${link.target.id}`);
+        gradient
+          .attr("x1", sourceX)
+          .attr("y1", sourceY)
+          .attr("x2", targetX)
+          .attr("y2", targetY);
+      });
       
+      // Update node positions
       nodeGroups.attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`);
     });
     
