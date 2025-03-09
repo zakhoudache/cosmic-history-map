@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Star, GitBranch, Network, CircleDashed, History, Sparkles } from 'lucide-react';
 import { useAnimateOnMount } from '@/utils/animations';
 
@@ -13,6 +13,29 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
   message = 'No visualization data available yet'
 }) => {
   const isVisible = useAnimateOnMount(300);
+  const [stars, setStars] = useState<{ x: number, y: number, size: string, delay: number }[]>([]);
+  
+  useEffect(() => {
+    // Generate random stars for the background
+    const starCount = 150;
+    const newStars = Array.from({ length: starCount }).map(() => {
+      const x = Math.random() * 100;
+      const y = Math.random() * 100;
+      const sizeOptions = ['star-tiny', 'star-small', 'star-medium', 'star-large'];
+      const sizeIndex = Math.floor(Math.random() * sizeOptions.length);
+      const animationOptions = ['twinkle-slow', 'twinkle-medium', 'twinkle-fast'];
+      const animIndex = Math.floor(Math.random() * animationOptions.length);
+      
+      return {
+        x,
+        y,
+        size: `${sizeOptions[sizeIndex]} ${animationOptions[animIndex]}`,
+        delay: Math.random() * 5
+      };
+    });
+    
+    setStars(newStars);
+  }, []);
   
   return (
     <div 
@@ -22,22 +45,37 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
         transition: 'opacity 0.8s ease-in-out'
       }}
     >
+      {/* Star field background */}
+      <div className="absolute inset-0 w-full h-full star-field" aria-hidden="true">
+        {stars.map((star, i) => (
+          <div
+            key={`star-${i}`}
+            className={`star ${star.size}`}
+            style={{
+              left: `${star.x}%`,
+              top: `${star.y}%`,
+              animationDelay: `${star.delay}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Galactic nebula background */}
+      <div className="absolute inset-0 w-full h-full galaxy-gradient opacity-60" aria-hidden="true" />
+      
       {/* Simulated background visualization */}
       <div className="absolute inset-0 w-full h-full" aria-hidden="true">
-        <svg width="100%" height="100%" viewBox="0 0 800 600" className="opacity-10">
+        <svg width="100%" height="100%" viewBox="0 0 800 600" className="opacity-20">
           <defs>
             <radialGradient id="bg-gradient" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="hsl(260, 60%, 30%)" />
-              <stop offset="100%" stopColor="hsl(240, 50%, 10%)" />
+              <stop offset="0%" stopColor="hsl(var(--galaxy-core))" />
+              <stop offset="100%" stopColor="hsl(var(--cosmic-dark))" />
             </radialGradient>
             <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
           </defs>
-
-          {/* Background */}
-          <rect width="100%" height="100%" fill="url(#bg-gradient)" />
 
           {/* Simulated nodes and connections for knowledge graph */}
           {type === 'knowledge-graph' && (
@@ -53,7 +91,7 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
                       cx={x} 
                       cy={y} 
                       r={size} 
-                      fill={`hsla(${(i * 30) % 360}, 70%, 60%, 0.5)`} 
+                      fill={`hsla(${(i * 30) % 360}, 70%, 60%, 0.7)`} 
                       filter="url(#glow)"
                     />
                   </g>
@@ -73,8 +111,8 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
                   <path 
                     key={`p-${i}`}
                     d={`M${fromX},${fromY} Q${(fromX + toX) / 2 + (Math.random() * 100 - 50)},${(fromY + toY) / 2 + (Math.random() * 100 - 50)} ${toX},${toY}`}
-                    stroke={`hsla(${(i * 20) % 360}, 70%, 60%, 0.2)`}
-                    strokeWidth={Math.random() * 2 + 0.5}
+                    stroke={`hsla(${(i * 20) % 360}, 70%, 60%, 0.5)`}
+                    strokeWidth={Math.random() * 2 + 0.8}
                     fill="none"
                   />
                 );
@@ -85,67 +123,70 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
           {/* Simulated cosmic visualization */}
           {type === 'cosmic' && (
             <>
-              {/* Stars */}
-              {[...Array(100)].map((_, i) => {
-                const x = Math.random() * 800;
-                const y = Math.random() * 600;
-                const size = Math.random() * 1.5;
-                return (
-                  <circle 
-                    key={i} 
-                    cx={x} 
-                    cy={y} 
-                    r={size} 
-                    fill="white" 
-                    opacity={Math.random() * 0.8 + 0.2}
-                    className={Math.random() > 0.7 ? "animate-pulse-subtle" : ""}
-                  />
-                );
-              })}
-
-              {/* Nebula clouds */}
-              {[...Array(5)].map((_, i) => {
-                const x = 100 + Math.random() * 600;
-                const y = 100 + Math.random() * 400;
-                const size = 50 + Math.random() * 100;
-                return (
-                  <circle 
-                    key={`n-${i}`}
-                    cx={x}
-                    cy={y}
-                    r={size}
-                    fill={`hsla(${(i * 40 + 200) % 360}, 70%, 50%, 0.05)`}
-                    filter="url(#glow)"
-                    className="animate-pulse-subtle"
-                    style={{ animationDelay: `${i * 0.5}s` }}
-                  />
-                );
-              })}
-
               {/* Celestial bodies */}
               {[...Array(7)].map((_, i) => {
                 const x = 100 + Math.random() * 600;
                 const y = 100 + Math.random() * 400;
-                const size = 10 + Math.random() * 20;
+                const size = 15 + Math.random() * 25;
                 return (
                   <g key={`c-${i}`}>
                     <circle 
                       cx={x}
                       cy={y}
                       r={size}
-                      fill={`hsla(${(i * 60) % 360}, 80%, 60%, 0.3)`}
+                      fill={`hsla(${(i * 60) % 360}, 80%, 60%, 0.6)`}
+                      filter="url(#glow)"
                     />
                     <circle 
                       cx={x}
                       cy={y}
-                      r={size + 10}
+                      r={size + 15}
                       fill="none"
-                      stroke={`hsla(${(i * 60) % 360}, 80%, 60%, 0.1)`}
-                      strokeWidth="1"
-                      strokeDasharray="3,3"
+                      stroke={`hsla(${(i * 60) % 360}, 80%, 60%, 0.3)`}
+                      strokeWidth="2"
+                      strokeDasharray="5,5"
                       className="animate-spin-slow"
                       style={{ animationDuration: `${20 + i * 5}s` }}
                     />
+                  </g>
+                );
+              })}
+
+              {/* Connection lines between celestial bodies */}
+              {[...Array(10)].map((_, i) => {
+                const x1 = 100 + Math.random() * 600;
+                const y1 = 100 + Math.random() * 400;
+                const x2 = 100 + Math.random() * 600;
+                const y2 = 100 + Math.random() * 400;
+                
+                // Create a curved path
+                const midX = (x1 + x2) / 2 + (Math.random() * 80 - 40);
+                const midY = (y1 + y2) / 2 + (Math.random() * 80 - 40);
+                
+                return (
+                  <g key={`conn-${i}`}>
+                    <path
+                      d={`M${x1},${y1} Q${midX},${midY} ${x2},${y2}`}
+                      stroke={`hsla(${(i * 40 + 200) % 360}, 80%, 65%, 0.4)`}
+                      strokeWidth="1.5"
+                      fill="none"
+                      strokeDasharray="8,4"
+                    />
+                    {/* Add animated particles along the path */}
+                    {[...Array(3)].map((_, j) => (
+                      <circle
+                        key={`p-${i}-${j}`}
+                        r="2"
+                        fill={`hsla(${(i * 40 + 200) % 360}, 80%, 75%, 0.8)`}
+                        filter="url(#glow)"
+                        className="animate-pulse-subtle"
+                        style={{
+                          offsetPath: `path('M${x1},${y1} Q${midX},${midY} ${x2},${y2}')`,
+                          offsetDistance: `${j * 33}%`,
+                          animation: `flowParticle ${4 + Math.random() * 3}s infinite linear ${j * 1.5}s`
+                        }}
+                      />
+                    ))}
                   </g>
                 );
               })}
@@ -161,8 +202,9 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
                 y1="300" 
                 x2="750" 
                 y2="300" 
-                stroke="rgba(255, 255, 255, 0.3)" 
+                stroke="rgba(255, 255, 255, 0.4)" 
                 strokeWidth="2"
+                strokeDasharray="2,2"
               />
               
               {/* Time periods */}
@@ -176,41 +218,42 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
                     y="270"
                     width={width}
                     height="60"
-                    rx="4"
-                    fill={`hsla(${(i * 60 + 200) % 360}, 70%, 50%, 0.05)`}
-                    stroke={`hsla(${(i * 60 + 200) % 360}, 70%, 50%, 0.2)`}
-                    strokeWidth="1"
+                    rx="6"
+                    fill={`hsla(${(i * 60 + 200) % 360}, 70%, 50%, 0.1)`}
+                    stroke={`hsla(${(i * 60 + 200) % 360}, 70%, 50%, 0.25)`}
+                    strokeWidth="1.5"
                   />
                 );
               })}
               
               {/* Events */}
-              {[...Array(10)].map((_, i) => {
-                const x = 80 + i * 70;
-                const y = Math.random() > 0.5 ? 270 : 330;
-                const direction = y === 270 ? -1 : 1;
+              {[...Array(12)].map((_, i) => {
+                const x = 80 + i * 60;
+                const y = Math.random() > 0.5 ? 260 : 340;
+                const direction = y === 260 ? -1 : 1;
                 
                 return (
-                  <g key={`e-${i}`}>
+                  <g key={`e-${i}`} className="animate-pulse-subtle" style={{ animationDelay: `${i * 0.2}s` }}>
                     <circle 
                       cx={x}
                       cy={300}
                       r="5"
                       fill={`hsla(${(i * 30) % 360}, 70%, 60%, 0.8)`}
+                      filter="url(#glow)"
                     />
                     <line 
                       x1={x} 
                       y1={300} 
                       x2={x} 
                       y2={y} 
-                      stroke="rgba(255, 255, 255, 0.2)"
-                      strokeDasharray="2,2"
+                      stroke="rgba(255, 255, 255, 0.3)"
+                      strokeDasharray="4,4"
                     />
                     <circle 
                       cx={x}
                       cy={y}
-                      r="3"
-                      fill={`hsla(${(i * 30) % 360}, 70%, 60%, 0.6)`}
+                      r="4"
+                      fill={`hsla(${(i * 30) % 360}, 70%, 60%, 0.7)`}
                     />
                   </g>
                 );
@@ -222,23 +265,23 @@ const VisualizationPlaceholder: React.FC<VisualizationPlaceholderProps> = ({
 
       {/* Overlay content */}
       <div className="relative flex flex-col items-center justify-center text-center p-8 max-w-md z-10">
-        <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          {type === 'knowledge-graph' && <Network className="h-10 w-10 text-primary" />}
-          {type === 'cosmic' && <Sparkles className="h-10 w-10 text-primary" />}
-          {type === 'timeline' && <History className="h-10 w-10 text-primary" />}
+        <div className="h-20 w-20 rounded-full cosmic-gradient flex items-center justify-center mb-4 shadow-lg shadow-cosmic/30">
+          {type === 'knowledge-graph' && <Network className="h-10 w-10 text-white" />}
+          {type === 'cosmic' && <Sparkles className="h-10 w-10 text-white" />}
+          {type === 'timeline' && <History className="h-10 w-10 text-white" />}
         </div>
         
-        <h3 className="text-xl font-medium mb-2">ChronoMind Visualization</h3>
+        <h3 className="text-xl font-medium mb-2 text-primary">ChronoMind Visualization</h3>
         <p className="text-muted-foreground mb-6">{message}</p>
 
         {/* Floating decorative elements */}
-        <div className="absolute -top-10 -left-10 text-primary/20 animate-float-slow">
+        <div className="absolute -top-10 -left-10 text-primary/30 animate-float-slow">
           <CircleDashed className="h-16 w-16" />
         </div>
-        <div className="absolute -bottom-6 -right-6 text-primary/20 animate-float-slow" style={{ animationDelay: '1s' }}>
+        <div className="absolute -bottom-6 -right-6 text-primary/30 animate-float-slow" style={{ animationDelay: '1s' }}>
           <GitBranch className="h-12 w-12" />
         </div>
-        <div className="absolute top-20 right-10 text-primary/20 animate-pulse-subtle">
+        <div className="absolute top-20 right-10 text-primary/30 animate-pulse-subtle">
           <Star className="h-8 w-8" />
         </div>
       </div>

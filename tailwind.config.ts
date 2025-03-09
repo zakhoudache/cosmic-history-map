@@ -58,7 +58,18 @@ export default {
 					dark: 'hsl(var(--cosmic-dark))',
 					light: 'hsl(var(--cosmic-light))',
 					accent: 'hsl(var(--cosmic-accent))',
-					muted: 'hsl(var(--cosmic-muted))'
+					muted: 'hsl(var(--cosmic-muted))',
+					nebula: 'hsl(var(--cosmic-nebula))',
+					supernova: 'hsl(var(--cosmic-supernova))',
+					void: 'hsl(var(--cosmic-void))',
+					stardust: 'hsl(var(--cosmic-stardust))'
+				},
+				galaxy: {
+					core: 'hsl(var(--galaxy-core))',
+					spiral: 'hsl(var(--galaxy-spiral))',
+					dust: 'hsl(var(--galaxy-dust))',
+					star: 'hsl(var(--galaxy-star))',
+					nova: 'hsl(var(--galaxy-nova))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -111,6 +122,23 @@ export default {
 				'shimmer': {
 					'0%': { backgroundPosition: '-500px 0' },
 					'100%': { backgroundPosition: '500px 0' }
+				},
+				'twinkle': {
+					'0%, 100%': { opacity: '1', transform: 'scale(1)' },
+					'50%': { opacity: '0.5', transform: 'scale(0.7)' }
+				},
+				'nebula-shift': {
+					'0%': { transform: 'rotate(0) scale(1)' },
+					'50%': { transform: 'rotate(180deg) scale(1.1)' },
+					'100%': { transform: 'rotate(360deg) scale(1)' }
+				},
+				'galaxy-spin': {
+					from: { transform: 'rotate(0) scale(1)' },
+					to: { transform: 'rotate(360deg) scale(1.02)' }
+				},
+				'star-pulse': {
+					'0%, 100%': { opacity: '1', boxShadow: '0 0 20px 2px rgba(255, 255, 255, 0.5)' },
+					'50%': { opacity: '0.6', boxShadow: '0 0 10px 1px rgba(255, 255, 255, 0.3)' }
 				}
 			},
 			animation: {
@@ -122,7 +150,17 @@ export default {
 				'float': 'float 6s ease-in-out infinite',
 				'pulse-subtle': 'pulse-subtle 3s ease-in-out infinite',
 				'spin-slow': 'spin-slow 60s linear infinite',
-				'shimmer': 'shimmer 2s infinite linear'
+				'shimmer': 'shimmer 2s infinite linear',
+				'twinkle': 'twinkle 4s ease-in-out infinite',
+				'nebula-shift': 'nebula-shift 120s infinite alternate',
+				'galaxy-spin': 'galaxy-spin 180s linear infinite',
+				'star-pulse': 'star-pulse 4s ease-in-out infinite'
+			},
+			backgroundImage: {
+				'galaxy-gradient': 'radial-gradient(ellipse at center, hsl(var(--galaxy-core)), hsl(var(--cosmic-dark)))',
+				'nebula-gradient': 'linear-gradient(135deg, hsl(var(--cosmic-nebula)/0.8), hsl(var(--cosmic-void)/0.9))',
+				'stardust-pattern': 'radial-gradient(circle, transparent 20%, hsl(var(--cosmic-stardust)/0.1) 70%)',
+				'cosmic-glow': 'conic-gradient(from 0deg, hsl(var(--cosmic-light)/0.2), hsl(var(--cosmic-supernova)/0.3), hsl(var(--cosmic-light)/0.2))'
 			}
 		}
 	},
