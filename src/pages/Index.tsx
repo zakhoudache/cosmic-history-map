@@ -107,7 +107,7 @@ const Index = () => {
   return (
     <MainLayout>
       {/* Hero section */}
-      <section className="min-h-[calc(100vh-5rem)] flex flex-col justify-center relative pb-16">
+      <section className="relative min-h-[calc(100vh-5rem)] flex flex-col justify-center py-16">
         {/* Subtle galaxy background effect for hero section */}
         <div className="absolute inset-0 bg-galaxy-gradient opacity-20 animate-galaxy-spin pointer-events-none"></div>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -125,7 +125,7 @@ const Index = () => {
         </div>
         
         <div className="max-w-3xl mx-auto text-center relative z-10 px-4">
-          <div className="inline-block px-3 py-1 rounded-full bg-secondary/80 border border-galaxy-nova/20 text-xs font-medium mb-4 animate-fade-in opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
+          <div className="inline-block px-3 py-1 rounded-full bg-secondary/80 border border-galaxy-nova/30 text-xs font-medium mb-4 animate-fade-in opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
             Historical Data Visualization
           </div>
           
@@ -137,7 +137,7 @@ const Index = () => {
             Enter any historical text and watch as ChronoMind transforms it into a beautiful interactive visualization revealing connections across time and space.
           </p>
           
-          <div className="cosmic-gradient mb-8 border-galaxy-nova/30 shadow-lg shadow-galaxy-core/10 p-6 rounded-lg backdrop-blur-sm animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
+          <div className="cosmic-gradient mb-8 border border-galaxy-nova/30 shadow-lg shadow-galaxy-core/10 p-6 rounded-lg backdrop-blur-sm animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
             <TextInput onSubmit={handleTextSubmit} isLoading={isLoading} />
           </div>
         </div>
@@ -153,7 +153,7 @@ const Index = () => {
       
       {/* Visualization section */}
       {hasVisualization && (
-        <section className="py-16 visualization-section glass border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 backdrop-blur-sm mb-10" id="visualization">
+        <section className="py-16 visualization-section glass border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 backdrop-blur-sm mb-10" id="visualization">
           <Separator className="mb-16" />
           
           <div className="mb-12 text-center animate-on-scroll">
@@ -164,7 +164,7 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
-            <div className="lg:col-span-2 animate-on-scroll border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+            <div className="lg:col-span-2 animate-on-scroll border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
               <CosmicVisualization 
                 onEntitySelect={handleEntitySelect} 
                 entities={historicalEntities}
@@ -178,7 +178,7 @@ const Index = () => {
                   onClose={handleCloseEntityCard} 
                 />
               ) : (
-                <div className="glass rounded-lg p-6 h-full flex flex-col justify-center items-center text-center border border-galaxy-nova/20 shadow-lg shadow-galaxy-core/10">
+                <div className="glass rounded-lg p-6 h-full flex flex-col justify-center items-center text-center border border-galaxy-nova/30 shadow-lg shadow-galaxy-core/10">
                   <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
                     <div className="h-5 w-5 rounded-full bg-background"></div>
                   </div>
@@ -193,7 +193,7 @@ const Index = () => {
           
           <div className="mb-16 animate-on-scroll">
             <h3 className="text-xl font-medium text-galaxy-nova mb-4">Timeline View</h3>
-            <div className="border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
               <Timeline 
                 onEntitySelect={handleEntitySelect} 
                 entities={historicalEntities}
@@ -204,7 +204,7 @@ const Index = () => {
           
           <div className="animate-on-scroll">
             <h3 className="text-xl font-medium text-galaxy-nova mb-4">Knowledge Graph</h3>
-            <div className="border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
               <KnowledgeGraph 
                 onEntitySelect={handleEntitySelect} 
                 entities={historicalEntities}
@@ -266,7 +266,10 @@ const Index = () => {
       
       <section className="py-8 mb-16">
         <div className="text-center">
-          <Link to="/visualize" className="cosmic-gradient inline-block px-8 py-3 rounded-lg text-white font-medium hover:shadow-lg hover:shadow-galaxy-nova/20 transition-all duration-300 hover:-translate-y-1 border border-galaxy-nova/30 relative overflow-hidden group">
+          <Link 
+            to="/visualize" 
+            className="bg-gradient-to-r from-galaxy-spiral to-galaxy-core hover:from-galaxy-core hover:to-galaxy-nova text-white shadow-md shadow-galaxy-core/20 hover:shadow-lg hover:shadow-galaxy-nova/30 hover:-translate-y-0.5 transition-all duration-300 inline-block px-8 py-3 rounded-lg font-medium border border-galaxy-nova/30 relative overflow-hidden group"
+          >
             Try Full Visualization Experience
             <SendHorizonal className="ml-2 h-4 w-4 inline transition-transform group-hover:translate-x-1" />
           </Link>
