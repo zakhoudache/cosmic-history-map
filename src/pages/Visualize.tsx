@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Network, Sparkles, History, SendHorizonal, ArrowLeft } from 'lucide-react';
+import { Network, Sparkles, History, SendHorizonal, ArrowLeft, Book } from 'lucide-react';
 import { toast } from "sonner";
 import KnowledgeGraph from '@/components/KnowledgeGraph';
 import CosmicVisualization from '@/components/CosmicVisualization';
@@ -13,6 +14,7 @@ import Timeline from '@/components/Timeline';
 import ElementCard from '@/components/ElementCard';
 import VisualizationPlaceholder from '@/components/VisualizationPlaceholder';
 import FeaturesSection from '@/components/FeaturesSection';
+import StorytellingSection from '@/components/StorytellingSection';
 import { HistoricalEntity, SimulationNode, prepareSimulationData, mockHistoricalData } from '@/utils/mockData';
 import { Separator } from "@/components/ui/separator";
 
@@ -161,7 +163,7 @@ const Visualize: React.FC = () => {
             </div>
             
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-3 mb-6 bg-secondary/80 border border-galaxy-nova/20 p-1">
+              <TabsList className="grid grid-cols-4 mb-6 bg-secondary/80 border border-galaxy-nova/20 p-1">
                 <TabsTrigger 
                   value="knowledge-graph" 
                   className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
@@ -183,6 +185,13 @@ const Visualize: React.FC = () => {
                   <History className="h-4 w-4" />
                   Timeline
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="story" 
+                  className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
+                >
+                  <Book className="h-4 w-4" />
+                  Story
+                </TabsTrigger>
               </TabsList>
               
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -202,6 +211,14 @@ const Visualize: React.FC = () => {
                       timelineData={timelineData}
                     />
                   </TabsContent>
+                  
+                  <TabsContent value="story" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+                    <div className="p-4 h-full flex items-center justify-center">
+                      <p className="text-muted-foreground">
+                        Scroll down to explore the interactive historical storyline visualization.
+                      </p>
+                    </div>
+                  </TabsContent>
                 </div>
                 
                 {selectedEntity && (
@@ -213,6 +230,8 @@ const Visualize: React.FC = () => {
             </Tabs>
           </section>
         )}
+        
+        {hasVisualization && <StorytellingSection />}
         
         <Card className="bg-muted/40 backdrop-blur-sm mb-10 border-galaxy-nova/20 shadow-lg shadow-galaxy-core/10">
           <CardHeader>
