@@ -3,13 +3,13 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { AuthButtons } from "./AuthButtons";
+import AuthButtons from "./AuthButtons";
 import { Globe, BarChart2, Info, Youtube } from "lucide-react";
 
 export const Header: React.FC = () => {
   const location = useLocation();
-  const { authState } = useAuth();
-  const isLoggedIn = authState === "AUTHENTICATED";
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-cosmic-nebula/20 bg-black/30 backdrop-blur-xl">
