@@ -36,7 +36,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
   // Create and update visualization
   useEffect(() => {
-    if (!svgRef.current || !isVisible) return;
+    if (!svgRef.current || !isVisible || entities.length === 0) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -46,15 +46,97 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     
     // Prepare data
     const nodes = entities.map(entity => ({ ...entity }));
-    const links = getEntityConnections().map(link => ({
+    
+    // Get connections with valid source and target
+    const connectionLinks = getEntityConnections();
+    const validLinks = connectionLinks.filter(link => {
+      const sourceExists = nodes.findIndex(node => node.id === link.source) >= 0;
+      const targetExists = nodes.findIndex(node => node.id === link.target) >= 0;
+      return sourceExists && targetExists;
+    });
+    
+    // Create D3 compatible links
+    const links = validLinks.map(link => ({
       ...link,
       source: nodes.findIndex(node => node.id === link.source),
       target: nodes.findIndex(node => node.id === link.target)
     }));
     
+    // Skip rendering if no valid links
+    if (links.length === 0) {
+      // Render nodes without links
+      const nodeGroup = svg.append("g")
+        .attr("class", "nodes")
+        .selectAll(".node")
+        .data(nodes)
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("transform", (d, i) => `translate(${width/2 + (i % 3) * 50 - 50}, ${height/2 + Math.floor(i/3) * 50 - 50})`)
+        .style("cursor", "pointer")
+        .on("click", (event, d) => {
+          if (onEntitySelect) {
+            onEntitySelect(d);
+          }
+        });
+      
+      // Add shapes based on entity type
+      nodeGroup.append("path")
+        .attr("d", d => {
+          const size = 20;
+          
+          switch (d.type) {
+            case "person":
+              return d3.symbol().type(d3.symbolCircle).size(size * size)();
+            case "event":
+              return d3.symbol().type(d3.symbolSquare).size(size * size)();
+            case "place":
+              return d3.symbol().type(d3.symbolTriangle).size(size * size)();
+            case "concept":
+              return d3.symbol().type(d3.symbolDiamond).size(size * size)();
+            default:
+              return d3.symbol().type(d3.symbolCircle).size(size * size)();
+          }
+        })
+        .attr("fill", d => {
+          switch (d.group) {
+            case "cultural": return "hsl(280, 70%, 50%)";
+            case "art": return "hsl(340, 70%, 50%)";
+            case "politics": return "hsl(200, 70%, 50%)";
+            case "technology": return "hsl(150, 70%, 50%)";
+            case "geography": return "hsl(100, 70%, 50%)";
+            case "philosophy": return "hsl(50, 70%, 50%)";
+            case "history": return "hsl(20, 70%, 50%)";
+            default: return "hsl(240, 70%, 50%)";
+          }
+        })
+        .attr("stroke", "white")
+        .attr("stroke-width", 1)
+        .attr("opacity", 0)
+        .transition()
+        .delay((_, i) => i * 50)
+        .duration(500)
+        .attr("opacity", 0.8);
+      
+      // Add labels
+      nodeGroup.append("text")
+        .text(d => d.name)
+        .attr("dx", 12)
+        .attr("dy", 4)
+        .attr("font-size", 10)
+        .attr("fill", "white")
+        .attr("opacity", 0)
+        .transition()
+        .delay((_, i) => i * 50 + 300)
+        .duration(500)
+        .attr("opacity", 0.9);
+      
+      return;
+    }
+    
     // Create forces
     const simulation = d3.forceSimulation(nodes as d3.SimulationNodeDatum[])
-      .force("link", d3.forceLink<d3.SimulationNodeDatum, d3.SimulationLinkDatum<d3.SimulationNodeDatum>>(links).id(d => (d as HistoricalEntity).id))
+      .force("link", d3.forceLink(links).id((d, i) => i.toString()))
       .force("charge", d3.forceManyBody().strength(-200))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collision", d3.forceCollide().radius(30));
@@ -130,6 +212,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           case "technology": return "hsl(150, 70%, 50%)";
           case "geography": return "hsl(100, 70%, 50%)";
           case "philosophy": return "hsl(50, 70%, 50%)";
+          case "history": return "hsl(20, 70%, 50%)";
           default: return "hsl(240, 70%, 50%)";
         }
       })
@@ -157,10 +240,10 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     // Update positions
     simulation.on("tick", () => {
       link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+        .attr("x1", d => (d.source as any).x)
+        .attr("y1", d => (d.source as any).y)
+        .attr("x2", d => (d.target as any).x)
+        .attr("y2", d => (d.target as any).y);
       
       node.attr("transform", d => `translate(${d.x}, ${d.y})`);
     });
@@ -187,6 +270,11 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           transition: 'opacity 0.5s ease-in-out'
         }}
       />
+      {entities.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+          No entities to display
+        </div>
+      )}
     </div>
   );
 };
