@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 
@@ -33,17 +34,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       
       <Header />
       
-      <main className={`flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 relative z-10 glass backdrop-blur-sm rounded-lg mt-4 border border-galaxy-nova/10 shadow-lg shadow-galaxy-core/5 transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+      <main className={`flex-1 w-full relative z-10 transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
         {children}
       </main>
       
       <footer className="py-6 px-4 sm:px-6 md:px-8 border-t border-galaxy-nova/20 backdrop-blur-sm relative z-10">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            ChronoMind — Cosmic Historical Visualization
+            ChronoLoom — Cosmic Historical Visualization
           </p>
           <p className="text-sm text-muted-foreground mt-2 sm:mt-0">
-            © {new Date().getFullYear()} ChronoMind
+            © {new Date().getFullYear()} ChronoLoom
           </p>
         </div>
       </footer>
