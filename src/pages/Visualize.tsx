@@ -22,6 +22,10 @@ const Visualize = () => {
     setLoading(false);
   };
 
+  const handleAnalysisStart = () => {
+    setLoading(true);
+  };
+
   const handleVisTypeChange = (type: "graph" | "timeline") => {
     setVisualizationType(type);
   };
@@ -42,6 +46,7 @@ const Visualize = () => {
         <TextInput 
           onSubmit={handleTextSubmit} 
           isLoading={loading} 
+          onStartAnalysis={handleAnalysisStart}
         />
 
         <div className="mt-8">
@@ -54,7 +59,14 @@ const Visualize = () => {
           )}
           
           <div className="mt-4 bg-background/50 backdrop-blur-sm rounded-lg border border-galaxy-nova/20 shadow-xl p-4 min-h-[500px] relative overflow-hidden">
-            {showPlaceholder ? (
+            {loading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                  <p className="mt-4 text-muted-foreground">Analyzing and preparing visualization...</p>
+                </div>
+              </div>
+            ) : showPlaceholder ? (
               <VisualizationPlaceholder />
             ) : (
               <>
