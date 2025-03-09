@@ -70,3 +70,7 @@ export interface SimulationNode {
   fz?: number | null;
   [key: string]: any;
 }
+
+// Add missing types that are referenced in mockDataHelpers.ts
+export type SimulationEntity = SimulationNode;
+export type EntityLink = GraphLink;

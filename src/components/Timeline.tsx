@@ -25,6 +25,7 @@ import {
 interface TimelineProps {
   entities?: FormattedHistoricalEntity[];
   onEntitySelect?: (entity: FormattedHistoricalEntity) => void;
+  timelineData?: any; // Add timelineData prop to fix the type error
 }
 
 const Timeline: React.FC<TimelineProps> = ({ entities = [], onEntitySelect }) => {
