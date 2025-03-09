@@ -3,20 +3,46 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, FileText, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TextInputProps {
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string, analysisResult: any) => void;
   isLoading?: boolean;
 }
 
 const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading = false }) => {
   const [text, setText] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim()) {
-      onSubmit(text);
+    if (!text.trim()) return;
+    
+    try {
+      setIsAnalyzing(true);
+      
+      // Call the Supabase Edge Function to analyze the text
+      const { data, error } = await supabase.functions.invoke('analyze-historical-text', {
+        body: { text },
+      });
+      
+      if (error) {
+        console.error("Error analyzing text:", error);
+        toast.error("Failed to analyze text. Please try again.");
+        return;
+      }
+      
+      // Pass both the text and the analysis result to the parent component
+      onSubmit(text, data);
+      
+      toast.success("Text analyzed successfully!");
+    } catch (error) {
+      console.error("Error analyzing text:", error);
+      toast.error("Failed to analyze text. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -68,15 +94,15 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading = false }) =>
             
             <Button 
               type="submit" 
-              disabled={!text.trim() || isLoading}
+              disabled={!text.trim() || isLoading || isAnalyzing}
               className="relative overflow-hidden transition-all"
             >
-              {isLoading ? (
+              {isLoading || isAnalyzing ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <ArrowRight className="h-4 w-4 mr-2" />
               )}
-              Visualize
+              {isAnalyzing ? "Analyzing..." : "Visualize"}
               <span className="absolute inset-0 h-full w-full bg-cosmic/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
             </Button>
           </div>

@@ -17,6 +17,8 @@ const Index = () => {
   const [hasVisualization, setHasVisualization] = useState(false);
   const [selectedEntity, setSelectedEntity] = useState<HistoricalEntity | null>(null);
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const [historicalEntities, setHistoricalEntities] = useState<HistoricalEntity[]>(mockHistoricalData);
+  const [timelineData, setTimelineData] = useState<any>(null);
 
   // Initialize scroll animations
   useEffect(() => {
@@ -32,15 +34,38 @@ const Index = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleTextSubmit = (text: string) => {
+  const handleTextSubmit = (text: string, analysisResult: any) => {
     setIsLoading(true);
     
-    // Simulate processing with delay
-    setTimeout(() => {
+    try {
+      console.log("Analysis result:", analysisResult);
+      
+      if (analysisResult && analysisResult.entities) {
+        // Convert the Gemini API response to our HistoricalEntity format
+        const entities = analysisResult.entities.map((entity: any) => ({
+          id: entity.id,
+          name: entity.name,
+          type: entity.type,
+          startDate: entity.startDate,
+          endDate: entity.endDate,
+          description: entity.description,
+          significance: entity.significance,
+          group: entity.group
+        }));
+        
+        setHistoricalEntities(entities);
+        setTimelineData(analysisResult.timeline);
+        setHasVisualization(true);
+        toast.success("Visualization created successfully");
+      } else {
+        toast.error("Failed to analyze text properly. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error processing analysis result:", error);
+      toast.error("An error occurred while creating the visualization");
+    } finally {
       setIsLoading(false);
-      setHasVisualization(true);
-      toast.success("Visualization created successfully");
-    }, 1500);
+    }
   };
 
   const handleEntitySelect = (entity: HistoricalEntity) => {
@@ -102,7 +127,10 @@ const Index = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
             <div className="lg:col-span-2 animate-on-scroll">
-              <CosmicVisualization onEntitySelect={handleEntitySelect} />
+              <CosmicVisualization 
+                onEntitySelect={handleEntitySelect} 
+                entities={historicalEntities}
+              />
             </div>
             
             <div className="animate-on-scroll">
@@ -127,12 +155,19 @@ const Index = () => {
           
           <div className="mb-16 animate-on-scroll">
             <h3 className="text-xl mb-4">Timeline View</h3>
-            <Timeline onEntitySelect={handleEntitySelect} />
+            <Timeline 
+              onEntitySelect={handleEntitySelect} 
+              entities={historicalEntities}
+              timelineData={timelineData}
+            />
           </div>
           
           <div className="animate-on-scroll">
             <h3 className="text-xl mb-4">Knowledge Graph</h3>
-            <KnowledgeGraph onEntitySelect={handleEntitySelect} />
+            <KnowledgeGraph 
+              onEntitySelect={handleEntitySelect} 
+              entities={historicalEntities}
+            />
           </div>
         </section>
       )}
