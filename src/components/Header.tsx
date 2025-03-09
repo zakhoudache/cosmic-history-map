@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import AuthButtons from "./AuthButtons";
 import { Globe, BarChart2, Info, Youtube } from "lucide-react";
 
-export const Header: React.FC = () => {
+const Header: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
   const isLoggedIn = !!user;
@@ -76,3 +76,5 @@ export const Header: React.FC = () => {
     </header>
   );
 };
+
+export default Header;

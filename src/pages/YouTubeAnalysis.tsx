@@ -1,17 +1,15 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
-import VisualizationControls from "@/components/VisualizationControls";
-import { Loader2, ExternalLink, Play, Pause, Youtube } from "lucide-react";
+import { Loader2, ExternalLink, Youtube } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchYoutubeTranscription, analyzeTranscription } from "@/services/youtubeService";
 import { FormattedHistoricalEntity } from "@/types/supabase";
-import { VisualizationType } from "@/types/simulation";
 
 const YouTubeAnalysis = () => {
   // States for the YouTube video and analysis
@@ -52,30 +50,20 @@ const YouTubeAnalysis = () => {
     
     setLoading(true);
     try {
-      // Call the Supabase Edge Function to get the YouTube transcription
-      const { data, error } = await supabase.functions.invoke("get-youtube-transcription", {
-        body: { videoId }
-      });
-
-      if (error) throw error;
-      
-      if (data && data.transcription) {
-        setTranscription(data.transcription);
-        setActiveTab("transcription");
-        toast.success("Transcription fetched successfully");
-      } else {
-        toast.error("No transcription found for this video");
-      }
+      const transcriptionText = await fetchYoutubeTranscription(videoId);
+      setTranscription(transcriptionText);
+      setActiveTab("transcription");
+      toast.success("Transcription fetched successfully");
     } catch (error) {
       console.error("Error fetching transcription:", error);
-      toast.error("Failed to fetch transcription");
+      toast.error("Failed to fetch transcription: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setLoading(false);
     }
   };
 
   // Analyze transcription to extract historical entities
-  const analyzeTranscription = async () => {
+  const handleAnalyzeTranscription = async () => {
     if (!transcription) {
       toast.error("No transcription to analyze");
       return;
@@ -83,24 +71,18 @@ const YouTubeAnalysis = () => {
     
     setAnalyzing(true);
     try {
-      // Call the Supabase Edge Function to analyze the transcription
-      const { data, error } = await supabase.functions.invoke("analyze-historical-text", {
-        body: { text: transcription }
-      });
-
-      if (error) throw error;
+      const extractedEntities = await analyzeTranscription(transcription);
       
-      if (data && data.entities && data.entities.length > 0) {
-        console.log("Analyzed entities:", data.entities);
-        setEntities(data.entities);
+      if (extractedEntities.length > 0) {
+        setEntities(extractedEntities);
         setActiveTab("visualization");
-        toast.success(`Analysis complete: ${data.entities.length} entities found`);
+        toast.success(`Analysis complete: ${extractedEntities.length} entities found`);
       } else {
         toast.warning("No significant entities found in the transcription");
       }
     } catch (error) {
       console.error("Error analyzing transcription:", error);
-      toast.error("Failed to analyze transcription");
+      toast.error("Failed to analyze transcription: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setAnalyzing(false);
     }
@@ -197,7 +179,7 @@ const YouTubeAnalysis = () => {
               </CardContent>
               <CardFooter>
                 <Button 
-                  onClick={analyzeTranscription} 
+                  onClick={handleAnalyzeTranscription} 
                   disabled={!transcription || analyzing} 
                   className="ml-auto"
                 >
