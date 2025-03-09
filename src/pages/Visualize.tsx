@@ -59,7 +59,7 @@ const Visualize = () => {
             />
           )}
           
-          <div className="mt-4 bg-background/50 backdrop-blur-sm rounded-lg border border-galaxy-nova/20 shadow-xl p-4 min-h-[500px] relative overflow-hidden">
+          <div className="mt-4 bg-background/50 backdrop-blur-sm rounded-lg border border-galaxy-nova/20 shadow-xl p-4 min-h-[700px] relative overflow-hidden">
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
