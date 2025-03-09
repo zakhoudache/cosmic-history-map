@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, prepareVisualizationData } from '@/utils/mockData';
@@ -27,6 +27,36 @@ interface EntityLink {
   target: SimulationEntity;
   type?: string;
   strength: number;
+}
+
+// Helper color functions
+function getEntityTypeColor(type: string, opacity: number = 1): string {
+  switch (type) {
+    case 'person':
+      return `hsla(210, 100%, 60%, ${opacity})`;
+    case 'event':
+      return `hsla(30, 100%, 60%, ${opacity})`;
+    case 'place':
+      return `hsla(120, 70%, 60%, ${opacity})`;
+    case 'concept':
+      return `hsla(270, 70%, 60%, ${opacity})`;
+    default:
+      return `hsla(190, 70%, 60%, ${opacity})`;
+  }
+}
+
+function lightenColor(color: string, amount: number): string {
+  // Basic implementation to lighten HSLA colors
+  return color.replace(/hsla?\((\d+),\s*(\d+)%,\s*(\d+)%/g, (_, h, s, l) => 
+    `hsla(${h}, ${s}%, ${Math.min(100, Number(l) + amount)}%`
+  );
+}
+
+function darkenColor(color: string, amount: number): string {
+  // Basic implementation to darken HSLA colors
+  return color.replace(/hsla?\((\d+),\s*(\d+)%,\s*(\d+)%/g, (_, h, s, l) => 
+    `hsla(${h}, ${s}%, ${Math.max(0, Number(l) - amount)}%`
+  );
 }
 
 const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({ 
@@ -752,4 +782,21 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         .attr("cy", height * (0.3 + (i % 2) * 0.4))
         .attr("rx", 150 + Math.random() * 100)
         .attr("ry", 100 + Math.random() * 80)
-        .attr("
+        .attr("fill", color)
+        .attr("filter", "url(#noise)")
+        .attr("opacity", 0.3);
+    });
+  }
+
+  return (
+    <div className="relative w-full h-full min-h-[600px] overflow-hidden rounded-lg glass">
+      <svg 
+        ref={svgRef} 
+        className="w-full h-full" 
+        style={{ minHeight: '600px' }}
+      />
+    </div>
+  );
+};
+
+export default CosmicVisualization;
