@@ -1,39 +1,72 @@
+import { SimulationNode, GraphLink, SimulationEntity, EntityLink } from "@/types/simulation";
 
-import { HistoricalEntity } from './mockData';
-import { SimulationEntity, EntityLink } from '@/types/simulation';
+// Helper function to create a link between two simulation entities
+export function createLink(
+  source: SimulationEntity,
+  target: SimulationEntity,
+  type: string,
+  strength: number = 1
+): EntityLink {
+  return {
+    source: source.id,
+    target: target.id,
+    type,
+    strength,
+  };
+}
 
-export function prepareSimulationData(entities: HistoricalEntity[]): SimulationEntity[] {
-  return entities.map(entity => ({
-    ...entity,
-    // Add simulation properties
+// Create nodes from historical entities for simulation
+export function createSimulationNodes(entities: any[]): SimulationNode[] {
+  return entities.map((entity) => ({
+    id: entity.id || `node-${Math.random().toString(36).substr(2, 9)}`,
+    name: entity.name || entity.title || "Unknown Entity",
+    type: entity.type || "person",
+    group: entity.group || "default",
+    color: entity.color || "#ffffff",
+    // Add other properties as needed
     x: undefined,
     y: undefined,
-    fx: null,
-    fy: null,
-    vx: undefined,
-    vy: undefined
+    z: undefined,
+    ...entity,
   }));
 }
 
-export function getEntityConnections(entities: HistoricalEntity[], entity: HistoricalEntity): EntityLink[] {
-  if (!entity.relations || !Array.isArray(entity.relations)) {
-    return [];
+// Create links between nodes based on relationships
+export function createSimulationLinks(
+  nodes: SimulationEntity[],
+  relationships: any[] = []
+): EntityLink[] {
+  const links: EntityLink[] = [];
+
+  // Create links from explicit relationships if provided
+  if (relationships.length > 0) {
+    relationships.forEach((rel) => {
+      links.push({
+        source: rel.source,
+        target: rel.target,
+        type: rel.type || "related",
+        strength: rel.strength || 1,
+      });
+    });
+    return links;
   }
-  
-  return entity.relations
-    .map(relation => {
-      const targetId = relation.target;
-      const target = entities.find(e => e.id === targetId);
-      
-      if (target) {
-        return {
-          source: entity as SimulationEntity,
-          target: target as SimulationEntity,
-          type: relation.type || 'connected to',
-          strength: 1 // Default strength if not specified
-        } as EntityLink;
-      }
-      return null;
-    })
-    .filter(Boolean) as EntityLink[]; // Remove null values
+
+  // Otherwise, create some default connections for visualization
+  for (let i = 0; i < nodes.length; i++) {
+    // Connect each node to a few others to create a connected graph
+    const numConnections = Math.min(2, nodes.length - 1);
+    for (let j = 0; j < numConnections; j++) {
+      const targetIndex = (i + j + 1) % nodes.length;
+      links.push(
+        createLink(
+          nodes[i],
+          nodes[targetIndex],
+          "related",
+          Math.random() * 0.5 + 0.5
+        )
+      );
+    }
+  }
+
+  return links;
 }

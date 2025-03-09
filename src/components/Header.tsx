@@ -1,53 +1,78 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import AuthButtons from "./AuthButtons";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthButtons } from "./AuthButtons";
+import { Globe, BarChart2, Info, Youtube } from "lucide-react";
 
-const Header = () => {
+export const Header: React.FC = () => {
   const location = useLocation();
-
-  // Determine if we're on the homepage
-  const isHomePage = location.pathname === "/";
-  
-  // Apply different styles based on route
-  const headerClass = isHomePage 
-    ? "absolute top-0 left-0 right-0 z-50" 
-    : "bg-background/80 backdrop-blur-md border-b border-galaxy-nova/10";
+  const { authState } = useAuth();
+  const isLoggedIn = authState === "AUTHENTICATED";
 
   return (
-    <header className={`py-4 ${headerClass}`}>
-      <div className="container mx-auto px-4 flex items-center justify-between">
-        <Link 
-          to="/" 
-          className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-galaxy-spiral to-galaxy-nova"
-        >
-          ChronicleNexus
-        </Link>
-        
-        <nav className="flex items-center gap-6">
-          <Link 
-            to="/" 
-            className={`text-sm hover:text-galaxy-nova transition-colors ${location.pathname === "/" ? "text-galaxy-nova" : "text-foreground/80"}`}
+    <header className="sticky top-0 z-50 w-full border-b border-cosmic-nebula/20 bg-black/30 backdrop-blur-xl">
+      <div className="container flex h-14 items-center">
+        <div className="mr-4 flex">
+          <Link
+            to="/"
+            className="mr-6 flex items-center space-x-2 hover:opacity-80 transition-opacity"
           >
-            Home
+            <Globe className="h-6 w-6 text-cosmic-nebula" />
+            <span className="hidden font-bold sm:inline-block text-cosmic-light">
+              HistoryGPT
+            </span>
           </Link>
-          <Link 
-            to="/visualize" 
-            className={`text-sm hover:text-galaxy-nova transition-colors ${location.pathname === "/visualize" ? "text-galaxy-nova" : "text-foreground/80"}`}
-          >
-            Visualize
-          </Link>
-          <Link 
-            to="/about" 
-            className={`text-sm hover:text-galaxy-nova transition-colors ${location.pathname === "/about" ? "text-galaxy-nova" : "text-foreground/80"}`}
-          >
-            About
-          </Link>
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            <Link
+              to="/visualize"
+              className={cn(
+                "transition-colors hover:text-cosmic-nebula",
+                location.pathname === "/visualize"
+                  ? "text-cosmic-nebula"
+                  : "text-muted-foreground"
+              )}
+            >
+              <span className="flex items-center gap-1">
+                <BarChart2 className="h-4 w-4" />
+                <span>Visualize</span>
+              </span>
+            </Link>
+            <Link
+              to="/youtube-analysis"
+              className={cn(
+                "transition-colors hover:text-cosmic-nebula",
+                location.pathname === "/youtube-analysis"
+                  ? "text-cosmic-nebula"
+                  : "text-muted-foreground"
+              )}
+            >
+              <span className="flex items-center gap-1">
+                <Youtube className="h-4 w-4" />
+                <span>YouTube Analysis</span>
+              </span>
+            </Link>
+            <Link
+              to="/about"
+              className={cn(
+                "transition-colors hover:text-cosmic-nebula",
+                location.pathname === "/about"
+                  ? "text-cosmic-nebula"
+                  : "text-muted-foreground"
+              )}
+            >
+              <span className="flex items-center gap-1">
+                <Info className="h-4 w-4" />
+                <span>About</span>
+              </span>
+            </Link>
+          </nav>
+        </div>
+        <div className="ml-auto flex items-center space-x-4">
           <AuthButtons />
-        </nav>
+        </div>
       </div>
     </header>
   );
 };
-
-export default Header;
