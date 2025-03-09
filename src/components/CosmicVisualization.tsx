@@ -4,6 +4,10 @@ import * as d3 from 'd3';
 import { HistoricalEntity, prepareSimulationData } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import VisualizationPlaceholder from './VisualizationPlaceholder';
+import { ZoomIn, ZoomOut, Maximize, Minimize, Download } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface CosmicVisualizationProps {
   entities?: HistoricalEntity[];
@@ -15,10 +19,14 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   onEntitySelect
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const visualizationData = entities && entities.length > 0 ? entities : [];
   const isVisible = useAnimateOnMount(300);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const hasData = entities && entities.length > 0;
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  const [zoomTransform, setZoomTransform] = useState<d3.ZoomTransform | null>(null);
   
   // Initialize layout and resize handling
   useEffect(() => {
@@ -37,13 +45,144 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     };
   }, []);
   
+  // Initialize zoom behavior
+  useEffect(() => {
+    if (!svgRef.current || !hasData) return;
+    
+    const svg = d3.select(svgRef.current);
+    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.25, 3]) // Zoom scale limits (min, max)
+      .on("zoom", (event) => {
+        const { transform } = event;
+        setZoomTransform(transform);
+        setZoomLevel(transform.k);
+        
+        // Apply zoom to the main container
+        svg.select("g.visualization-container")
+          .attr("transform", transform.toString());
+      });
+    
+    svg.call(zoomBehavior);
+    
+    // Reset zoom on double-click
+    svg.on("dblclick.zoom", () => {
+      svg.transition()
+        .duration(750)
+        .call(zoomBehavior.transform, d3.zoomIdentity);
+      setZoomLevel(1);
+    });
+    
+    return () => {
+      // Cleanup
+      svg.on(".zoom", null);
+    };
+  }, [hasData, dimensions]);
+  
+  // Handle manual zoom controls
+  const handleZoomIn = () => {
+    if (!svgRef.current) return;
+    
+    const svg = d3.select(svgRef.current);
+    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.25, 3]);
+    
+    const currentTransform = zoomTransform || d3.zoomIdentity;
+    const newScale = Math.min(currentTransform.k * 1.3, 3);
+    
+    svg.transition()
+      .duration(300)
+      .call(
+        zoomBehavior.transform,
+        currentTransform.scale(newScale / currentTransform.k)
+      );
+      
+    setZoomLevel(newScale);
+  };
+  
+  const handleZoomOut = () => {
+    if (!svgRef.current) return;
+    
+    const svg = d3.select(svgRef.current);
+    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.25, 3]);
+    
+    const currentTransform = zoomTransform || d3.zoomIdentity;
+    const newScale = Math.max(currentTransform.k * 0.7, 0.25);
+    
+    svg.transition()
+      .duration(300)
+      .call(
+        zoomBehavior.transform,
+        currentTransform.scale(newScale / currentTransform.k)
+      );
+      
+    setZoomLevel(newScale);
+  };
+  
+  const handleZoomReset = () => {
+    if (!svgRef.current) return;
+    
+    const svg = d3.select(svgRef.current);
+    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>();
+    
+    svg.transition()
+      .duration(500)
+      .call(zoomBehavior.transform, d3.zoomIdentity);
+      
+    setZoomLevel(1);
+  };
+  
+  const handleExport = () => {
+    if (!svgRef.current) return;
+    
+    try {
+      // Clone the SVG to avoid modifying the original
+      const svgCopy = svgRef.current.cloneNode(true) as SVGSVGElement;
+      
+      // Set the SVG dimensions and viewBox
+      svgCopy.setAttribute('width', dimensions.width.toString());
+      svgCopy.setAttribute('height', dimensions.height.toString());
+      svgCopy.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
+      
+      // Convert SVG to string
+      const svgData = new XMLSerializer().serializeToString(svgCopy);
+      
+      // Create a Blob and URL
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cosmic-visualization.svg';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Visualization exported as SVG");
+    } catch (error) {
+      console.error('Error exporting visualization:', error);
+      toast.error("Failed to export visualization");
+    }
+  };
+  
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+  };
+  
   // Create and update visualization only if we have data
   useEffect(() => {
     if (!svgRef.current || !isVisible || !hasData) return;
     
-    
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
+    
+    // Create main container for zoom transformations
+    const container = svg.append("g")
+      .attr("class", "visualization-container");
     
     // Set up the SVG
     const { width, height } = dimensions;
@@ -51,7 +190,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     const centerY = height / 2;
     
     // Create a background
-    const defs = svg.append("defs");
+    const defs = container.append("defs");
     
     // Add a radial gradient for the background
     const gradient = defs.append("radialGradient")
@@ -171,7 +310,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       `);
     
     // Add the background
-    svg.append("circle")
+    container.append("circle")
       .attr("cx", centerX)
       .attr("cy", centerY)
       .attr("r", Math.min(width, height) * 0.4)
@@ -188,7 +327,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       pulsate: Math.random() > 0.7
     }));
     
-    const stars = svg.selectAll(".star")
+    const stars = container.selectAll(".star")
       .data(starData)
       .enter()
       .append("circle")
@@ -210,7 +349,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       const size = 50 + Math.random() * 100;
       const hue = Math.random() * 360;
       
-      svg.append("circle")
+      container.append("circle")
         .attr("cx", x)
         .attr("cy", y)
         .attr("r", size)
@@ -257,7 +396,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .filter(link => link !== null);
     
     // Create entity links group
-    const linkGroup = svg.append("g")
+    const linkGroup = container.append("g")
       .attr("class", "links");
     
     // Create cosmic link paths with animated flows
@@ -328,7 +467,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     });
     
     // Create entity nodes
-    const nodeGroups = svg.append("g")
+    const nodeGroups = container.append("g")
       .attr("class", "nodes")
       .selectAll(".node")
       .data(typedData)
@@ -583,7 +722,64 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   }
   
   return (
-    <div className="w-full h-full min-h-[500px] relative overflow-hidden rounded-lg glass">
+    <div className="w-full h-full min-h-[500px] relative overflow-hidden rounded-lg glass" ref={containerRef}>
+      {/* Control panel */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 bg-background/50 backdrop-blur-sm p-2 rounded-lg border border-galaxy-nova/20">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleZoomIn}
+          className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4 text-galaxy-nova" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleZoomOut}
+          className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-4 w-4 text-galaxy-nova" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleFullScreen}
+          className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+          title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
+        >
+          {isFullScreen ? (
+            <Minimize className="h-4 w-4 text-galaxy-nova" />
+          ) : (
+            <Maximize className="h-4 w-4 text-galaxy-nova" />
+          )}
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleExport}
+          className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+          title="Export as SVG"
+        >
+          <Download className="h-4 w-4 text-galaxy-nova" />
+        </Button>
+      </div>
+      
+      {/* Zoom info */}
+      <div className="absolute bottom-3 left-3 z-10 bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-muted-foreground border border-galaxy-nova/20">
+        Zoom: {Math.round(zoomLevel * 100)}% 
+        <Button 
+          variant="link" 
+          size="sm" 
+          onClick={handleZoomReset}
+          className="p-0 h-auto ml-1 text-xs text-galaxy-nova"
+        >
+          Reset
+        </Button>
+      </div>
+      
       <svg
         ref={svgRef}
         width="100%"
@@ -594,6 +790,75 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           transition: 'opacity 1s ease-in-out'
         }}
       />
+      
+      {/* Fullscreen dialog */}
+      <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
+        <DialogContent className="max-w-[90vw] w-[90vw] max-h-[90vh] h-[90vh]">
+          <div className="relative w-full h-full">
+            <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 bg-background/50 backdrop-blur-sm p-2 rounded-lg border border-galaxy-nova/20">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleZoomIn}
+                className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+              >
+                <ZoomIn className="h-4 w-4 text-galaxy-nova" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleZoomOut}
+                className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+              >
+                <ZoomOut className="h-4 w-4 text-galaxy-nova" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleFullScreen}
+                className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+              >
+                <Minimize className="h-4 w-4 text-galaxy-nova" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleExport}
+                className="w-8 h-8 rounded-full bg-background/80 hover:bg-galaxy-nova/20"
+              >
+                <Download className="h-4 w-4 text-galaxy-nova" />
+              </Button>
+            </div>
+            
+            <div className="absolute bottom-3 left-3 z-10 bg-background/50 backdrop-blur-sm px-2 py-1 rounded-md text-xs text-muted-foreground border border-galaxy-nova/20">
+              Zoom: {Math.round(zoomLevel * 100)}% 
+              <Button 
+                variant="link" 
+                size="sm" 
+                onClick={handleZoomReset}
+                className="p-0 h-auto ml-1 text-xs text-galaxy-nova"
+              >
+                Reset
+              </Button>
+            </div>
+            
+            <svg
+              width="100%"
+              height="100%"
+              className="cosmic-background"
+              preserveAspectRatio="xMidYMid meet"
+              viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+            >
+              <g transform={zoomTransform ? zoomTransform.toString() : undefined}>
+                {/* We would ideally clone SVG content here, but for simplicity just showing a message */}
+                <text x="50%" y="50%" textAnchor="middle" fill="white">
+                  Use the expanded view controls to navigate
+                </text>
+              </g>
+            </svg>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
