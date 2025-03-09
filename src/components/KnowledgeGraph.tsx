@@ -1,6 +1,7 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { HistoricalEntity, getEntityConnections, mockHistoricalData } from '@/utils/mockData';
+import { HistoricalEntity, getEntityConnections, mockHistoricalData, SimulationNode } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import VisualizationPlaceholder from './VisualizationPlaceholder';
 
@@ -47,7 +48,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     // Set up the SVG
     const { width, height } = dimensions;
     
-    // Create defs for patterns and filters
+    // Create defs for patterns, filters, and custom shapes
     const defs = svg.append("defs");
     
     // Add glow filter
@@ -66,6 +67,40 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .attr("in", "SourceGraphic")
       .attr("in2", "blur")
       .attr("operator", "over");
+    
+    // Create custom shape definitions for each entity type
+    
+    // Person - Stylized human silhouette
+    defs.append("symbol")
+      .attr("id", "person-symbol")
+      .attr("viewBox", "0 0 100 100")
+      .append("path")
+      .attr("d", "M50,10 C63,10 73,20 73,35 C73,47 65,58 54,60 L54,62 C75,65 90,75 90,85 L10,85 C10,75 25,65 46,62 L46,60 C35,58 27,47 27,35 C27,20 37,10 50,10 Z")
+      .attr("fill", "url(#pattern-person)");
+    
+    // Event - Starburst shape
+    defs.append("symbol")
+      .attr("id", "event-symbol")
+      .attr("viewBox", "0 0 100 100")
+      .append("path")
+      .attr("d", "M50,5 L57,35 L90,35 L65,55 L75,85 L50,70 L25,85 L35,55 L10,35 L43,35 Z")
+      .attr("fill", "url(#pattern-event)");
+      
+    // Place - Stylized location marker
+    defs.append("symbol")
+      .attr("id", "place-symbol")
+      .attr("viewBox", "0 0 100 100")
+      .append("path")
+      .attr("d", "M50,5 C25,5 10,20 10,40 C10,60 50,95 50,95 C50,95 90,60 90,40 C90,20 75,5 50,5 Z M50,25 C60,25 68,33 68,43 C68,53 60,60 50,60 C40,60 32,53 32,43 C32,33 40,25 50,25 Z")
+      .attr("fill", "url(#pattern-place)");
+      
+    // Concept - Abstract brain or idea symbol
+    defs.append("symbol")
+      .attr("id", "concept-symbol")
+      .attr("viewBox", "0 0 100 100")
+      .append("path")
+      .attr("d", "M30,30 C10,45 10,75 30,85 C50,95 80,85 90,65 C100,45 90,15 70,10 C60,5 40,10 40,25 C40,35 50,40 60,40 C70,40 75,30 65,20 M45,65 C35,55 40,45 50,45 C60,45 65,55 55,65 C50,70 40,75 45,65 Z")
+      .attr("fill", "url(#pattern-concept)");
     
     // Add patterns for different entity types
     const patternTypes = [
@@ -126,7 +161,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .attr("opacity", 0.2);
     
     // Prepare data
-    const nodes = entities.map(entity => ({ ...entity }));
+    const nodes = entities.map(entity => ({ ...entity })) as SimulationNode[];
     
     // Get all connections with valid source and target from relations
     const getValidLinks = () => {
@@ -135,7 +170,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       for (const entity of entities) {
         if (entity.relations && Array.isArray(entity.relations)) {
           for (const relation of entity.relations) {
-            const targetEntity = entities.find(e => e.id === relation.targetId);
+            const targetEntity = entities.find(e => e.id === relation.target);
             if (targetEntity) {
               validLinks.push({
                 source: entity.id,
@@ -242,7 +277,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           onEntitySelect(d);
         }
       })
-      .call(d3.drag<SVGGElement, any>()
+      .call(d3.drag<SVGGElement, SimulationNode>()
         .on("start", (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
@@ -263,7 +298,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .attr("class", "contextual-membrane")
       .attr("r", d => ((d.significance || 1) * 8 + 25))
       .attr("fill", d => {
-        switch (d.type) {
+        switch (d.type.toLowerCase()) {
           case "person": return "hsla(280, 70%, 40%, 0.1)";
           case "event": return "hsla(200, 70%, 40%, 0.1)";
           case "place": return "hsla(100, 70%, 40%, 0.1)";
@@ -284,7 +319,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .attr("r", d => ((d.significance || 1) * 8 + 15))
       .attr("fill", "none")
       .attr("stroke", d => {
-        switch (d.type) {
+        switch (d.type.toLowerCase()) {
           case "person": return "hsla(280, 70%, 50%, 0.3)";
           case "event": return "hsla(200, 70%, 50%, 0.3)";
           case "place": return "hsla(100, 70%, 50%, 0.3)";
@@ -306,35 +341,68 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .delay((_, i) => i * 100 + 300)
       .attr("opacity", 1);
     
-    // Add identity cores
-    nodeGroups.append("circle")
-      .attr("class", "identity-core")
-      .attr("r", d => (d.significance || 1) * 8)
-      .attr("fill", d => {
-        switch (d.type) {
-          case "person": return "url(#pattern-person)";
-          case "event": return "url(#pattern-event)";
-          case "place": return "url(#pattern-place)";
-          case "concept": return "url(#pattern-concept)";
-          default: return "hsl(240, 70%, 50%)";
-        }
-      })
-      .attr("stroke", d => {
-        switch (d.type) {
-          case "person": return "hsl(280, 70%, 50%)";
-          case "event": return "hsl(200, 70%, 50%)";
-          case "place": return "hsl(100, 70%, 50%)";
-          case "concept": return "hsl(50, 70%, 50%)";
-          default: return "hsl(240, 70%, 50%)";
-        }
-      })
-      .attr("stroke-width", 2)
-      .attr("filter", "url(#entity-glow)")
-      .attr("opacity", 0)
-      .transition()
-      .duration(800)
-      .delay((_, i) => i * 100 + 200)
-      .attr("opacity", 0.9);
+    // Add custom entity shapes based on type
+    nodeGroups.each(function(d) {
+      const node = d3.select(this);
+      const size = (d.significance || 1) * 8;
+      const symbolSize = size * 2; // Adjust as needed for the symbol scale
+      
+      switch (d.type.toLowerCase()) {
+        case "person":
+          node.append("use")
+            .attr("href", "#person-symbol")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("stroke", "hsl(280, 70%, 50%)")
+            .attr("fill", "url(#pattern-person)")
+            .attr("filter", "url(#entity-glow)");
+          break;
+        case "event":
+          node.append("use")
+            .attr("href", "#event-symbol")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("stroke", "hsl(200, 70%, 50%)")
+            .attr("fill", "url(#pattern-event)")
+            .attr("filter", "url(#entity-glow)");
+          break;
+        case "place":
+          node.append("use")
+            .attr("href", "#place-symbol")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("stroke", "hsl(100, 70%, 50%)")
+            .attr("fill", "url(#pattern-place)")
+            .attr("filter", "url(#entity-glow)");
+          break;
+        case "concept":
+          node.append("use")
+            .attr("href", "#concept-symbol")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("stroke", "hsl(50, 70%, 50%)")
+            .attr("fill", "url(#pattern-concept)")
+            .attr("filter", "url(#entity-glow)");
+          break;
+        default:
+          // Fallback to circle if type is not recognized
+          node.append("circle")
+            .attr("class", "identity-core")
+            .attr("r", size)
+            .attr("fill", "hsl(240, 70%, 50%)")
+            .attr("stroke", "white")
+            .attr("stroke-width", 2)
+            .attr("filter", "url(#entity-glow)");
+      }
+    });
     
     // Add temporal signatures
     nodeGroups.filter(d => d.startDate && d.endDate)
@@ -386,11 +454,11 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     simulation.on("tick", () => {
       // Update link paths
       linkGroups.selectAll(".link-path")
-        .attr("d", d => {
-          const sourceNode = nodes[d.source as any];
-          const targetNode = nodes[d.target as any];
+        .attr("d", (d: any) => {
+          const sourceNode = nodes[d.source as number];
+          const targetNode = nodes[d.target as number];
           
-          if (!sourceNode.x || !targetNode.x) return "";
+          if (!sourceNode || !targetNode || sourceNode.x === undefined || targetNode.x === undefined) return "";
           
           // Calculate path with curve
           const dx = targetNode.x - sourceNode.x;
@@ -404,10 +472,10 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       
       // Update flow particles for directional links
       linkGroups.selectAll(".flow-particle").each(function(d: any) {
-        const sourceNode = nodes[d.source];
-        const targetNode = nodes[d.target];
+        const sourceNode = nodes[d.source as number];
+        const targetNode = nodes[d.target as number];
         
-        if (!sourceNode.x || !targetNode.x) return;
+        if (!sourceNode || !targetNode || sourceNode.x === undefined || targetNode.x === undefined) return;
         
         // Calculate position along path
         const offset = (Date.now() % 3000) / 3000; // Moves along path over time

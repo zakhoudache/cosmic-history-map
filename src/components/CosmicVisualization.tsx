@@ -1,6 +1,7 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { HistoricalEntity, prepareVisualizationData } from '@/utils/mockData';
+import { HistoricalEntity, prepareSimulationData } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import VisualizationPlaceholder from './VisualizationPlaceholder';
 
@@ -85,6 +86,77 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("in2", "blur")
       .attr("operator", "over");
     
+    // Create custom symbols for different entity types
+    
+    // Person - Stylized star with halo
+    defs.append("symbol")
+      .attr("id", "cosmic-person")
+      .attr("viewBox", "0 0 100 100")
+      .html(`
+        <circle cx="50" cy="50" r="40" fill="url(#person-gradient)" />
+        <circle cx="50" cy="50" r="35" fill="hsla(280, 90%, 60%, 0.8)" />
+        <path d="M50,15 L52,44 L82,44 L58,62 L67,89 L50,73 L33,89 L42,62 L18,44 L48,44 Z" fill="white" opacity="0.6" />
+      `);
+    
+    // Event - Cosmic explosion
+    defs.append("symbol")
+      .attr("id", "cosmic-event")
+      .attr("viewBox", "0 0 100 100")
+      .html(`
+        <circle cx="50" cy="50" r="30" fill="hsla(220, 90%, 60%, 0.8)" />
+        <g opacity="0.7">
+          ${Array.from({ length: 12 }).map((_, i) => {
+            const angle = (i / 12) * Math.PI * 2;
+            const length = 20 + Math.random() * 20;
+            const x2 = 50 + Math.cos(angle) * length;
+            const y2 = 50 + Math.sin(angle) * length;
+            return `<line x1="50" y1="50" x2="${x2}" y2="${y2}" stroke="white" stroke-width="2" />`;
+          }).join('')}
+        </g>
+        <circle cx="50" cy="50" r="15" fill="white" opacity="0.6" />
+      `);
+    
+    // Place - Planetary ring system
+    defs.append("symbol")
+      .attr("id", "cosmic-place")
+      .attr("viewBox", "0 0 100 100")
+      .html(`
+        <circle cx="50" cy="50" r="30" fill="hsla(180, 90%, 60%, 0.8)" />
+        <ellipse cx="50" cy="50" rx="45" ry="15" fill="none" stroke="hsla(180, 90%, 80%, 0.6)" stroke-width="2" />
+        <ellipse cx="50" cy="50" rx="40" ry="12" fill="none" stroke="hsla(180, 90%, 80%, 0.4)" stroke-width="1.5" />
+        <ellipse cx="50" cy="50" rx="35" ry="9" fill="none" stroke="hsla(180, 90%, 80%, 0.3)" stroke-width="1" />
+        <circle cx="50" cy="50" r="20" fill="hsla(180, 90%, 70%, 0.8)" />
+      `);
+    
+    // Concept - Cosmic nebula
+    defs.append("symbol")
+      .attr("id", "cosmic-concept")
+      .attr("viewBox", "0 0 100 100")
+      .html(`
+        <radialGradient id="concept-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+          <stop offset="0%" stop-color="hsla(320, 90%, 70%, 0.9)" />
+          <stop offset="70%" stop-color="hsla(320, 90%, 50%, 0.7)" />
+          <stop offset="100%" stop-color="hsla(320, 90%, 30%, 0.5)" />
+        </radialGradient>
+        <g opacity="0.9">
+          <path d="M50,10 C75,15 85,40 80,65 C75,85 40,85 25,70 C10,55 15,25 35,15 C40,12 45,10 50,10 Z" fill="url(#concept-gradient)" />
+          ${Array.from({ length: 15 }).map(() => {
+            const x = 20 + Math.random() * 60;
+            const y = 20 + Math.random() * 60;
+            const r = 1 + Math.random() * 2;
+            return `<circle cx="${x}" cy="${y}" r="${r}" fill="white" opacity="${0.3 + Math.random() * 0.7}" />`;
+          }).join('')}
+        </g>
+      `);
+    
+    // Add gradients for entity types
+    defs.append("radialGradient")
+      .attr("id", "person-gradient")
+      .html(`
+        <stop offset="0%" stop-color="hsla(280, 90%, 80%, 1)" />
+        <stop offset="100%" stop-color="hsla(280, 90%, 40%, 0.5)" />
+      `);
+    
     // Add the background
     svg.append("circle")
       .attr("cx", centerX)
@@ -136,14 +208,14 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         .style("animation-delay", `${Math.random() * 2}s`);
     }
     
-    // Set up force simulation
-    const simulation = d3.forceSimulation()
-      .nodes(visualizationData as d3.SimulationNodeDatum[])
+    // Set up force simulation with SimulationNode typed data
+    const typedData = prepareSimulationData(visualizationData);
+    
+    const simulation = d3.forceSimulation(typedData)
       .force("center", d3.forceCenter(centerX, centerY))
-      .force("charge", d3.forceManyBody().strength(d => (d as HistoricalEntity).significance ? (d as HistoricalEntity).significance * -50 : -150))
+      .force("charge", d3.forceManyBody().strength(d => d.significance ? d.significance * -50 : -150))
       .force("collision", d3.forceCollide().radius(d => {
-        const entity = d as HistoricalEntity;
-        return (entity.significance || 5) * 5 + 20;
+        return (d.significance || 5) * 5 + 20;
       }))
       .force("x", d3.forceX(centerX).strength(0.05))
       .force("y", d3.forceY(centerY).strength(0.05));
@@ -153,7 +225,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       if (entity.relations && Array.isArray(entity.relations)) {
         return entity.relations
           .map(relation => {
-            const targetId = relation.targetId;
+            const targetId = relation.target;
             const target = visualizationData.find(e => e.id === targetId);
             if (target) {
               return { source: entity, target };
@@ -180,8 +252,8 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("class", "link-path")
       .attr("stroke", (d: any) => {
         // Determine link color based on entity types
-        const sourceType = d.source.type;
-        const targetType = d.target.type;
+        const sourceType = d.source.type.toLowerCase();
+        const targetType = d.target.type.toLowerCase();
         
         if (sourceType === targetType) {
           switch(sourceType) {
@@ -207,17 +279,17 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     const nodeGroups = svg.append("g")
       .attr("class", "nodes")
       .selectAll(".node")
-      .data(visualizationData)
+      .data(typedData)
       .enter()
       .append("g")
       .attr("class", "node")
       .style("cursor", "pointer")
       .on("click", (event, d) => {
         if (onEntitySelect) {
-          onEntitySelect(d as HistoricalEntity);
+          onEntitySelect(d);
         }
       })
-      .call(d3.drag<SVGGElement, HistoricalEntity>()
+      .call(d3.drag<SVGGElement, d3.SimulationNodeDatum>()
         .on("start", (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
@@ -239,7 +311,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("r", d => (d.significance || 5) * 6 + 15)
       .attr("fill", d => {
         // Color based on entity type with more cosmic feel
-        switch(d.type) {
+        switch(d.type.toLowerCase()) {
           case "person": return "hsla(280, 90%, 60%, 0.1)";
           case "event": return "hsla(220, 90%, 60%, 0.1)";
           case "place": return "hsla(180, 90%, 60%, 0.1)";
@@ -254,27 +326,79 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .duration(1000)
       .attr("opacity", 0.8);
     
-    // Add glowing core for each entity
-    nodeGroups.append("circle")
-      .attr("class", "entity-core")
-      .attr("r", d => (d.significance || 5) * 4 + 8)
-      .attr("fill", d => {
-        // Color based on entity type
-        switch(d.type) {
-          case "person": return "hsl(280, 90%, 60%)";
-          case "event": return "hsl(220, 90%, 60%)";
-          case "place": return "hsl(180, 90%, 60%)";
-          case "concept": return "hsl(320, 90%, 60%)";
-          default: return "hsl(240, 90%, 60%)";
-        }
-      })
-      .attr("stroke", "rgba(255, 255, 255, 0.5)")
-      .attr("stroke-width", 1)
-      .attr("opacity", 0)
-      .transition()
-      .delay((_, i) => i * 100)
-      .duration(1000)
-      .attr("opacity", 0.8);
+    // Add custom entity representations based on type
+    nodeGroups.each(function(d) {
+      const node = d3.select(this);
+      const size = (d.significance || 5) * 4 + 12;
+      
+      switch(d.type.toLowerCase()) {
+        case "person":
+          node.append("use")
+            .attr("href", "#cosmic-person")
+            .attr("width", size * 2)
+            .attr("height", size * 2)
+            .attr("x", -size)
+            .attr("y", -size)
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(1000)
+            .attr("opacity", 0.9);
+          break;
+        case "event":
+          node.append("use")
+            .attr("href", "#cosmic-event")
+            .attr("width", size * 2)
+            .attr("height", size * 2)
+            .attr("x", -size)
+            .attr("y", -size)
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(1000)
+            .attr("opacity", 0.9);
+          break;
+        case "place":
+          node.append("use")
+            .attr("href", "#cosmic-place")
+            .attr("width", size * 2)
+            .attr("height", size * 2)
+            .attr("x", -size)
+            .attr("y", -size)
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(1000)
+            .attr("opacity", 0.9);
+          break;
+        case "concept":
+          node.append("use")
+            .attr("href", "#cosmic-concept")
+            .attr("width", size * 2)
+            .attr("height", size * 2)
+            .attr("x", -size)
+            .attr("y", -size)
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(1000)
+            .attr("opacity", 0.9);
+          break;
+        default:
+          // Fallback for unknown entity types
+          node.append("circle")
+            .attr("class", "entity-core")
+            .attr("r", (d.significance || 5) * 4 + 8)
+            .attr("fill", "hsl(240, 90%, 60%)")
+            .attr("stroke", "rgba(255, 255, 255, 0.5)")
+            .attr("stroke-width", 1)
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(1000)
+            .attr("opacity", 0.8);
+      }
+    });
 
     // Add ripple effect
     nodeGroups.append("circle")
@@ -283,7 +407,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .attr("fill", "none")
       .attr("stroke", d => {
         // Color based on entity type
-        switch(d.type) {
+        switch(d.type.toLowerCase()) {
           case "person": return "hsla(280, 90%, 60%, 0.5)";
           case "event": return "hsla(220, 90%, 60%, 0.5)";
           case "place": return "hsla(180, 90%, 60%, 0.5)";
@@ -313,29 +437,6 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       // Start animation with delay based on significance
       setTimeout(animateRipple, (entity.significance || 5) * 300);
     });
-    
-    // Add entity type indicators
-    nodeGroups.append("text")
-      .attr("class", "entity-type")
-      .attr("text-anchor", "middle")
-      .attr("dy", "0.3em")
-      .attr("font-size", d => 10 + (d.significance || 5) / 2)
-      .attr("fill", "white")
-      .attr("pointer-events", "none")
-      .text(d => {
-        switch(d.type) {
-          case "person": return "👤";
-          case "event": return "📅";
-          case "place": return "📍";
-          case "concept": return "💡";
-          default: return "•";
-        }
-      })
-      .attr("opacity", 0)
-      .transition()
-      .delay((_, i) => i * 100 + 800)
-      .duration(1000)
-      .attr("opacity", 1);
     
     // Add labels
     nodeGroups.append("text")
@@ -385,7 +486,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
         });
       
-      nodeGroups.attr("transform", d => `translate(${d.x}, ${d.y})`);
+      nodeGroups.attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`);
     });
     
     // Stop simulation after a certain time to reduce CPU usage

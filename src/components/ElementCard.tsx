@@ -12,9 +12,12 @@ interface ElementCardProps {
 const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
   const isVisible = useAnimateOnMount(100);
   
-  // Find related entities
+  // Find related entities from connections or relations
+  const connections = entity.connections || 
+    (entity.relations ? entity.relations.map(r => r.target) : []);
+  
   const relatedEntities = mockHistoricalData.filter(
-    e => entity.connections.includes(e.id) && e.id !== entity.id
+    e => connections.includes(e.id) && e.id !== entity.id
   );
   
   // Format dates
@@ -35,7 +38,7 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
       : '';
   
   const entityTypeIcon = () => {
-    switch(entity.type) {
+    switch(entity.type.toLowerCase()) {
       case "person": return "👤";
       case "event": return "📅";
       case "place": return "📍";
@@ -104,7 +107,7 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
                     className="inline-flex items-center px-3 py-1 rounded-full bg-secondary text-xs font-medium"
                   >
                     {(() => {
-                      switch(related.type) {
+                      switch(related.type.toLowerCase()) {
                         case "person": return "👤 ";
                         case "event": return "📅 ";
                         case "place": return "📍 ";
@@ -129,7 +132,7 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
               <div 
                 className="h-full cosmic-gradient rounded-full transition-all duration-1000"
                 style={{ 
-                  width: `${(entity.significance / 10) * 100}%`,
+                  width: `${(entity.significance || 1) / 10 * 100}%`,
                   opacity: isVisible ? 1 : 0
                 }}
               ></div>

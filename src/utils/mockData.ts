@@ -7,7 +7,8 @@ export interface HistoricalEntity {
   description?: string;
   significance?: number;
   group?: string;
-  relations?: { target: string; type: string; }[];
+  relations?: { target: string; type: string; strength?: number; }[];
+  connections?: string[]; // For compatibility with ElementCard
 }
 
 // Add SimulationNode interface to extend HistoricalEntity for D3 visualization
@@ -32,6 +33,26 @@ export function prepareSimulationData(entities: HistoricalEntity[]): SimulationN
     fx: null,
     fy: null
   }));
+}
+
+// For backwards compatibility with CosmicVisualization
+export const prepareVisualizationData = prepareSimulationData;
+
+// Add getEntityConnections function for knowledge graph
+export function getEntityConnections(entities: HistoricalEntity[], entity: HistoricalEntity) {
+  if (entity.relations && Array.isArray(entity.relations)) {
+    return entity.relations
+      .map(relation => {
+        const targetId = relation.target;
+        const target = entities.find(e => e.id === targetId);
+        if (target) {
+          return { source: entity, target, type: relation.type, strength: relation.strength || 1 };
+        }
+        return null;
+      })
+      .filter(Boolean); // Remove null values
+  } 
+  return [];
 }
 
 export const mockHistoricalData: HistoricalEntity[] = [
@@ -203,3 +224,12 @@ export const mockHistoricalData: HistoricalEntity[] = [
     relations: []
   }
 ];
+
+// Add connections field to entities for ElementCard component
+mockHistoricalData.forEach(entity => {
+  if (entity.relations) {
+    entity.connections = entity.relations.map(relation => relation.target);
+  } else {
+    entity.connections = [];
+  }
+});

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity } from '@/utils/mockData';
@@ -57,7 +58,7 @@ const Timeline: React.FC<TimelineProps> = ({
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
     
-    // Add defs for patterns and filters
+    // Add defs for patterns, filters, and custom shapes
     const defs = svg.append("defs");
     
     // Add glow filter
@@ -76,6 +77,46 @@ const Timeline: React.FC<TimelineProps> = ({
       .attr("in", "SourceGraphic")
       .attr("in2", "blur")
       .attr("operator", "over");
+    
+    // Create custom markers for different entity types
+    
+    // Person - Stylized portrait
+    defs.append("symbol")
+      .attr("id", "timeline-person")
+      .attr("viewBox", "0 0 32 32")
+      .html(`
+        <circle cx="16" cy="10" r="8" fill="hsl(280, 70%, 60%)" />
+        <path d="M4,32 L4,26 C4,20 9,16 16,16 C23,16 28,20 28,26 L28,32" fill="hsl(280, 70%, 60%)" />
+        <circle cx="16" cy="10" r="6" fill="white" opacity="0.3" />
+      `);
+    
+    // Event - Starburst shape
+    defs.append("symbol")
+      .attr("id", "timeline-event")
+      .attr("viewBox", "0 0 32 32")
+      .html(`
+        <path d="M16,2 L20,13 L30,13 L22,20 L25,31 L16,25 L7,31 L10,20 L2,13 L12,13 Z" fill="hsl(220, 70%, 60%)" />
+        <circle cx="16" cy="16" r="6" fill="white" opacity="0.3" />
+      `);
+      
+    // Place - Stylized location marker
+    defs.append("symbol")
+      .attr("id", "timeline-place")
+      .attr("viewBox", "0 0 32 32")
+      .html(`
+        <path d="M16,2 C8,2 2,8 2,16 C2,24 16,30 16,30 C16,30 30,24 30,16 C30,8 24,2 16,2 Z M16,20 C12.7,20 10,17.3 10,14 C10,10.7 12.7,8 16,8 C19.3,8 22,10.7 22,14 C22,17.3 19.3,20 16,20 Z" fill="hsl(180, 70%, 60%)" />
+        <circle cx="16" cy="14" r="5" fill="white" opacity="0.3" />
+      `);
+      
+    // Concept - Abstract brain or idea symbol
+    defs.append("symbol")
+      .attr("id", "timeline-concept")
+      .attr("viewBox", "0 0 32 32")
+      .html(`
+        <path d="M16,2 C22,2 26,6 26,12 C26,16 22,19 22,22 C22,25 25,26 25,26 L7,26 C7,26 10,25 10,22 C10,19 6,16 6,12 C6,6 10,2 16,2 Z" fill="hsl(320, 70%, 60%)" />
+        <path d="M12,30 L20,30 L20,26 L12,26 Z" fill="hsl(320, 70%, 60%)" />
+        <circle cx="16" cy="14" r="5" fill="white" opacity="0.3" />
+      `);
     
     // Parse dates and find min/max
     const parseDate = (dateStr: string | Date) => {
@@ -204,7 +245,7 @@ const Timeline: React.FC<TimelineProps> = ({
         .attr("opacity", 1);
     }
     
-    // Add events
+    // Add events using custom symbols for each entity type
     const events = g.selectAll(".event")
       .data(timelineEntities)
       .enter()
@@ -221,8 +262,8 @@ const Timeline: React.FC<TimelineProps> = ({
           
           // Place different entity types in different rows
           let y = innerHeight / 2;
-          if (d.type === "person") y = innerHeight / 4;
-          if (d.type === "concept") y = (innerHeight / 4) * 3;
+          if (d.type.toLowerCase() === "person") y = innerHeight / 4;
+          if (d.type.toLowerCase() === "concept") y = (innerHeight / 4) * 3;
           
           return `translate(${x}, ${y})`;
         } catch (error) {
@@ -254,8 +295,8 @@ const Timeline: React.FC<TimelineProps> = ({
           let y = innerHeight / 2;
           
           // Place different entity types in different rows
-          if (entity.type === "person") y = innerHeight / 4;
-          if (entity.type === "concept") y = (innerHeight / 4) * 3;
+          if (entity.type.toLowerCase() === "person") y = innerHeight / 4;
+          if (entity.type.toLowerCase() === "concept") y = (innerHeight / 4) * 3;
           
           // Create gradient for time span
           const spanGradient = defs.append("linearGradient")
@@ -267,7 +308,7 @@ const Timeline: React.FC<TimelineProps> = ({
           spanGradient.append("stop")
             .attr("offset", "0%")
             .attr("stop-color", d => {
-              switch (entity.type) {
+              switch (entity.type.toLowerCase()) {
                 case "person": return "hsla(280, 70%, 50%, 0.7)";
                 case "event": return "hsla(240, 70%, 50%, 0.7)";
                 case "place": return "hsla(200, 70%, 50%, 0.7)";
@@ -279,7 +320,7 @@ const Timeline: React.FC<TimelineProps> = ({
           spanGradient.append("stop")
             .attr("offset", "100%")
             .attr("stop-color", d => {
-              switch (entity.type) {
+              switch (entity.type.toLowerCase()) {
                 case "person": return "hsla(280, 70%, 50%, 0.3)";
                 case "event": return "hsla(240, 70%, 50%, 0.3)";
                 case "place": return "hsla(200, 70%, 50%, 0.3)";
@@ -288,13 +329,18 @@ const Timeline: React.FC<TimelineProps> = ({
               }
             });
           
-          g.append("line")
-            .attr("x1", startX)
-            .attr("x2", endX)
-            .attr("y1", y)
-            .attr("y2", y)
+          // Draw arc instead of straight line
+          const arcHeight = 6 + (entity.significance || 1);
+          const pathData = `
+            M ${startX} ${y}
+            Q ${(startX + endX) / 2} ${y - arcHeight} ${endX} ${y}
+          `;
+          
+          g.append("path")
+            .attr("d", pathData)
             .attr("stroke", `url(#span-gradient-${entity.id})`)
             .attr("stroke-width", Math.max(2, entity.significance || 1))
+            .attr("fill", "none")
             .attr("filter", "url(#timeline-glow)")
             .attr("opacity", 0)
             .transition()
@@ -306,26 +352,84 @@ const Timeline: React.FC<TimelineProps> = ({
         }
       });
     
-    // Add circles for event points
-    events.append("circle")
-      .attr("r", d => 4 + (d.significance || 1))
-      .attr("fill", d => {
-        switch (d.type) {
-          case "person": return "hsl(280, 70%, 50%)";
-          case "event": return "hsl(240, 70%, 50%)";
-          case "place": return "hsl(200, 70%, 50%)";
-          case "concept": return "hsl(320, 70%, 50%)";
-          default: return "hsl(240, 70%, 50%)";
-        }
-      })
-      .attr("stroke", "white")
-      .attr("stroke-width", 1)
-      .attr("filter", "url(#timeline-glow)")
-      .attr("opacity", 0)
-      .transition()
-      .delay((_, i) => i * 100)
-      .duration(500)
-      .attr("opacity", 0.8);
+    // Add custom symbols based on entity type
+    events.each(function(d) {
+      const entityGroup = d3.select(this);
+      const symbolSize = 12 + (d.significance || 1) * 2;
+      
+      // Add appropriate symbol based on entity type
+      switch(d.type.toLowerCase()) {
+        case "person":
+          entityGroup.append("use")
+            .attr("href", "#timeline-person")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("filter", "url(#timeline-glow)")
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(500)
+            .attr("opacity", 0.9);
+          break;
+        case "event":
+          entityGroup.append("use")
+            .attr("href", "#timeline-event")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("filter", "url(#timeline-glow)")
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(500)
+            .attr("opacity", 0.9);
+          break;
+        case "place":
+          entityGroup.append("use")
+            .attr("href", "#timeline-place")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("filter", "url(#timeline-glow)")
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(500)
+            .attr("opacity", 0.9);
+          break;
+        case "concept":
+          entityGroup.append("use")
+            .attr("href", "#timeline-concept")
+            .attr("width", symbolSize)
+            .attr("height", symbolSize)
+            .attr("x", -symbolSize/2)
+            .attr("y", -symbolSize/2)
+            .attr("filter", "url(#timeline-glow)")
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(500)
+            .attr("opacity", 0.9);
+          break;
+        default:
+          // Fallback to circle for unknown types
+          entityGroup.append("circle")
+            .attr("r", 4 + (d.significance || 1))
+            .attr("fill", "hsl(240, 70%, 50%)")
+            .attr("stroke", "white")
+            .attr("stroke-width", 1)
+            .attr("filter", "url(#timeline-glow)")
+            .attr("opacity", 0)
+            .transition()
+            .delay((_, i) => i * 100)
+            .duration(500)
+            .attr("opacity", 0.8);
+      }
+    });
     
     // Add labels
     events.append("text")
@@ -350,11 +454,11 @@ const Timeline: React.FC<TimelineProps> = ({
         let baselineY = innerHeight / 2;
         let y = 0;
         
-        if (d.type === "person") {
+        if (d.type.toLowerCase() === "person") {
           y = innerHeight / 4;
           return baselineY - y;
         }
-        if (d.type === "concept") {
+        if (d.type.toLowerCase() === "concept") {
           y = (innerHeight / 4) * 3;
           return y - baselineY;
         }
