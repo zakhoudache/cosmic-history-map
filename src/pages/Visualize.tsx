@@ -53,39 +53,41 @@ const Visualize = () => {
       return;
     }
     
-    // Get the appropriate SVG element based on visualization type
     let svgElement = null;
-    if (visualizationType === "graph") {
-      // Find the SVG element in the CosmicVisualization component
-      const svgElement = document.querySelector(".visualization-container")?.closest("svg");
-      
-      // Generate PDF with the visualization
-      exportToPDF({
-        entities,
-        title: "Cosmic Connections Analysis",
-        description: `Analysis of historical connections based on the input text:\n${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`,
-        visualizationType,
-        svgElement: svgElement as SVGSVGElement,
-      });
-    } else if (visualizationType === "timeline") {
-      // For timeline view
-      const svgElement = document.querySelector("#timeline-visualization");
-      exportToPDF({
-        entities,
-        title: "Historical Timeline Analysis",
-        description: `Timeline visualization of historical entities based on the input text:\n${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`,
-        visualizationType,
-        svgElement: svgElement as SVGSVGElement,
-      });
-    } else {
-      // For story view (no SVG)
-      exportToPDF({
-        entities,
-        title: "Historical Narrative Analysis",
-        description: `Storytelling analysis of historical connections based on the input text:\n${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`,
-        visualizationType,
-      });
+    let title = "";
+    let description = "";
+    
+    // Choose the appropriate SVG element and titles based on visualization type
+    switch (visualizationType) {
+      case "graph":
+        // Find the SVG element in the CosmicVisualization component
+        svgElement = document.querySelector(".visualization-container")?.closest("svg");
+        title = "Cosmic Connections Network Analysis";
+        description = `Network visualization of historical entities and their relationships based on the input text: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
+        break;
+        
+      case "timeline":
+        // Find the SVG element in the Timeline component
+        svgElement = document.getElementById("timeline-visualization");
+        title = "Historical Timeline Analysis";
+        description = `Chronological visualization of historical entities based on the input text: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
+        break;
+        
+      case "story":
+        // Story view (no SVG)
+        title = "Historical Narrative Analysis";
+        description = `Storytelling analysis presenting historical connections in narrative form based on the input text: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
+        break;
     }
+    
+    // Generate PDF with the appropriate visualization and content
+    exportToPDF({
+      entities,
+      title,
+      description,
+      visualizationType,
+      svgElement: svgElement as SVGSVGElement,
+    });
   };
 
   const showPlaceholder = !inputText || entities.length === 0;

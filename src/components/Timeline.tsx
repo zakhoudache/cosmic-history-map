@@ -8,7 +8,6 @@ import VisualizationPlaceholder from './VisualizationPlaceholder';
 interface TimelineProps {
   entities?: FormattedHistoricalEntity[];
   onEntitySelect?: (entity: FormattedHistoricalEntity) => void;
-  // Remove timelineData prop as it's not needed
 }
 
 const Timeline: React.FC<TimelineProps> = ({ entities = [], onEntitySelect }) => {
@@ -89,7 +88,7 @@ const Timeline: React.FC<TimelineProps> = ({ entities = [], onEntitySelect }) =>
   return (
     <div className="w-full h-full">
       {entities && entities.length > 0 ? (
-        <svg ref={svgRef} className="w-full h-full" />
+        <svg ref={svgRef} className="w-full h-full" id="timeline-visualization" />
       ) : (
         <VisualizationPlaceholder />
       )}

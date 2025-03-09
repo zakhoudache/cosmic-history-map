@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Maximize, Minimize, Plus, Minus, Network, Activity, Book, FilePdf } from "lucide-react";
+import { Download, Maximize, Minimize, Plus, Minus, Network, Activity, Book, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface VisualizationControlsProps {
@@ -172,7 +172,7 @@ const VisualizationControls: React.FC<VisualizationControlsProps> = ({
                 onClick={onExportPDF}
                 aria-label="Export PDF document"
               >
-                <FilePdf className="h-4 w-4" />
+                <FileText className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Export PDF</TooltipContent>
