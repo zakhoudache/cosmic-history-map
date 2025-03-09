@@ -22,9 +22,10 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
     }
     
     try {
-      // Use the real analysis function instead of mock data
+      // Use the real analysis function
       const analysisResult = await analyzeHistoricalText(text);
       onSubmit(text, analysisResult);
+      toast.success(`Analysis complete! Found ${analysisResult.length} historical entities.`);
     } catch (error) {
       console.error("Error analyzing text:", error);
       toast.error("Failed to analyze text. Please try again later.");

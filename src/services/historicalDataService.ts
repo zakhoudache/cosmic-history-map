@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { HistoricalEntity, HistoricalRelation, FormattedHistoricalEntity, RelationType } from "@/types/supabase";
 import { toast } from "sonner";
@@ -87,10 +86,9 @@ export const analyzeHistoricalText = async (text: string): Promise<FormattedHist
 
     console.log('Analysis successful, entities found:', data.entities.length);
     
-    // If we get a successful response, store the entities in the database
-    const entitiesToInsert = await storeAnalyzedEntities(data.entities);
-    
-    return entitiesToInsert;
+    // For public demonstration purposes, just return the analyzed entities without storing them
+    // This bypasses the RLS policy restrictions until proper authentication is implemented
+    return formatAnalyzedEntitiesWithoutStoring(data.entities);
   } catch (error) {
     console.error('Error analyzing historical text:', error);
     toast.error('Failed to analyze text. Please try again later.');
@@ -98,10 +96,64 @@ export const analyzeHistoricalText = async (text: string): Promise<FormattedHist
   }
 };
 
-// Function to store analyzed entities and their relations in the database
+// Function to format analyzed entities without storing them in the database
+// This is a temporary solution until authentication is properly implemented
+const formatAnalyzedEntitiesWithoutStoring = (analyzedEntities: any[]): FormattedHistoricalEntity[] => {
+  try {
+    console.log('Formatting analyzed entities without storing:', analyzedEntities.length);
+    
+    // Create temporary IDs for entities
+    const idMapping: Record<string, string> = {};
+    analyzedEntities.forEach((entity) => {
+      // Use original ID or generate a random one
+      idMapping[entity.id] = crypto.randomUUID();
+    });
+
+    // Format the entities
+    return analyzedEntities.map(entity => {
+      // Map relations using our temporary IDs
+      const relations = (entity.relations || []).map((relation: any) => ({
+        targetId: idMapping[relation.targetId] || null,
+        type: relation.type || 'default',
+        strength: relation.strength || 5
+      })).filter((relation: any) => relation.targetId !== null);
+
+      const connections = relations.map((r: any) => r.targetId);
+
+      return {
+        id: idMapping[entity.id],
+        name: entity.name,
+        type: entity.type,
+        startDate: entity.startDate,
+        endDate: entity.endDate,
+        description: entity.description,
+        significance: entity.significance || 5,
+        group: entity.group,
+        relations,
+        connections
+      };
+    });
+  } catch (error) {
+    console.error('Error formatting analyzed entities:', error);
+    toast.error('Failed to process analyzed entities.');
+    return [];
+  }
+};
+
+// This function will be used once proper authentication is implemented
+// Keeping it here for reference but not using it until auth is set up
 const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<FormattedHistoricalEntity[]> => {
   try {
     console.log('Storing analyzed entities:', analyzedEntities.length);
+    
+    // Get current user's ID if logged in
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+    
+    if (!userId) {
+      console.warn('No authenticated user found, using in-memory processing only');
+      return formatAnalyzedEntitiesWithoutStoring(analyzedEntities);
+    }
     
     const formattedEntities: Partial<HistoricalEntity>[] = analyzedEntities.map(entity => ({
       name: entity.name,
@@ -111,7 +163,8 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
       description: entity.description,
       significance: entity.significance,
       group_name: entity.group,
-      domains: entity.domains || []
+      domains: entity.domains || [],
+      user_id: userId // Set the user_id to comply with RLS policies
     }));
 
     // Insert entities to the database
@@ -147,7 +200,8 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
               source_id: sourceId,
               target_id: targetId,
               type: relation.type || 'default',
-              strength: relation.strength || 5
+              strength: relation.strength || 5,
+              user_id: userId // Set the user_id to comply with RLS policies
             });
           }
         });
