@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { Button } from "@/components/ui/button";
@@ -15,17 +15,53 @@ import ElementCard from '@/components/ElementCard';
 import VisualizationPlaceholder from '@/components/VisualizationPlaceholder';
 import FeaturesSection from '@/components/FeaturesSection';
 import StorytellingSection from '@/components/StorytellingSection';
-import { HistoricalEntity, SimulationNode, prepareSimulationData, mockHistoricalData } from '@/utils/mockData';
 import { Separator } from "@/components/ui/separator";
+import { FormattedHistoricalEntity } from '@/types/supabase';
+import { fetchHistoricalData, analyzeHistoricalText } from '@/services/historicalDataService';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 const Visualize: React.FC = () => {
   const [text, setText] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [selectedEntity, setSelectedEntity] = useState<HistoricalEntity | null>(null);
-  const [entities, setEntities] = useState<SimulationNode[]>([]);
+  const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
   const [activeTab, setActiveTab] = useState<string>('knowledge-graph');
-  const [timelineData, setTimelineData] = useState<any>(null);
   const [hasVisualization, setHasVisualization] = useState<boolean>(false);
+  
+  // Fetch historical data using React Query
+  const { 
+    data: entities = [], 
+    isLoading: isLoadingEntities,
+    refetch: refetchEntities 
+  } = useQuery({
+    queryKey: ['historicalData'],
+    queryFn: fetchHistoricalData,
+    onSuccess: (data) => {
+      if (data.length > 0) {
+        setHasVisualization(true);
+      }
+    },
+    onError: (error) => {
+      console.error('Error fetching historical data:', error);
+      toast.error('Failed to fetch historical data');
+    }
+  });
+  
+  // Mutation for analyzing text
+  const analyzeMutation = useMutation({
+    mutationFn: analyzeHistoricalText,
+    onSuccess: () => {
+      refetchEntities();
+      setHasVisualization(true);
+      toast.success("Historical entities and relationships extracted successfully.");
+    },
+    onError: (error) => {
+      console.error("Error processing analysis:", error);
+      toast.error("An error occurred while creating the visualization");
+    },
+    onSettled: () => {
+      setLoading(false);
+    }
+  });
   
   const exampleTexts = [
     "The Renaissance was a period in European history marking the transition from the Middle Ages to modernity and covering the 15th and 16th centuries.",
@@ -44,27 +80,10 @@ const Visualize: React.FC = () => {
     }
 
     setLoading(true);
-    
-    try {
-      // Simulate API call with timeout
-      setTimeout(() => {
-        // For demo, use mock data
-        const processedEntities = prepareSimulationData(mockHistoricalData);
-        setEntities(processedEntities);
-        setTimelineData(mockHistoricalData);
-        setHasVisualization(true);
-        setLoading(false);
-        
-        toast.success("Historical entities and relationships extracted successfully.");
-      }, 1500);
-    } catch (error) {
-      console.error("Error processing analysis:", error);
-      toast.error("An error occurred while creating the visualization");
-      setLoading(false);
-    }
+    analyzeMutation.mutate(text);
   };
   
-  const handleEntitySelect = (entity: HistoricalEntity) => {
+  const handleEntitySelect = (entity: FormattedHistoricalEntity) => {
     setSelectedEntity(entity);
   };
   
@@ -151,7 +170,7 @@ const Visualize: React.FC = () => {
           </CardContent>
         </Card>
         
-        {hasVisualization && (
+        {(hasVisualization || isLoadingEntities) && (
           <section className="mb-10 visualization-section glass border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 backdrop-blur-sm py-6">
             <Separator className="mb-6" />
             
@@ -162,72 +181,78 @@ const Visualize: React.FC = () => {
               </p>
             </div>
             
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-4 mb-6 bg-secondary/80 border border-galaxy-nova/20 p-1">
-                <TabsTrigger 
-                  value="knowledge-graph" 
-                  className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
-                >
-                  <Network className="h-4 w-4" />
-                  Knowledge Graph
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="cosmic" 
-                  className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Cosmic View
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="timeline" 
-                  className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
-                >
-                  <History className="h-4 w-4" />
-                  Timeline
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="story" 
-                  className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
-                >
-                  <Book className="h-4 w-4" />
-                  Story
-                </TabsTrigger>
-              </TabsList>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className={`col-span-1 lg:col-span-${selectedEntity ? 2 : 3} transition-all duration-300`}>
-                  <TabsContent value="knowledge-graph" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
-                    <KnowledgeGraph entities={entities} onEntitySelect={handleEntitySelect} />
-                  </TabsContent>
-                  
-                  <TabsContent value="cosmic" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
-                    <CosmicVisualization entities={entities} onEntitySelect={handleEntitySelect} />
-                  </TabsContent>
-                  
-                  <TabsContent value="timeline" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
-                    <Timeline 
-                      entities={entities} 
-                      onEntitySelect={handleEntitySelect}
-                      timelineData={timelineData}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="story" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
-                    <div className="p-4 h-full flex items-center justify-center">
-                      <p className="text-muted-foreground">
-                        Scroll down to explore the interactive historical storyline visualization.
-                      </p>
-                    </div>
-                  </TabsContent>
-                </div>
-                
-                {selectedEntity && (
-                  <div className="col-span-1 h-[500px] transition-all duration-300 overflow-auto border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 glass backdrop-blur-sm">
-                    <ElementCard entity={selectedEntity} onClose={closeEntityCard} />
-                  </div>
-                )}
+            {isLoadingEntities ? (
+              <div className="flex items-center justify-center h-[500px]">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-galaxy-nova"></div>
               </div>
-            </Tabs>
+            ) : (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-4 mb-6 bg-secondary/80 border border-galaxy-nova/20 p-1">
+                  <TabsTrigger 
+                    value="knowledge-graph" 
+                    className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
+                  >
+                    <Network className="h-4 w-4" />
+                    Knowledge Graph
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="cosmic" 
+                    className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Cosmic View
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="timeline" 
+                    className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
+                  >
+                    <History className="h-4 w-4" />
+                    Timeline
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="story" 
+                    className="flex items-center gap-2 data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova"
+                  >
+                    <Book className="h-4 w-4" />
+                    Story
+                  </TabsTrigger>
+                </TabsList>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className={`col-span-1 lg:col-span-${selectedEntity ? 2 : 3} transition-all duration-300`}>
+                    <TabsContent value="knowledge-graph" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+                      <KnowledgeGraph entities={entities} onEntitySelect={handleEntitySelect} />
+                    </TabsContent>
+                    
+                    <TabsContent value="cosmic" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+                      <CosmicVisualization entities={entities} onEntitySelect={handleEntitySelect} />
+                    </TabsContent>
+                    
+                    <TabsContent value="timeline" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+                      <Timeline 
+                        entities={entities} 
+                        onEntitySelect={handleEntitySelect}
+                        timelineData={entities}
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="story" className="mt-0 h-[500px] border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+                      <div className="p-4 h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">
+                          Scroll down to explore the interactive historical storyline visualization.
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </div>
+                  
+                  {selectedEntity && (
+                    <div className="col-span-1 h-[500px] transition-all duration-300 overflow-auto border border-galaxy-nova/20 rounded-lg shadow-lg shadow-galaxy-core/10 glass backdrop-blur-sm">
+                      <ElementCard entity={selectedEntity} onClose={closeEntityCard} />
+                    </div>
+                  )}
+                </div>
+              </Tabs>
+            )}
           </section>
         )}
         

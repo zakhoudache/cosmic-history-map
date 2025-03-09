@@ -10,12 +10,13 @@ const corsHeaders = {
 interface HistoricalEntity {
   id: string;
   name: string;
-  type: 'person' | 'event' | 'place' | 'concept' | 'artifact';
+  type: 'person' | 'event' | 'place' | 'concept' | 'period' | 'artwork' | 'document' | 'building' | 'theory' | 'invention' | 'process' | 'play';
   startDate?: string;
   endDate?: string;
   description: string;
   significance: number;
   group: string;
+  domains?: string[];
   relations: Array<{
     targetId: string;
     type: string;
@@ -69,12 +70,13 @@ serve(async (req: Request) => {
     Extract entities (people, events, places, concepts, artifacts) mentioned in the text.
     For each entity, determine:
     1. Name
-    2. Type (person, event, place, concept, artifact)
+    2. Type (person, event, place, concept, period, artwork, document, building, theory, invention, process, play)
     3. Time period (startDate and endDate if applicable, in YYYY-MM-DD format, or just the year if that's all that is known)
     4. Brief description (2-3 sentences)
     5. Significance (a number from 1-10)
     6. Group/category (e.g., politics, art, technology, philosophy)
-    7. Relations to other entities (list of target entities and relationship types)
+    7. Domains (array of areas of influence like 'artistic', 'cultural', 'political', 'scientific', etc.)
+    8. Relations to other entities (list of target entities and relationship types)
 
     IMPORTANT: For relations, make sure to include diverse relationship types such as:
     - influenced/was influenced by
@@ -105,12 +107,13 @@ serve(async (req: Request) => {
         {
           "id": "auto_generated_id",
           "name": "Name of entity",
-          "type": "person/event/place/concept/artifact",
+          "type": "person/event/place/concept/period/artwork/document/building/theory/invention/process/play",
           "startDate": "YYYY-MM-DD or YYYY (optional)",
           "endDate": "YYYY-MM-DD or YYYY (optional)",
           "description": "Brief description",
           "significance": number from 1-10,
           "group": "category",
+          "domains": ["artistic", "cultural", "political", etc],
           "relations": [
             {
               "targetId": "id_of_target_entity",

@@ -33,6 +33,99 @@ export type Database = {
         }
         Relationships: []
       }
+      historical_entities: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          domains: string[] | null
+          end_date: string | null
+          group_name: string | null
+          id: string
+          name: string
+          significance: number | null
+          start_date: string | null
+          type: Database["public"]["Enums"]["entity_type"]
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          domains?: string[] | null
+          end_date?: string | null
+          group_name?: string | null
+          id?: string
+          name: string
+          significance?: number | null
+          start_date?: string | null
+          type: Database["public"]["Enums"]["entity_type"]
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          domains?: string[] | null
+          end_date?: string | null
+          group_name?: string | null
+          id?: string
+          name?: string
+          significance?: number | null
+          start_date?: string | null
+          type?: Database["public"]["Enums"]["entity_type"]
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      historical_relations: {
+        Row: {
+          created_at: string | null
+          id: string
+          source_id: string
+          strength: number | null
+          target_id: string
+          type: Database["public"]["Enums"]["relation_type"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          source_id: string
+          strength?: number | null
+          target_id: string
+          type?: Database["public"]["Enums"]["relation_type"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          source_id?: string
+          strength?: number | null
+          target_id?: string
+          type?: Database["public"]["Enums"]["relation_type"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_relations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "historical_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_relations_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "historical_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_graph_edges: {
         Row: {
           created_at: string | null
@@ -134,7 +227,32 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      entity_type:
+        | "person"
+        | "event"
+        | "place"
+        | "concept"
+        | "period"
+        | "artwork"
+        | "document"
+        | "building"
+        | "theory"
+        | "invention"
+        | "process"
+        | "play"
       node_type: "person" | "event" | "place" | "document" | "concept"
+      relation_type:
+        | "default"
+        | "causal"
+        | "correlative"
+        | "conflicting"
+        | "evolutionary"
+        | "artist"
+        | "painted"
+        | "wrote"
+        | "developed"
+        | "authored"
+        | "ledTo"
     }
     CompositeTypes: {
       [_ in never]: never
