@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ZoomIn, ZoomOut, Maximize, Download, Minimize, BarChart, Timeline } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, Download, Minimize, BarChart, Activity } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -40,7 +40,7 @@ const VisualizationControls: React.FC<VisualizationControlsProps> = ({
               <span className="hidden sm:inline">Graph</span>
             </ToggleGroupItem>
             <ToggleGroupItem value="timeline" aria-label="Timeline View" className="gap-1.5">
-              <Timeline className="h-4 w-4" />
+              <Activity className="h-4 w-4" />
               <span className="hidden sm:inline">Timeline</span>
             </ToggleGroupItem>
           </ToggleGroup>
@@ -103,7 +103,7 @@ const VisualizationControls: React.FC<VisualizationControlsProps> = ({
                   <span className="sr-only">{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</TooltipContent>
+              <TooltipContent>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"} </TooltipContent>
             </Tooltip>
           )}
           
