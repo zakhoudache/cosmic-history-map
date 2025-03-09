@@ -9,12 +9,16 @@ import Timeline from "@/components/Timeline";
 import VisualizationControls from "@/components/VisualizationControls";
 import { useAuth } from "@/hooks/useAuth";
 import StorytellingSection from "@/components/StorytellingSection";
+import ElementCard from "@/components/ElementCard";
+import { Card } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
   const [entities, setEntities] = useState<FormattedHistoricalEntity[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story">("graph");
+  const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
   const { user } = useAuth();
 
   const handleTextSubmit = (text: string, analyzedEntities: FormattedHistoricalEntity[]) => {
@@ -29,6 +33,14 @@ const Visualize = () => {
 
   const handleVisTypeChange = (type: "graph" | "timeline" | "story") => {
     setVisualizationType(type);
+  };
+
+  const handleEntitySelect = (entity: FormattedHistoricalEntity) => {
+    setSelectedEntity(entity);
+  };
+
+  const closeDetailsCard = () => {
+    setSelectedEntity(null);
   };
 
   const showPlaceholder = !inputText || entities.length === 0;
@@ -72,14 +84,27 @@ const Visualize = () => {
             ) : (
               <>
                 {visualizationType === "graph" && (
-                  <CosmicVisualization 
-                    entities={entities}
-                    visualizationType={visualizationType}
-                  />
+                  <div className="relative h-full">
+                    <CosmicVisualization 
+                      entities={entities}
+                      visualizationType={visualizationType}
+                      onEntitySelect={handleEntitySelect}
+                    />
+                    
+                    {selectedEntity && (
+                      <div className="absolute bottom-4 right-4 w-72 z-20">
+                        <ElementCard 
+                          entity={selectedEntity} 
+                          onClose={closeDetailsCard} 
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
                 {visualizationType === "timeline" && (
                   <Timeline 
                     entities={entities}
+                    onEntitySelect={handleEntitySelect}
                   />
                 )}
                 {visualizationType === "story" && (
@@ -87,6 +112,16 @@ const Visualize = () => {
                     entities={entities}
                     text={inputText}
                   />
+                )}
+                
+                {/* Show details card in timeline view too */}
+                {visualizationType === "timeline" && selectedEntity && (
+                  <div className="fixed bottom-4 right-4 w-72 z-50">
+                    <ElementCard 
+                      entity={selectedEntity} 
+                      onClose={closeDetailsCard} 
+                    />
+                  </div>
                 )}
               </>
             )}
