@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { FormattedHistoricalEntity } from '@/types/supabase';
@@ -7,6 +8,7 @@ import VisualizationPlaceholder from './VisualizationPlaceholder';
 interface TimelineProps {
   entities?: FormattedHistoricalEntity[];
   onEntitySelect?: (entity: FormattedHistoricalEntity) => void;
+  // Remove timelineData prop as it's not needed
 }
 
 const Timeline: React.FC<TimelineProps> = ({ entities = [], onEntitySelect }) => {

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Maximize, Minimize, Plus, Minus, Network, Activity, Book } from "lucide-react";
+import { Download, Maximize, Minimize, Plus, Minus, Network, Activity, Book, FilePdf } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface VisualizationControlsProps {
@@ -11,6 +11,7 @@ interface VisualizationControlsProps {
   onZoomOut?: () => void;
   onToggleFullscreen?: () => void;
   onExport?: () => void;
+  onExportPDF?: () => void;
   isFullscreen?: boolean;
   entityCount?: number;
 }
@@ -22,6 +23,7 @@ const VisualizationControls: React.FC<VisualizationControlsProps> = ({
   onZoomOut,
   onToggleFullscreen,
   onExport,
+  onExportPDF,
   isFullscreen = false,
   entityCount,
 }) => {
@@ -151,12 +153,29 @@ const VisualizationControls: React.FC<VisualizationControlsProps> = ({
                 size="icon"
                 className="h-8 w-8"
                 onClick={onExport}
-                aria-label="Export visualization"
+                aria-label="Export visualization as SVG"
               >
                 <Download className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Export</TooltipContent>
+            <TooltipContent>Export SVG</TooltipContent>
+          </Tooltip>
+        )}
+        
+        {onExportPDF && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onExportPDF}
+                aria-label="Export PDF document"
+              >
+                <FilePdf className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Export PDF</TooltipContent>
           </Tooltip>
         )}
       </div>

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
 import { FormattedHistoricalEntity } from "@/types/supabase";
@@ -12,6 +12,8 @@ import StorytellingSection from "@/components/StorytellingSection";
 import ElementCard from "@/components/ElementCard";
 import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { exportToPDF } from "@/utils/pdfExport";
+import { toast } from "sonner";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
@@ -20,6 +22,8 @@ const Visualize = () => {
   const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story">("graph");
   const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
   const { user } = useAuth();
+  const cosmicVisualizationRef = useRef<SVGSVGElement>(null);
+  const timelineRef = useRef<SVGSVGElement>(null);
 
   const handleTextSubmit = (text: string, analyzedEntities: FormattedHistoricalEntity[]) => {
     setInputText(text);
@@ -43,6 +47,47 @@ const Visualize = () => {
     setSelectedEntity(null);
   };
 
+  const handleExportPDF = () => {
+    if (entities.length === 0) {
+      toast.error("No data to export. Please analyze text first.");
+      return;
+    }
+    
+    // Get the appropriate SVG element based on visualization type
+    let svgElement = null;
+    if (visualizationType === "graph") {
+      // Find the SVG element in the CosmicVisualization component
+      const svgElement = document.querySelector(".visualization-container")?.closest("svg");
+      
+      // Generate PDF with the visualization
+      exportToPDF({
+        entities,
+        title: "Cosmic Connections Analysis",
+        description: `Analysis of historical connections based on the input text:\n${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`,
+        visualizationType,
+        svgElement: svgElement as SVGSVGElement,
+      });
+    } else if (visualizationType === "timeline") {
+      // For timeline view
+      const svgElement = document.querySelector("#timeline-visualization");
+      exportToPDF({
+        entities,
+        title: "Historical Timeline Analysis",
+        description: `Timeline visualization of historical entities based on the input text:\n${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`,
+        visualizationType,
+        svgElement: svgElement as SVGSVGElement,
+      });
+    } else {
+      // For story view (no SVG)
+      exportToPDF({
+        entities,
+        title: "Historical Narrative Analysis",
+        description: `Storytelling analysis of historical connections based on the input text:\n${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`,
+        visualizationType,
+      });
+    }
+  };
+
   const showPlaceholder = !inputText || entities.length === 0;
 
   return (
@@ -62,12 +107,13 @@ const Visualize = () => {
           onStartAnalysis={handleAnalysisStart}
         />
 
-        <div className="mt-8">
+        <div className="mt-8 relative">
           {!showPlaceholder && (
             <VisualizationControls 
               visualizationType={visualizationType} 
               onVisTypeChange={handleVisTypeChange}
               entityCount={entities.length}
+              onExportPDF={handleExportPDF}
             />
           )}
           
@@ -102,10 +148,12 @@ const Visualize = () => {
                   </div>
                 )}
                 {visualizationType === "timeline" && (
-                  <Timeline 
-                    entities={entities}
-                    onEntitySelect={handleEntitySelect}
-                  />
+                  <div className="relative h-full">
+                    <Timeline 
+                      entities={entities}
+                      onEntitySelect={handleEntitySelect}
+                    />
+                  </div>
                 )}
                 {visualizationType === "story" && (
                   <StorytellingSection 
