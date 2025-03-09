@@ -27,7 +27,7 @@ const Visualize: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('knowledge-graph');
   const [hasVisualization, setHasVisualization] = useState<boolean>(false);
   
-  // Fetch historical data using React Query
+  // Fetch historical data using React Query with updated parameter format
   const { 
     data: entities = [], 
     isLoading: isLoadingEntities,
@@ -35,16 +35,25 @@ const Visualize: React.FC = () => {
   } = useQuery({
     queryKey: ['historicalData'],
     queryFn: fetchHistoricalData,
-    onSuccess: (data) => {
-      if (data.length > 0) {
-        setHasVisualization(true);
+    meta: {
+      onSuccess: (data: FormattedHistoricalEntity[]) => {
+        if (data.length > 0) {
+          setHasVisualization(true);
+        }
+      },
+      onError: (error: Error) => {
+        console.error('Error fetching historical data:', error);
+        toast.error('Failed to fetch historical data');
       }
-    },
-    onError: (error) => {
-      console.error('Error fetching historical data:', error);
-      toast.error('Failed to fetch historical data');
     }
   });
+  
+  // Update effects to handle query success
+  useEffect(() => {
+    if (entities.length > 0) {
+      setHasVisualization(true);
+    }
+  }, [entities]);
   
   // Mutation for analyzing text
   const analyzeMutation = useMutation({

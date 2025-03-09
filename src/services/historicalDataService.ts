@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { HistoricalEntity, HistoricalRelation, FormattedHistoricalEntity } from "@/types/supabase";
+import { HistoricalEntity, HistoricalRelation, FormattedHistoricalEntity, RelationType } from "@/types/supabase";
 import { toast } from "sonner";
 
 // Function to fetch all historical entities and their relations
@@ -28,7 +28,7 @@ export const fetchHistoricalData = async (): Promise<FormattedHistoricalEntity[]
     return formatHistoricalData(entities as HistoricalEntity[], relations as HistoricalRelation[]);
   } catch (error) {
     console.error('Error fetching historical data:', error);
-    toast.error('Failed to fetch historical data. Please try again later.');
+    toast.error('Failed to fetch historical data');
     return [];
   }
 };
@@ -69,18 +69,24 @@ export const formatHistoricalData = (
 // Function to analyze text and extract historical entities using the Supabase edge function
 export const analyzeHistoricalText = async (text: string): Promise<FormattedHistoricalEntity[]> => {
   try {
+    console.log('Analyzing text:', text.substring(0, 100) + '...');
+    
     const { data, error } = await supabase.functions.invoke('analyze-historical-text', {
       body: { text }
     });
 
     if (error) {
+      console.error('Error from edge function:', error);
       throw new Error(error.message);
     }
 
     if (!data || !data.entities) {
+      console.error('No data returned from analysis:', data);
       throw new Error('No data returned from analysis');
     }
 
+    console.log('Analysis successful, entities found:', data.entities.length);
+    
     // If we get a successful response, store the entities in the database
     const entitiesToInsert = await storeAnalyzedEntities(data.entities);
     
@@ -95,6 +101,8 @@ export const analyzeHistoricalText = async (text: string): Promise<FormattedHist
 // Function to store analyzed entities and their relations in the database
 const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<FormattedHistoricalEntity[]> => {
   try {
+    console.log('Storing analyzed entities:', analyzedEntities.length);
+    
     const formattedEntities: Partial<HistoricalEntity>[] = analyzedEntities.map(entity => ({
       name: entity.name,
       type: entity.type,
@@ -113,11 +121,14 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
       .select();
 
     if (insertEntitiesError) {
+      console.error('Error inserting entities:', insertEntitiesError);
       throw new Error(insertEntitiesError.message);
     }
 
+    console.log('Entities inserted successfully:', insertedEntities.length);
+
     // Create a map of original entity IDs to new database IDs
-    const idMapping = {};
+    const idMapping: Record<string, string> = {};
     insertedEntities.forEach((entity, index) => {
       idMapping[analyzedEntities[index].id] = entity.id;
     });
@@ -127,7 +138,7 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
     
     analyzedEntities.forEach(entity => {
       if (entity.relations && Array.isArray(entity.relations)) {
-        entity.relations.forEach(relation => {
+        entity.relations.forEach((relation: any) => {
           const sourceId = idMapping[entity.id];
           const targetId = idMapping[relation.targetId];
           
@@ -135,7 +146,7 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
             relations.push({
               source_id: sourceId,
               target_id: targetId,
-              type: relation.type as RelationType || 'default',
+              type: relation.type || 'default',
               strength: relation.strength || 5
             });
           }
@@ -145,6 +156,8 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
 
     // Insert relations if there are any
     if (relations.length > 0) {
+      console.log('Inserting relations:', relations.length);
+      
       const { error: insertRelationsError } = await supabase
         .from('historical_relations')
         .insert(relations);
@@ -166,13 +179,13 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
       significance: entity.significance,
       group: entity.group_name,
       // Map relations using the new IDs
-      relations: (analyzedEntities[index].relations || []).map(relation => ({
+      relations: (analyzedEntities[index].relations || []).map((relation: any) => ({
         targetId: idMapping[relation.targetId],
         type: relation.type,
         strength: relation.strength
       })),
       connections: (analyzedEntities[index].relations || [])
-        .map(relation => idMapping[relation.targetId])
+        .map((relation: any) => idMapping[relation.targetId])
         .filter(Boolean)
     }));
   } catch (error) {

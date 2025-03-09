@@ -1,10 +1,14 @@
+
 import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SendHorizonal } from "lucide-react";
+import { analyzeHistoricalText } from "@/services/historicalDataService";
+import { toast } from "sonner";
+import { FormattedHistoricalEntity } from "@/types/supabase";
 
 interface TextInputProps {
-  onSubmit: (text: string, analysisResult: any) => void;
+  onSubmit: (text: string, analysisResult: FormattedHistoricalEntity[]) => void;
   isLoading: boolean;
 }
 
@@ -12,19 +16,19 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
   const [text, setText] = useState<string>("");
   
   const handleSubmit = async () => {
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      toast.error("Please enter some historical text to analyze.");
+      return;
+    }
     
-    // Mock analysis result - in a real app this would come from an API
-    const mockAnalysisResult = {
-      entities: [
-        // Mock data format would match what your API returns
-      ],
-      timeline: {
-        // Mock timeline data
-      }
-    };
-    
-    onSubmit(text, mockAnalysisResult);
+    try {
+      // Use the real analysis function instead of mock data
+      const analysisResult = await analyzeHistoricalText(text);
+      onSubmit(text, analysisResult);
+    } catch (error) {
+      console.error("Error analyzing text:", error);
+      toast.error("Failed to analyze text. Please try again later.");
+    }
   };
   
   return (
