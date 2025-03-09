@@ -22,6 +22,7 @@ const buttonVariants = cva(
         cosmic: "bg-gradient-to-r from-cosmic-light to-cosmic hover:from-cosmic hover:to-cosmic-dark text-white shadow-md shadow-cosmic/20 hover:shadow-lg hover:shadow-cosmic/30 hover:-translate-y-0.5 transition-all duration-300",
         galaxy: "bg-gradient-to-r from-galaxy-spiral to-galaxy-core hover:from-galaxy-core hover:to-galaxy-nova text-white shadow-md shadow-galaxy-core/20 hover:shadow-lg hover:shadow-galaxy-nova/30 hover:-translate-y-0.5 transition-all duration-300",
         nebula: "bg-gradient-to-br from-cosmic-nebula/90 to-cosmic-accent/80 hover:from-cosmic-nebula hover:to-cosmic-accent text-white shadow-md shadow-cosmic-nebula/20 hover:shadow-lg hover:shadow-cosmic-accent/30 hover:-translate-y-0.5 transition-all duration-300",
+        starfield: "relative bg-black overflow-hidden border border-galaxy-nova/30 before:absolute before:inset-0 before:bg-[radial-gradient(white,_rgba(255,255,255,.2)_2px,_transparent_5px)] before:bg-[length:20px_20px] before:opacity-20 before:animate-twinkle after:absolute after:inset-0 after:bg-gradient-to-r after:from-galaxy-nova/10 after:to-galaxy-spiral/10 after:opacity-30 text-white hover:border-galaxy-nova/70 hover:text-galaxy-nova/90 hover:shadow-lg hover:shadow-galaxy-nova/20 transition-all duration-300",
       },
       size: {
         default: "h-10 px-4 py-2",

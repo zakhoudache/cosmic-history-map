@@ -76,6 +76,22 @@ serve(async (req: Request) => {
     6. Group/category (e.g., politics, art, technology, philosophy)
     7. Relations to other entities (list of target entities and relationship types)
 
+    IMPORTANT: For relations, make sure to include diverse relationship types such as:
+    - influenced/was influenced by
+    - created/was created by
+    - participated in/included
+    - opposed/was opposed by
+    - preceded/followed
+    - located in/contains
+    - associated with
+    - married to/divorced from
+    - parent of/child of
+    - teacher of/student of
+    - ally of/enemy of
+    Be specific about the relationship type based on the context.
+
+    Also ensure each relationship has a strength value from 1-10 indicating how strong the connection is.
+
     Also provide:
     - A brief summary of the text
     - Timeline information (overall start year, end year, and key periods)
@@ -185,18 +201,78 @@ serve(async (req: Request) => {
         analysisResult.entities = analysisResult.entities.map(entity => {
           if (entity.relations && entity.relations.length > 0) {
             entity.relations = entity.relations.map(relation => {
-              // Try to find the entity ID by name if the targetId doesn't look like a proper ID
-              if (!relation.targetId || !entityMap.has(relation.targetId.toLowerCase())) {
-                // Try to find the entity in our map
-                const fixedTargetId = entityMap.get(relation.targetId.toLowerCase());
-                if (fixedTargetId) {
-                  relation.targetId = fixedTargetId;
+              // If targetId is a name rather than an ID, convert it
+              if (relation.targetId && !relation.targetId.includes('_')) {
+                const targetName = relation.targetId.toLowerCase();
+                if (entityMap.has(targetName)) {
+                  relation.targetId = entityMap.get(targetName);
+                } else {
+                  // Try to find a similar name in the map (partial match)
+                  const similarName = Array.from(entityMap.keys()).find(name => 
+                    targetName.includes(name) || name.includes(targetName)
+                  );
+                  if (similarName) {
+                    relation.targetId = entityMap.get(similarName);
+                  }
                 }
               }
+              
+              // Ensure we have a relationship type
+              if (!relation.type || relation.type.trim() === '') {
+                relation.type = 'associated with';
+              }
+              
+              // Ensure we have a strength value
+              if (!relation.strength || relation.strength < 1 || relation.strength > 10) {
+                relation.strength = 5; // Default to medium strength
+              }
+              
               return relation;
-            });
+            }).filter(relation => relation.targetId); // Remove relations with missing targetIds
           }
           return entity;
+        });
+        
+        // Add bi-directional relationships if missing
+        const newEntities = [...analysisResult.entities];
+        analysisResult.entities.forEach(entity => {
+          if (entity.relations && entity.relations.length > 0) {
+            entity.relations.forEach(relation => {
+              const targetEntity = newEntities.find(e => e.id === relation.targetId);
+              if (targetEntity) {
+                // Check if the target doesn't have a relationship back to this entity
+                const hasReverseRelation = targetEntity.relations?.some(r => r.targetId === entity.id);
+                if (!hasReverseRelation && targetEntity.relations) {
+                  // Create a reverse relationship type
+                  let reverseType = 'associated with';
+                  switch (relation.type) {
+                    case 'created': reverseType = 'was created by'; break;
+                    case 'influenced': reverseType = 'was influenced by'; break;
+                    case 'married to': reverseType = 'married to'; break; // Bidirectional
+                    case 'teacher of': reverseType = 'student of'; break;
+                    case 'student of': reverseType = 'teacher of'; break;
+                    case 'allied with': reverseType = 'allied with'; break; // Bidirectional
+                    case 'parent of': reverseType = 'child of'; break;
+                    case 'child of': reverseType = 'parent of'; break;
+                    case 'preceded': reverseType = 'followed'; break;
+                    case 'followed': reverseType = 'preceded'; break;
+                    case 'located in': reverseType = 'contains'; break;
+                    case 'contains': reverseType = 'located in'; break;
+                    case 'opposed': reverseType = 'was opposed by'; break;
+                    case 'was opposed by': reverseType = 'opposed'; break;
+                    default: reverseType = 'associated with';
+                  }
+                  
+                  // Add the reverse relationship
+                  targetEntity.relations.push({
+                    targetId: entity.id,
+                    type: reverseType,
+                    strength: relation.strength
+                  });
+                }
+              }
+            });
+          }
         });
       } else {
         throw new Error("Unexpected response format from Gemini API");
