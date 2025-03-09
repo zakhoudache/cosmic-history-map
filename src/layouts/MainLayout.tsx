@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
+import CosmicBackground from "@/components/CosmicBackground";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -15,22 +16,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Cosmic background effects */}
-      <div className="absolute inset-0 bg-galaxy-gradient opacity-20 animate-galaxy-spin pointer-events-none"></div>
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(50)].map((_, i) => (
-          <div
-            key={i}
-            className={`star absolute ${i % 4 === 0 ? 'star-large twinkle-slow' : i % 3 === 0 ? 'star-medium twinkle-medium' : 'star-small twinkle-fast'}`}
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-            }}
-          />
-        ))}
-      </div>
+    <div className="min-h-screen flex flex-col relative overflow-x-hidden">
+      {/* Cosmic background */}
+      <CosmicBackground />
       
       <Header />
       

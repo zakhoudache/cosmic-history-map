@@ -2,7 +2,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import MainLayout from "@/layouts/MainLayout";
-import CosmicBackground from "@/components/CosmicBackground";
 import FeaturesSection from "@/components/FeaturesSection";
 import { Network, GanttChart as LucideGanttChart, Youtube } from "lucide-react";
 
@@ -11,9 +10,7 @@ const Index = () => {
     <MainLayout>
       <div className="relative isolate flex min-h-screen flex-col">
         {/* Hero Section */}
-        <div className="relative isolate -z-10">
-          <CosmicBackground />
-          
+        <div className="relative isolate">
           <div className="mx-auto max-w-6xl px-6 py-24 sm:py-32 lg:flex lg:items-center lg:gap-x-10 lg:px-8 lg:py-40">
             <div className="mx-auto max-w-2xl lg:mx-0 lg:flex-auto">
               <div className="flex">
@@ -72,7 +69,7 @@ const Index = () => {
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-base font-semibold leading-7 text-primary">Multiple Visualization Types</h2>
-              <p className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+              <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 Different Ways to See Connections
               </p>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
@@ -84,7 +81,7 @@ const Index = () => {
               {/* Graph Visualization */}
               <div className="flex flex-col md:flex-row gap-8 items-center">
                 <div className="flex-1">
-                  <h3 className="text-2xl font-bold tracking-tight">Cosmic Network View</h3>
+                  <h3 className="text-2xl font-bold tracking-tight text-white">Cosmic Network View</h3>
                   <p className="mt-4 text-base text-muted-foreground">
                     Visualize connections between historical entities as an interactive network graph. Zoom, pan, and explore relationships dynamically.
                   </p>
@@ -112,7 +109,7 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-2xl font-bold tracking-tight">Chronological Timeline</h3>
+                  <h3 className="text-2xl font-bold tracking-tight text-white">Chronological Timeline</h3>
                   <p className="mt-4 text-base text-muted-foreground">
                     See historical entities arranged along a timeline, making it easy to understand chronological relationships and the progression of events.
                   </p>
@@ -128,7 +125,7 @@ const Index = () => {
               {/* YouTube Analysis Visualization */}
               <div className="flex flex-col md:flex-row gap-8 items-center">
                 <div className="flex-1">
-                  <h3 className="text-2xl font-bold tracking-tight">YouTube Video Analysis</h3>
+                  <h3 className="text-2xl font-bold tracking-tight text-white">YouTube Video Analysis</h3>
                   <p className="mt-4 text-base text-muted-foreground">
                     Extract and analyze transcripts from YouTube videos to discover historical connections and create visualizations from video content.
                   </p>
@@ -154,7 +151,7 @@ const Index = () => {
         <section className="py-16">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Ready to explore history?</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Ready to explore history?</h2>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
                 Start analyzing historical texts or YouTube videos to discover connections and visualize them in different ways.
               </p>
@@ -167,7 +164,7 @@ const Index = () => {
                 </Link>
                 <Link
                   to="/youtube"
-                  className="text-sm font-semibold leading-6 inline-flex items-center gap-1"
+                  className="text-sm font-semibold leading-6 inline-flex items-center gap-1 text-white"
                 >
                   <Youtube className="h-4 w-4" />
                   Analyze a Video <span aria-hidden="true">→</span>

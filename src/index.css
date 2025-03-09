@@ -93,6 +93,11 @@
   .animate-galaxy-spin {
     animation: galaxy-spin 100s linear infinite;
   }
+  
+  /* Ensure text is visible */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-foreground;
+  }
 }
 
 @keyframes twinkle {
