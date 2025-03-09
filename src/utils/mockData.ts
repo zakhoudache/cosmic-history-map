@@ -1,166 +1,205 @@
-
-// Mock data for developing the visualization components
-// This would be replaced by actual AI-processed data in production
-
 export interface HistoricalEntity {
   id: string;
   name: string;
-  type: 'person' | 'event' | 'place' | 'concept' | 'artifact';
-  startDate?: Date | string;
-  endDate?: Date | string;
-  description: string;
-  connections?: string[]; // IDs of connected entities (used in mock data)
-  relations?: Array<{  // Used by Gemini API response
-    targetId: string;
-    type: string;
-    strength: number;
-  }>;
-  significance: number; // 1-10 scale of importance
-  coordinates?: {
-    x: number;
-    y: number;
-  };
+  type: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+  significance?: number;
   group?: string;
-  imageUrl?: string;
+  relations?: { target: string; type: string; }[];
 }
 
-// Sample historical data
+// Add SimulationNode interface to extend HistoricalEntity for D3 visualization
+export interface SimulationNode extends HistoricalEntity {
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number | null;
+  fy?: number | null;
+  index?: number;
+}
+
+// Add utility function to convert HistoricalEntity to SimulationNode
+export function prepareSimulationData(entities: HistoricalEntity[]): SimulationNode[] {
+  return entities.map(entity => ({
+    ...entity,
+    x: undefined,
+    y: undefined,
+    vx: undefined,
+    vy: undefined,
+    fx: null,
+    fy: null
+  }));
+}
+
 export const mockHistoricalData: HistoricalEntity[] = [
   {
     id: "renaissance",
     name: "Renaissance",
-    type: "event",
-    startDate: "1300-01-01",
-    endDate: "1600-12-31",
-    description: "A period of cultural, artistic, political, and economic rebirth following the Middle Ages.",
-    connections: ["davinci", "medici", "gutenberg", "humanism"],
-    significance: 10,
-    group: "cultural",
+    type: "Period",
+    startDate: "1300",
+    endDate: "1600",
+    description: "A period of European cultural, artistic, political and economic rebirth.",
+    significance: 9,
+    group: "Culture",
+    relations: [
+      { target: "daVinci", type: "artist" },
+      { target: "michelangelo", type: "artist" }
+    ]
   },
   {
-    id: "davinci",
+    id: "daVinci",
     name: "Leonardo da Vinci",
-    type: "person",
-    startDate: "1452-04-15",
-    endDate: "1519-05-02",
-    description: "Italian polymath whose areas of interest included invention, drawing, painting, and more.",
-    connections: ["renaissance", "medici"],
-    significance: 9,
-    group: "art",
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg/800px-Leonardo_da_Vinci_-_presumed_self-portrait_-_WGA12798.jpg",
-  },
-  {
-    id: "medici",
-    name: "Medici Family",
-    type: "person",
-    startDate: "1397-01-01",
-    endDate: "1494-12-31",
-    description: "Italian banking family and political dynasty that powered the Renaissance.",
-    connections: ["renaissance", "davinci", "florence"],
+    type: "Person",
+    startDate: "1452",
+    endDate: "1519",
+    description: "An Italian polymath of the High Renaissance.",
     significance: 8,
-    group: "politics",
+    group: "Art",
+    relations: [
+      { target: "monaLisa", type: "painted" }
+    ]
   },
   {
-    id: "gutenberg",
-    name: "Johannes Gutenberg",
-    type: "person",
-    startDate: "1400-01-01",
-    endDate: "1468-02-03",
-    description: "Inventor of the printing press with movable type.",
-    connections: ["renaissance", "printing"],
-    significance: 9,
-    group: "technology",
-  },
-  {
-    id: "florence",
-    name: "Florence",
-    type: "place",
-    description: "Center of Renaissance art and learning in Italy.",
-    connections: ["renaissance", "medici", "davinci"],
+    id: "monaLisa",
+    name: "Mona Lisa",
+    type: "Artwork",
+    description: "A 16th-century portrait painted in oil on a poplar panel by Leonardo da Vinci.",
     significance: 7,
-    group: "geography",
+    group: "Art",
+    relations: []
   },
   {
-    id: "humanism",
-    name: "Humanism",
-    type: "concept",
-    startDate: "1300-01-01",
-    endDate: "1600-12-31",
-    description: "Intellectual movement emphasizing human potential and achievements.",
-    connections: ["renaissance", "davinci"],
+    id: "michelangelo",
+    name: "Michelangelo",
+    type: "Person",
+    startDate: "1475",
+    endDate: "1564",
+    description: "An Italian sculptor, painter, architect and poet of the High Renaissance.",
     significance: 8,
-    group: "philosophy",
+    group: "Art",
+    relations: [
+      { target: "sistineChapel", type: "painted" }
+    ]
   },
   {
-    id: "printing",
-    name: "Printing Revolution",
-    type: "event",
-    startDate: "1440-01-01",
-    endDate: "1500-12-31",
-    description: "Widespread adoption of printing technology that revolutionized knowledge sharing.",
-    connections: ["gutenberg", "renaissance"],
-    significance: 9,
-    group: "technology",
+    id: "sistineChapel",
+    name: "Sistine Chapel",
+    type: "Building",
+    description: "A chapel in the Apostolic Palace, Vatican City, known for its Renaissance art.",
+    significance: 7,
+    group: "Architecture",
+    relations: []
+  },
+  {
+    id: "shakespeare",
+    name: "William Shakespeare",
+    type: "Person",
+    startDate: "1564",
+    endDate: "1616",
+    description: "An English playwright, poet and actor, widely regarded as the greatest writer in the English language.",
+    significance: 8,
+    group: "Literature",
+    relations: [
+      { target: "hamlet", type: "wrote" }
+    ]
+  },
+  {
+    id: "hamlet",
+    name: "Hamlet",
+    type: "Play",
+    description: "A tragedy by William Shakespeare, believed to have been written between 1599 and 1601.",
+    significance: 7,
+    group: "Literature",
+    relations: []
+  },
+  {
+    id: "copernicus",
+    name: "Nicolaus Copernicus",
+    type: "Person",
+    startDate: "1473",
+    endDate: "1543",
+    description: "A Renaissance-era mathematician and astronomer who formulated a model of the universe that placed the Sun rather than Earth at the center.",
+    significance: 7,
+    group: "Science",
+    relations: [
+      { target: "heliocentrism", type: "developed" }
+    ]
+  },
+  {
+    id: "heliocentrism",
+    name: "Heliocentrism",
+    type: "Theory",
+    description: "The astronomical model in which the Earth and planets revolve around the Sun.",
+    significance: 6,
+    group: "Science",
+    relations: []
+  },
+  {
+    id: "martinLuther",
+    name: "Martin Luther",
+    type: "Person",
+    startDate: "1483",
+    endDate: "1546",
+    description: "A German theologian, composer, priest, monk, and a seminal figure in the Protestant Reformation.",
+    significance: 7,
+    group: "Religion",
+    relations: [
+      { target: "ninetyFiveTheses", type: "authored" }
+    ]
+  },
+  {
+    id: "ninetyFiveTheses",
+    name: "Ninety-Five Theses",
+    type: "Document",
+    description: "A list of propositions for debate concerned with the question of indulgences, written by Martin Luther in 1517.",
+    significance: 6,
+    group: "Religion",
+    relations: []
+  },
+  {
+    id: "columbus",
+    name: "Christopher Columbus",
+    type: "Person",
+    startDate: "1451",
+    endDate: "1506",
+    description: "An Italian explorer and navigator who completed four Spanish-based voyages across the Atlantic Ocean.",
+    significance: 7,
+    group: "Exploration",
+    relations: [
+      { target: "discoveryOfAmerica", type: "ledTo" }
+    ]
+  },
+  {
+    id: "discoveryOfAmerica",
+    name: "Discovery of America",
+    type: "Event",
+    description: "The event of Europeans encountering the Americas, initiated by Christopher Columbus in 1492.",
+    significance: 6,
+    group: "Exploration",
+    relations: []
+  },
+  {
+    id: "printingPress",
+    name: "Printing Press",
+    type: "Invention",
+    startDate: "1440",
+    description: "A mechanical device for applying pressure to an inked surface resting upon a print medium, thereby transferring the ink.",
+    significance: 8,
+    group: "Technology",
+    relations: [
+      { target: "spreadOfKnowledge", type: "ledTo" }
+    ]
+  },
+  {
+    id: "spreadOfKnowledge",
+    name: "Spread of Knowledge",
+    type: "Process",
+    description: "The increase in the dissemination and availability of information and knowledge, facilitated by the printing press.",
+    significance: 7,
+    group: "Technology",
+    relations: []
   }
 ];
-
-// Function to get random positions for the visualization
-export const getRandomPosition = (min: number = -100, max: number = 100) => {
-  return Math.random() * (max - min) + min;
-};
-
-// Function to prepare data with coordinates for the visualization
-export const prepareVisualizationData = () => {
-  return mockHistoricalData.map(entity => ({
-    ...entity,
-    coordinates: {
-      x: getRandomPosition(),
-      y: getRandomPosition()
-    }
-  }));
-};
-
-// Function to get entity connections for the network graph
-export const getEntityConnections = () => {
-  const links: { source: string; target: string; value: number }[] = [];
-  
-  mockHistoricalData.forEach(entity => {
-    if (entity.connections) {
-      entity.connections.forEach(connectionId => {
-        // Avoid duplicate links
-        const existingLink = links.find(
-          link => 
-            (link.source === entity.id && link.target === connectionId) || 
-            (link.source === connectionId && link.target === entity.id)
-        );
-        
-        if (!existingLink) {
-          links.push({
-            source: entity.id,
-            target: connectionId,
-            value: 1
-          });
-        }
-      });
-    } else if (entity.relations) {
-      entity.relations.forEach(relation => {
-        // Avoid duplicate links
-        const existingLink = links.find(
-          link => 
-            (link.source === entity.id && link.target === relation.targetId) || 
-            (link.source === relation.targetId && link.target === entity.id)
-        );
-        
-        if (!existingLink) {
-          links.push({
-            source: entity.id,
-            target: relation.targetId,
-            value: relation.strength || 1
-          });
-        }
-      });
-    }
-  });
-  
-  return links;
-};

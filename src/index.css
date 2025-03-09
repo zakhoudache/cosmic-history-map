@@ -1,3 +1,56 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.75rem;
+
+    /* Custom cosmic theme colors */
+    --cosmic: 260 70% 40%;
+    --cosmic-dark: 260 70% 20%;
+    --cosmic-light: 260 70% 60%;
+    --cosmic-accent: 320 70% 50%;
+    --cosmic-muted: 260 30% 60%;
+
+    /* Sidebar colors */
+    --sidebar-background: 235 30% 11%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 245 60% 61%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 263 70% 50%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 20% 25%;
+    --sidebar-ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer utilities {
+  .cosmic-text {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent;
+  }
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -127,4 +180,43 @@
   50% { content: '..'; }
   75% { content: '...'; }
   100% { content: ''; }
+}
+
+/* Feature card styles */
+.feature-card {
+  @apply glass rounded-lg p-6 transition-all duration-300 hover:translate-y-[-5px];
+}
+
+.feature-icon {
+  @apply h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4;
+}
+
+/* Example list styles */
+.example-item {
+  @apply text-left text-sm p-2 rounded-md hover:bg-secondary transition-colors truncate overflow-hidden 
+  text-muted-foreground hover:text-foreground cursor-pointer;
+}
+
+/* Input field styles */
+.text-input-container {
+  @apply w-full relative group;
+}
+
+.text-input-wrapper {
+  @apply w-full transition-all duration-500 ease-in-out glass rounded-lg p-6;
+}
+
+/* Create specialized visualize-button style */
+.visualize-button {
+  @apply relative overflow-hidden transition-all bg-gradient-to-r from-cosmic-light to-cosmic 
+  hover:from-cosmic hover:to-cosmic-dark text-white px-4 py-2 rounded-md font-medium;
+}
+
+/* Style timeline tick marks */
+.timeline-tick {
+  @apply stroke-muted-foreground stroke-1;
+}
+
+.timeline-tick-label {
+  @apply fill-muted-foreground text-xs;
 }

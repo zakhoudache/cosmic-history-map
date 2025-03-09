@@ -6,10 +6,21 @@ import CosmicVisualization from "@/components/CosmicVisualization";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
 import Timeline from "@/components/Timeline";
 import ElementCard from "@/components/ElementCard";
-import { HistoricalEntity, mockHistoricalData } from "@/utils/mockData";
+import FeatureCard from "@/components/FeatureCard";
+import { HistoricalEntity, SimulationNode, prepareSimulationData, mockHistoricalData } from "@/utils/mockData";
 import { initScrollAnimations } from "@/utils/animations";
 import { Separator } from "@/components/ui/separator";
-import { ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
+import { 
+  ChevronDown, 
+  Search, 
+  RotateCcw, 
+  Galaxy, 
+  Network, 
+  Clock, 
+  BookOpen, 
+  Map
+} from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -17,7 +28,9 @@ const Index = () => {
   const [hasVisualization, setHasVisualization] = useState(false);
   const [selectedEntity, setSelectedEntity] = useState<HistoricalEntity | null>(null);
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
-  const [historicalEntities, setHistoricalEntities] = useState<HistoricalEntity[]>(mockHistoricalData);
+  const [historicalEntities, setHistoricalEntities] = useState<SimulationNode[]>(
+    prepareSimulationData(mockHistoricalData)
+  );
   const [timelineData, setTimelineData] = useState<any>(null);
 
   // Initialize scroll animations
@@ -56,7 +69,7 @@ const Index = () => {
         
         console.log("Processed entities:", entities);
         
-        setHistoricalEntities(entities);
+        setHistoricalEntities(prepareSimulationData(entities));
         setTimelineData(analysisResult.timeline);
         setHasVisualization(true);
         
@@ -191,72 +204,56 @@ const Index = () => {
         <Separator className="mb-16" />
         
         <div className="mb-12 text-center animate-on-scroll">
-          <h2 className="mb-4">Features</h2>
+          <h2 className="text-3xl font-bold mb-4">Features</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Discover the power of ChronoMind's historical data visualization capabilities.
           </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="glass rounded-lg p-6 animate-on-scroll">
-            <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-              <div className="text-white text-xl">🔄</div>
-            </div>
-            <h3 className="text-lg font-medium mb-2">AI-Powered Analysis</h3>
-            <p className="text-muted-foreground">
-              Advanced AI analyzes any historical text to extract entities, events, and relationships.
-            </p>
-          </div>
+          <FeatureCard
+            title="AI-Powered Analysis"
+            description="Advanced AI analyzes any historical text to extract entities, events, and relationships."
+            icon={RotateCcw}
+          />
           
-          <div className="glass rounded-lg p-6 animate-on-scroll">
-            <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-              <div className="text-white text-xl">🌌</div>
-            </div>
-            <h3 className="text-lg font-medium mb-2">Cosmic Visualization</h3>
-            <p className="text-muted-foreground">
-              Stunning interactive cosmic map where historical elements appear as celestial bodies.
-            </p>
-          </div>
+          <FeatureCard
+            title="Cosmic Visualization"
+            description="Stunning interactive cosmic map where historical elements appear as celestial bodies."
+            icon={Galaxy}
+          />
           
-          <div className="glass rounded-lg p-6 animate-on-scroll">
-            <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-              <div className="text-white text-xl">📊</div>
-            </div>
-            <h3 className="text-lg font-medium mb-2">Knowledge Graph</h3>
-            <p className="text-muted-foreground">
-              Visual network representation of historical connections and influences.
-            </p>
-          </div>
+          <FeatureCard
+            title="Knowledge Graph"
+            description="Visual network representation of historical connections and influences."
+            icon={Network}
+          />
           
-          <div className="glass rounded-lg p-6 animate-on-scroll">
-            <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-              <div className="text-white text-xl">⏳</div>
-            </div>
-            <h3 className="text-lg font-medium mb-2">Timeline View</h3>
-            <p className="text-muted-foreground">
-              Chronological representation that adjusts based on temporal range of identified elements.
-            </p>
-          </div>
+          <FeatureCard
+            title="Timeline View"
+            description="Chronological representation that adjusts based on temporal range of identified elements."
+            icon={Clock}
+          />
           
-          <div className="glass rounded-lg p-6 animate-on-scroll">
-            <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-              <div className="text-white text-xl">🔍</div>
-            </div>
-            <h3 className="text-lg font-medium mb-2">Semantic Search</h3>
-            <p className="text-muted-foreground">
-              AI-powered search that understands queries beyond exact keyword matching.
-            </p>
-          </div>
+          <FeatureCard
+            title="Semantic Search"
+            description="AI-powered search that understands queries beyond exact keyword matching."
+            icon={Search}
+          />
           
-          <div className="glass rounded-lg p-6 animate-on-scroll">
-            <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-              <div className="text-white text-xl">🗺️</div>
-            </div>
-            <h3 className="text-lg font-medium mb-2">Historical Maps</h3>
-            <p className="text-muted-foreground">
-              Multiple map types generated from historical text analysis.
-            </p>
-          </div>
+          <FeatureCard
+            title="Historical Maps"
+            description="Multiple map types generated from historical text analysis."
+            icon={Map}
+          />
+        </div>
+      </section>
+      
+      <section className="py-8 mb-16">
+        <div className="text-center">
+          <Link to="/visualize" className="visualize-button inline-block px-8 py-3">
+            Try Full Visualization Experience
+          </Link>
         </div>
       </section>
     </MainLayout>

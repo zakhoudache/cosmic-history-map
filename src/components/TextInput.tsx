@@ -64,24 +64,22 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading = false }) =>
   };
 
   return (
-    <div className="w-full relative group">
-      <div className={`w-full transition-all duration-500 ease-in-out ${isExpanded ? 'glass rounded-lg p-6' : 'p-0'}`}>
-        <h3 className={`font-medium mb-2 transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 h-0'}`}>
-          Enter historical text to visualize
-        </h3>
-        
+    <div className="text-input-container">
+      <div className="text-center mb-4">
+        <h2 className="text-2xl font-bold">Enter historical text to visualize</h2>
+      </div>
+      
+      <div className="text-input-wrapper">
         <form onSubmit={handleSubmit} className="space-y-4">
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter historical text or select an example below..."
-            className={`w-full resize-none transition-all duration-300 focus:ring-cosmic-light text-base ${
-              isExpanded ? "h-40" : "h-20"
-            }`}
+            className="w-full resize-none bg-white/5 border-gray-700 focus:ring-cosmic-light text-base h-32"
             onFocus={() => setIsExpanded(true)}
           />
           
-          <div className={`flex justify-between items-center transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+          <div className="flex justify-between items-center">
             <div className="flex gap-2 items-center">
               <Button
                 type="button"
@@ -101,20 +99,19 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading = false }) =>
             <Button 
               type="submit" 
               disabled={!text.trim() || isLoading || isAnalyzing}
-              className="relative overflow-hidden transition-all"
+              className="visualize-button"
             >
               {isLoading || isAnalyzing ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <ArrowRight className="h-4 w-4 mr-2" />
               )}
-              {isAnalyzing ? "Analyzing..." : "Visualize"}
-              <span className="absolute inset-0 h-full w-full bg-cosmic/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+              Visualize
             </Button>
           </div>
         </form>
         
-        <div className={`mt-4 transition-all duration-300 ${isExpanded ? 'max-h-60' : 'max-h-20'}`}>
+        <div className="mt-4">
           <div className="flex items-center gap-2 mb-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Examples</span>
@@ -125,7 +122,7 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading = false }) =>
               <button
                 key={index}
                 onClick={() => handleExampleClick(example)}
-                className="text-left text-sm p-2 rounded-md hover:bg-secondary transition-colors truncate overflow-hidden text-muted-foreground hover:text-foreground"
+                className="example-item"
               >
                 {example.length > 100 ? `${example.substring(0, 100)}...` : example}
               </button>
