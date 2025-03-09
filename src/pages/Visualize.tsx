@@ -26,7 +26,7 @@ const Visualize = () => {
       if (analysisResult && analysisResult.entities && analysisResult.entities.length > 0) {
         // Convert the Gemini API response to our HistoricalEntity format
         const entities = analysisResult.entities.map((entity: any) => ({
-          id: entity.id,
+          id: entity.id || `entity-${Math.random().toString(36).substr(2, 9)}`,
           name: entity.name,
           type: entity.type,
           startDate: entity.startDate,

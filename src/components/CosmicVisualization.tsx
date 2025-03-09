@@ -1,4 +1,4 @@
-
+<lov-code>
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, prepareVisualizationData } from '@/utils/mockData';
@@ -17,6 +17,8 @@ interface SimulationEntity extends HistoricalEntity, d3.SimulationNodeDatum {
   y?: number;
   fx?: number | null;
   fy?: number | null;
+  vx?: number;
+  vy?: number;
 }
 
 // Link type for visualization
@@ -160,22 +162,22 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     addNebulaEffect(svg, width, height);
     
     // Calculate entity group membership
-    const groupSets = new Map();
+    const groupSets: Record<string, Set<string>> = {};
     
     visualizationData.forEach(entity => {
       if (entity.group) {
-        if (!groupSets.has(entity.group)) {
-          groupSets.set(entity.group, new Set());
+        if (!groupSets[entity.group]) {
+          groupSets[entity.group] = new Set<string>();
         }
-        groupSets.get(entity.group).add(entity.id);
+        groupSets[entity.group].add(entity.id);
       }
     });
     
     // Draw group ellipses
-    if (groupSets.size > 0) {
+    if (Object.keys(groupSets).length > 0) {
       const groupLayer = svg.append("g").attr("class", "group-layer");
       
-      Array.from(groupSets.entries()).forEach(([groupName, entityIds], idx) => {
+      Object.entries(groupSets).forEach(([groupName, entityIds], idx) => {
         // Calculate centroid for group
         const groupEntities = visualizationData.filter(e => entityIds.has(e.id));
         
@@ -280,10 +282,10 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     });
     
     // Custom force for d3 v7
-    const customForceGrouping = (groupSets: Map<string, Set<string>>, strength: number) => {
+    const customForceGrouping = (groupSets: Record<string, Set<string>>, strength: number) => {
       return (alpha: number) => {
         // Apply grouping force
-        for (const [groupName, entityIds] of groupSets.entries()) {
+        for (const [groupName, entityIds] of Object.entries(groupSets)) {
           // Get all nodes in this group
           const groupNodes = visualizationData.filter(node => 
             entityIds.has(node.id)
@@ -319,7 +321,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .force("y", d3.forceY(centerY).strength(0.05));
     
     // Add custom grouping force
-    if (groupSets.size > 0) {
+    if (Object.keys(groupSets).length > 0) {
       simulation.on("tick.group", customForceGrouping(groupSets, 0.1));
     }
     
@@ -750,95 +752,4 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         .attr("cy", height * (0.3 + (i % 2) * 0.4))
         .attr("rx", 150 + Math.random() * 100)
         .attr("ry", 100 + Math.random() * 80)
-        .attr("fill", color)
-        .attr("filter", "url(#noise)")
-        .attr("opacity", 0)
-        .transition()
-        .duration(3000)
-        .delay(i * 700)
-        .attr("opacity", 1);
-    });
-  }
-  
-  // Helper function to get color by entity type
-  function getEntityTypeColor(type: string, opacity = 1) {
-    switch (type) {
-      case "person": return `hsla(300, 90%, 60%, ${opacity})`;
-      case "event": return `hsla(220, 90%, 60%, ${opacity})`;
-      case "place": return `hsla(180, 90%, 60%, ${opacity})`;
-      case "concept": return `hsla(340, 90%, 60%, ${opacity})`;
-      default: return `hsla(260, 90%, 60%, ${opacity})`;
-    }
-  }
-  
-  // Helper functions to lighten/darken colors
-  function lightenColor(color: string, percent: number) {
-    // For HSLA colors
-    if (color.startsWith('hsl')) {
-      const hslMatch = color.match(/hsla?\((\d+),\s*(\d+)%,\s*(\d+)%(?:,\s*([\d.]+))?\)/);
-      if (hslMatch) {
-        const h = parseInt(hslMatch[1], 10);
-        const s = parseInt(hslMatch[2], 10);
-        const l = Math.min(100, parseInt(hslMatch[3], 10) + percent);
-        const a = hslMatch[4] ? parseFloat(hslMatch[4]) : 1;
-        return `hsla(${h}, ${s}%, ${l}%, ${a})`;
-      }
-    }
-    return color;
-  }
-  
-  function darkenColor(color: string, percent: number) {
-    // For HSLA colors
-    if (color.startsWith('hsl')) {
-      const hslMatch = color.match(/hsla?\((\d+),\s*(\d+)%,\s*(\d+)%(?:,\s*([\d.]+))?\)/);
-      if (hslMatch) {
-        const h = parseInt(hslMatch[1], 10);
-        const s = parseInt(hslMatch[2], 10);
-        const l = Math.max(0, parseInt(hslMatch[3], 10) - percent);
-        const a = hslMatch[4] ? parseFloat(hslMatch[4]) : 1;
-        return `hsla(${h}, ${s}%, ${l}%, ${a})`;
-      }
-    }
-    return color;
-  }
-  
-  return (
-    <div className="w-full h-full min-h-[500px] relative overflow-hidden rounded-lg">
-      {/* Enhanced backdrop with nebula effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-cosmic-dark via-cosmic to-cosmic-accent/30 opacity-30 z-0"></div>
-      
-      {/* Foreground title */}
-      <div className="absolute top-0 left-0 w-full p-4 flex items-center space-x-2 z-10">
-        <Star className="h-5 w-5 text-cosmic-accent animate-pulse-subtle" />
-        <h3 className="text-lg font-semibold text-white">Cosmic Visualization</h3>
-      </div>
-      
-      {/* Interaction hint */}
-      <div className="absolute top-4 right-4 text-xs text-white/60 flex items-center gap-1 z-10">
-        <GitBranch className="h-3 w-3" />
-        <span>Drag nodes to explore</span>
-      </div>
-      
-      <svg
-        ref={svgRef}
-        width="100%"
-        height="100%"
-        className="cosmic-visualization"
-        style={{
-          opacity: isVisible ? 1 : 0,
-          transition: 'opacity 1s ease-in-out'
-        }}
-      />
-      
-      {(!visualizationData || visualizationData.length === 0) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-          <Star className="h-12 w-12 mb-4 opacity-50" />
-          <p>No visualization data to display</p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default CosmicVisualization;
-
+        .attr("
