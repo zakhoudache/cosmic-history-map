@@ -9,7 +9,6 @@ import Timeline from "@/components/Timeline";
 import ElementCard from "@/components/ElementCard";
 import { HistoricalEntity } from "@/utils/mockData";
 import { toast } from "sonner";
-import { Network, LineChart, GitBranch } from "lucide-react";
 
 const Visualize = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +26,7 @@ const Visualize = () => {
       if (analysisResult && analysisResult.entities && analysisResult.entities.length > 0) {
         // Convert the Gemini API response to our HistoricalEntity format
         const entities = analysisResult.entities.map((entity: any) => ({
-          id: entity.id || `entity-${Math.random().toString(36).substr(2, 9)}`,
+          id: entity.id,
           name: entity.name,
           type: entity.type,
           startDate: entity.startDate,
@@ -88,74 +87,62 @@ const Visualize = () => {
           <TextInput onSubmit={handleTextSubmit} isLoading={isLoading} />
         </div>
         
-        {/* Visualization cards - always visible, but show placeholders when no data */}
-        <div className="visualization-section mt-16">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4">Interactive Visualizations</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {hasVisualization 
-                ? "Explore the generated visualizations based on your historical text." 
-                : "Enter historical text above to generate interactive visualizations."}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
-            <div className="lg:col-span-2">
-              <div className="mb-2 flex items-center">
-                <GitBranch className="h-5 w-5 mr-2 text-cosmic-accent" />
-                <h3 className="text-lg font-medium">Cosmic Visualization</h3>
+        {/* Visualization section */}
+        {hasVisualization && (
+          <div className="visualization-section mt-16">
+            <div className="mb-12 text-center">
+              <h2 className="mb-4">Generated Visualizations</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Explore the generated visualizations based on your historical text.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
+              <div className="lg:col-span-2">
+                <CosmicVisualization 
+                  onEntitySelect={handleEntitySelect} 
+                  entities={historicalEntities}
+                />
               </div>
-              <CosmicVisualization 
+              
+              <div>
+                {selectedEntity ? (
+                  <ElementCard 
+                    entity={selectedEntity} 
+                    onClose={handleCloseEntityCard} 
+                  />
+                ) : (
+                  <div className="glass rounded-lg p-6 h-full flex flex-col justify-center items-center text-center">
+                    <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
+                      <div className="h-5 w-5 rounded-full bg-background"></div>
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">Select an Element</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Click on any element in the visualization to view detailed information.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="mb-16">
+              <h3 className="text-xl mb-4">Timeline View</h3>
+              <Timeline 
                 onEntitySelect={handleEntitySelect} 
-                entities={hasVisualization ? historicalEntities : []}
+                entities={historicalEntities}
+                timelineData={timelineData}
               />
             </div>
             
             <div>
-              {selectedEntity ? (
-                <ElementCard 
-                  entity={selectedEntity} 
-                  onClose={handleCloseEntityCard} 
-                />
-              ) : (
-                <div className="glass rounded-lg p-6 h-full flex flex-col justify-center items-center text-center">
-                  <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-                    <div className="h-5 w-5 rounded-full bg-background"></div>
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Element Details</h3>
-                  <p className="text-muted-foreground text-sm">
-                    {hasVisualization 
-                      ? "Click on any element in the visualization to view detailed information." 
-                      : "Generate a visualization first, then click on elements to see details."}
-                  </p>
-                </div>
-              )}
+              <h3 className="text-xl mb-4">Knowledge Graph</h3>
+              <KnowledgeGraph 
+                onEntitySelect={handleEntitySelect} 
+                entities={historicalEntities}
+              />
             </div>
           </div>
-          
-          <div className="mb-16">
-            <div className="mb-2 flex items-center">
-              <LineChart className="h-5 w-5 mr-2 text-cosmic-accent" />
-              <h3 className="text-lg font-medium">Timeline View</h3>
-            </div>
-            <Timeline 
-              onEntitySelect={handleEntitySelect} 
-              entities={hasVisualization ? historicalEntities : []}
-              timelineData={timelineData}
-            />
-          </div>
-          
-          <div>
-            <div className="mb-2 flex items-center">
-              <Network className="h-5 w-5 mr-2 text-cosmic-accent" />
-              <h3 className="text-lg font-medium">Knowledge Graph</h3>
-            </div>
-            <KnowledgeGraph 
-              onEntitySelect={handleEntitySelect} 
-              entities={hasVisualization ? historicalEntities : []}
-            />
-          </div>
-        </div>
+        )}
       </section>
     </MainLayout>
   );
