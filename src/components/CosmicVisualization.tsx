@@ -10,12 +10,29 @@ interface CosmicVisualizationProps {
   onEntitySelect?: (entity: HistoricalEntity) => void;
 }
 
+// Extended entity type for D3 simulation
+interface SimulationEntity extends HistoricalEntity, d3.SimulationNodeDatum {
+  // Allow for D3 to add coordinates
+  x?: number;
+  y?: number;
+  fx?: number | null;
+  fy?: number | null;
+}
+
+// Link type for visualization
+interface EntityLink {
+  source: SimulationEntity;
+  target: SimulationEntity;
+  type?: string;
+  strength: number;
+}
+
 const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({ 
   entities,
   onEntitySelect
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const visualizationData = entities || prepareVisualizationData();
+  const visualizationData: SimulationEntity[] = entities ? [...entities] as SimulationEntity[] : prepareVisualizationData() as SimulationEntity[];
   const isVisible = useAnimateOnMount(300);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   
@@ -139,7 +156,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     // Add star field
     addStarField(svg, width, height, 200);
     
-    // Create a few cosmic dust clouds
+    // Add cosmic dust clouds
     addNebulaEffect(svg, width, height);
     
     // Calculate entity group membership
@@ -161,6 +178,13 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       Array.from(groupSets.entries()).forEach(([groupName, entityIds], idx) => {
         // Calculate centroid for group
         const groupEntities = visualizationData.filter(e => entityIds.has(e.id));
+        
+        // Set default positions in case entities don't have x/y yet
+        groupEntities.forEach(entity => {
+          if (entity.x === undefined) entity.x = centerX + (Math.random() - 0.5) * 200;
+          if (entity.y === undefined) entity.y = centerY + (Math.random() - 0.5) * 200;
+        });
+        
         const avgX = groupEntities.reduce((sum, e) => sum + (e.x || 0), 0) / groupEntities.length;
         const avgY = groupEntities.reduce((sum, e) => sum + (e.y || 0), 0) / groupEntities.length;
         
@@ -208,7 +232,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     }
     
     // Extract entity connections
-    const getEntityConnections = (entity: HistoricalEntity) => {
+    const getEntityConnections = (entity: SimulationEntity): EntityLink[] => {
       // Handle both 'connections' (from mock data) and 'relations' (from API)
       if (entity.relations && Array.isArray(entity.relations)) {
         return entity.relations
@@ -221,11 +245,11 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
                 target,
                 type: relation.type || 'connected to',
                 strength: relation.strength || 1
-              };
+              } as EntityLink;
             }
             return null;
           })
-          .filter(Boolean); // Remove null values
+          .filter(Boolean) as EntityLink[]; // Remove null values
       } 
       return [];
     };
@@ -255,18 +279,49 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         .attr("stop-color", targetColor);
     });
     
+    // Custom force for d3 v7
+    const customForceGrouping = (groupSets: Map<string, Set<string>>, strength: number) => {
+      return (alpha: number) => {
+        // Apply grouping force
+        for (const [groupName, entityIds] of groupSets.entries()) {
+          // Get all nodes in this group
+          const groupNodes = visualizationData.filter(node => 
+            entityIds.has(node.id)
+          );
+          
+          if (groupNodes.length < 2) continue;
+          
+          // Calculate centroid
+          const groupCenterX = d3.mean(groupNodes, d => d.x) || 0;
+          const groupCenterY = d3.mean(groupNodes, d => d.y) || 0;
+          
+          // Pull group nodes toward centroid
+          groupNodes.forEach(node => {
+            node.vx = (node.vx || 0) + (groupCenterX - (node.x || 0)) * alpha * strength;
+            node.vy = (node.vy || 0) + (groupCenterY - (node.y || 0)) * alpha * strength;
+          });
+        }
+      };
+    };
+    
     // Set up force simulation
-    const simulation = d3.forceSimulation()
-      .nodes(visualizationData as d3.SimulationNodeDatum[])
+    const simulation = d3.forceSimulation(visualizationData)
       .force("center", d3.forceCenter(centerX, centerY))
-      .force("charge", d3.forceManyBody().strength(d => (d as HistoricalEntity).significance ? (d as HistoricalEntity).significance * -70 : -200))
+      .force("charge", d3.forceManyBody().strength(d => {
+        const entity = d as SimulationEntity;
+        return (entity.significance ? entity.significance * -70 : -200);
+      }))
       .force("collision", d3.forceCollide().radius(d => {
-        const entity = d as HistoricalEntity;
+        const entity = d as SimulationEntity;
         return (entity.significance || 5) * 5 + 30;
       }))
-      .force("group", forceGrouping(groupSets, 0.1))
       .force("x", d3.forceX(centerX).strength(0.05))
       .force("y", d3.forceY(centerY).strength(0.05));
+    
+    // Add custom grouping force
+    if (groupSets.size > 0) {
+      simulation.on("tick.group", customForceGrouping(groupSets, 0.1));
+    }
     
     // Create entity links
     const links = svg.append("g")
@@ -318,10 +373,10 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .style("cursor", "pointer")
       .on("click", (event, d) => {
         if (onEntitySelect) {
-          onEntitySelect(d as HistoricalEntity);
+          onEntitySelect(d as SimulationEntity);
         }
       })
-      .call(d3.drag<SVGGElement, HistoricalEntity>()
+      .call(d3.drag<SVGGElement, SimulationEntity>()
         .on("start", (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
@@ -465,7 +520,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         setTimeout(() => {
           animateRipple1();
           animateRipple2();
-        }, 1000 + d.significance * 100);
+        }, 1000 + (d.significance || 5) * 100);
       });
     
     // Add entity labels with enhanced styling
@@ -497,10 +552,12 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       // Update link paths
       links.selectAll(".link-path")
         .attr("d", d => {
-          const sourceX = d.source.x!;
-          const sourceY = d.source.y!;
-          const targetX = d.target.x!;
-          const targetY = d.target.y!;
+          if (!d.source.x || !d.source.y || !d.target.x || !d.target.y) return "";
+          
+          const sourceX = d.source.x;
+          const sourceY = d.source.y;
+          const targetX = d.target.x;
+          const targetY = d.target.y;
           
           // Calculate path with curve
           const dx = targetX - sourceX;
@@ -512,10 +569,12 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       
       // Update link particles
       links.each(function(d) {
-        const sourceX = d.source.x!;
-        const sourceY = d.source.y!;
-        const targetX = d.target.x!;
-        const targetY = d.target.y!;
+        if (!d.source.x || !d.source.y || !d.target.x || !d.target.y) return;
+        
+        const sourceX = d.source.x;
+        const sourceY = d.source.y;
+        const targetX = d.target.x;
+        const targetY = d.target.y;
         
         // Calculate path length for parametric positioning
         const dx = targetX - sourceX;
@@ -550,7 +609,9 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       });
       
       // Update node positions
-      nodeGroups.attr("transform", d => `translate(${d.x}, ${d.y})`);
+      nodeGroups.attr("transform", d => {
+        return `translate(${d.x || 0}, ${d.y || 0})`;
+      });
     });
     
     // Add legend
@@ -598,43 +659,6 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       simulation.stop();
     };
   }, [visualizationData, isVisible, dimensions, onEntitySelect]);
-  
-  // Helper function to create custom grouping force
-  function forceGrouping(groupSets: Map<string, Set<string>>, strength: number) {
-    let nodes: d3.SimulationNodeDatum[] = [];
-    let initialize = true;
-    
-    function force(alpha: number) {
-      if (initialize) return;
-      
-      // Apply grouping force
-      for (const [groupName, entityIds] of groupSets.entries()) {
-        // Get all nodes in this group
-        const groupNodes = nodes.filter(node => 
-          entityIds.has((node as HistoricalEntity).id)
-        );
-        
-        if (groupNodes.length < 2) continue;
-        
-        // Calculate centroid
-        const groupCenterX = d3.mean(groupNodes, d => d.x) || 0;
-        const groupCenterY = d3.mean(groupNodes, d => d.y) || 0;
-        
-        // Pull group nodes toward centroid
-        groupNodes.forEach(node => {
-          node.vx = (node.vx || 0) + (groupCenterX - (node.x || 0)) * alpha * strength;
-          node.vy = (node.vy || 0) + (groupCenterY - (node.y || 0)) * alpha * strength;
-        });
-      }
-    }
-    
-    force.initialize = function(_nodes: d3.SimulationNodeDatum[]) {
-      nodes = _nodes;
-      initialize = false;
-    };
-    
-    return force;
-  }
   
   // Helper function to add star field
   function addStarField(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, width: number, height: number, count: number) {
@@ -817,3 +841,4 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
 };
 
 export default CosmicVisualization;
+
