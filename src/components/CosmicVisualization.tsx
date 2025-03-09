@@ -12,11 +12,13 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 interface CosmicVisualizationProps {
   entities?: HistoricalEntity[];
   onEntitySelect?: (entity: HistoricalEntity) => void;
+  visualizationType?: "graph" | "timeline"; // Add this prop
 }
 
 const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({ 
   entities,
-  onEntitySelect
+  onEntitySelect,
+  visualizationType = "graph" // Default to graph view
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
