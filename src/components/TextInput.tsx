@@ -6,6 +6,7 @@ import { SendHorizonal } from "lucide-react";
 import { analyzeHistoricalText } from "@/services/historicalDataService";
 import { toast } from "sonner";
 import { FormattedHistoricalEntity } from "@/types/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TextInputProps {
   onSubmit: (text: string, analysisResult: FormattedHistoricalEntity[]) => void;
@@ -14,6 +15,7 @@ interface TextInputProps {
 
 const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
   const [text, setText] = useState<string>("");
+  const { user } = useAuth();
   
   const handleSubmit = async () => {
     if (!text.trim()) {
@@ -22,6 +24,11 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
     }
     
     try {
+      // Let the user know about authentication status
+      if (!user) {
+        console.log("Using in-memory processing without database storage (not authenticated)");
+      }
+      
       // Use the real analysis function
       const analysisResult = await analyzeHistoricalText(text);
       onSubmit(text, analysisResult);
@@ -72,6 +79,13 @@ const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading }) => {
             )}
           </Button>
         </div>
+        
+        {!user && (
+          <div className="mt-4 p-2 border border-galaxy-nova/20 rounded-md bg-galaxy-core/10 text-xs text-foreground/80">
+            <strong>Note:</strong> You are not currently signed in. Analyzed data will be processed in-memory only and not saved to your account.
+            Sign in to save your visualizations.
+          </div>
+        )}
       </div>
     </div>
   );

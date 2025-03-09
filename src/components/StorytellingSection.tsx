@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import { Book, ArrowDown, ArrowUp, HistoryIcon, Sparkles } from 'lucide-react';
 import VisualizationControls from '@/components/VisualizationControls';
 import { toast } from "sonner";
 import { cn } from '@/lib/utils';
+import { useIntersectionObserver, useStaggeredAnimation } from '@/utils/animations';
 
 interface TimelineEvent {
   id: string;
@@ -152,17 +153,21 @@ interface StoryPointNodeProps {
   point: StoryPoint;
   isSelected: boolean;
   onSelect: (point: StoryPoint) => void;
+  index: number;
+  isVisible: boolean;
 }
 
-const StoryPointNode: React.FC<StoryPointNodeProps> = ({ point, isSelected, onSelect }) => {
+const StoryPointNode: React.FC<StoryPointNodeProps> = ({ point, isSelected, onSelect, index, isVisible }) => {
   return (
     <div 
       className={cn(
-        "p-6 rounded-lg border transition-all duration-300 cursor-pointer relative z-10",
+        "p-6 rounded-lg border transition-all duration-500 cursor-pointer relative z-10",
         isSelected 
           ? "border-galaxy-nova shadow-lg shadow-galaxy-nova/20 bg-galaxy-core/40" 
-          : "border-galaxy-nova/30 hover:border-galaxy-nova/70 shadow-md hover:shadow-galaxy-nova/10 bg-galaxy-core/20"
+          : "border-galaxy-nova/30 hover:border-galaxy-nova/70 shadow-md hover:shadow-galaxy-nova/10 bg-galaxy-core/20",
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
       )}
+      style={{ transitionDelay: `${index * 100}ms` }}
       onClick={() => onSelect(point)}
     >
       <h3 className="text-xl font-bold mb-2 text-galaxy-nova">{point.title}</h3>
@@ -173,8 +178,15 @@ const StoryPointNode: React.FC<StoryPointNodeProps> = ({ point, isSelected, onSe
           <Separator className="bg-galaxy-nova/30" />
           <h4 className="text-sm font-semibold text-galaxy-star">Key Events:</h4>
           <div className="space-y-3">
-            {point.events.map(event => (
-              <div key={event.id} className="p-3 rounded-md bg-galaxy-core/30 border border-galaxy-nova/20">
+            {point.events.map((event, eventIndex) => (
+              <div 
+                key={event.id} 
+                className={cn(
+                  "p-3 rounded-md bg-galaxy-core/30 border border-galaxy-nova/20 transition-all duration-300",
+                  isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                )}
+                style={{ transitionDelay: `${(index * 100) + (eventIndex * 50)}ms` }}
+              >
                 <div className="flex justify-between items-start">
                   <h5 className="font-medium text-galaxy-star">{event.title}</h5>
                   <span className="px-2 py-1 text-xs rounded-full bg-galaxy-nova/20 text-galaxy-star">{event.date}</span>
@@ -182,8 +194,11 @@ const StoryPointNode: React.FC<StoryPointNodeProps> = ({ point, isSelected, onSe
                 <p className="mt-1 text-xs text-foreground/70">{event.description}</p>
                 <div className="mt-2 w-full bg-galaxy-core/40 rounded-full h-1.5">
                   <div 
-                    className="bg-gradient-to-r from-galaxy-star to-galaxy-nova h-1.5 rounded-full" 
-                    style={{ width: `${event.impact * 10}%` }}
+                    className="bg-gradient-to-r from-galaxy-star to-galaxy-nova h-1.5 rounded-full transition-all duration-1000"
+                    style={{ 
+                      width: isVisible ? `${event.impact * 10}%` : '0%',
+                      transitionDelay: `${(index * 100) + (eventIndex * 100) + 200}ms`
+                    }}
                   ></div>
                 </div>
               </div>
@@ -195,12 +210,58 @@ const StoryPointNode: React.FC<StoryPointNodeProps> = ({ point, isSelected, onSe
   );
 };
 
+const TimelineWalker: React.FC<{ isActive: boolean }> = ({ isActive }) => {
+  const [position, setPosition] = useState(0);
+  
+  useEffect(() => {
+    if (!isActive) return;
+    
+    const interval = setInterval(() => {
+      setPosition(prev => {
+        const newPos = prev + 1;
+        return newPos > 100 ? 0 : newPos;
+      });
+    }, 50);
+    
+    return () => clearInterval(interval);
+  }, [isActive]);
+  
+  return (
+    <div 
+      className="absolute h-4 w-4 rounded-full bg-galaxy-star shadow-lg shadow-galaxy-nova/50 z-20 transition-all duration-500"
+      style={{ 
+        left: `calc(${position}% - 8px)`,
+        top: 'calc(50% - 8px)',
+        opacity: isActive ? 1 : 0,
+        filter: `blur(${isActive ? '0px' : '10px'})`,
+        boxShadow: `0 0 15px 5px rgba(var(--galaxy-nova), ${isActive ? 0.7 : 0})`
+      }}
+    />
+  );
+};
+
 const StorytellingSection: React.FC = () => {
   const [selectedPoint, setSelectedPoint] = useState<StoryPoint | null>(null);
   const [activeTab, setActiveTab] = useState("vertical");
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [sectionRef, isSectionVisible] = useIntersectionObserver({ threshold: 0.1 });
+  const [contentRef, isContentVisible] = useIntersectionObserver({ threshold: 0.2 });
+  const [walkerActive, setWalkerActive] = useState(false);
+  
+  useEffect(() => {
+    if (isSectionVisible) {
+      // Delay the walker animation start
+      const timer = setTimeout(() => {
+        setWalkerActive(true);
+      }, 800);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setWalkerActive(false);
+    }
+  }, [isSectionVisible]);
 
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 0.2, 2));
@@ -258,7 +319,7 @@ const StorytellingSection: React.FC = () => {
   };
 
   return (
-    <section className="mb-10">
+    <section ref={sectionRef as React.RefObject<HTMLDivElement>} className="mb-10">
       <div className="mb-6 text-center">
         <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Historical Storyline</h2>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -306,34 +367,44 @@ const StorytellingSection: React.FC = () => {
                 transformOrigin: "top center"
               }}
             >
-              <div className="py-10 px-6 w-full h-full flex flex-col items-center relative">
-                {/* Connection lines */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                  {mockStoryData.map((point, index) => 
-                    index < mockStoryData.length - 1 && (
-                      <line 
-                        key={`line-${point.id}-${index}`}
-                        x1="50%"
-                        y1={(index * 20) + 10 + "%"}
-                        x2="50%"
-                        y2={(index * 20) + 30 + "%"}
-                        stroke="hsl(var(--galaxy-nova) / 0.4)"
-                        strokeWidth="2"
-                        strokeDasharray="6 4"
-                      />
-                    )
-                  )}
-                </svg>
+              <div ref={contentRef as React.RefObject<HTMLDivElement>} className="py-10 px-6 w-full h-full flex flex-col items-center relative">
+                {/* Timeline Path */}
+                <div className="absolute left-1/2 top-0 bottom-0 w-1.5 bg-gradient-to-b from-galaxy-nova/10 via-galaxy-nova/30 to-galaxy-nova/10 rounded-full z-0"></div>
+                
+                {/* Moving Walker */}
+                <div className="absolute left-1/2 top-0 bottom-0 w-1 z-0 overflow-hidden">
+                  <TimelineWalker isActive={walkerActive && isContentVisible} />
+                </div>
                 
                 {/* Story points */}
                 <div className="grid grid-cols-1 gap-28 w-full max-w-2xl relative z-10">
-                  {mockStoryData.map((point) => (
-                    <StoryPointNode 
-                      key={point.id}
-                      point={point}
-                      isSelected={selectedPoint?.id === point.id}
-                      onSelect={handleSelectPoint}
-                    />
+                  {mockStoryData.map((point, index) => (
+                    <div key={point.id} className="relative">
+                      {/* Timeline node */}
+                      <div 
+                        className={cn(
+                          "absolute left-1/2 top-1/2 w-6 h-6 rounded-full -translate-x-1/2 -translate-y-1/2 z-10 transition-all duration-700",
+                          isSectionVisible 
+                            ? "scale-100 opacity-100" 
+                            : "scale-0 opacity-0",
+                          selectedPoint?.id === point.id 
+                            ? "bg-galaxy-nova shadow-lg shadow-galaxy-nova/50" 
+                            : "bg-galaxy-star/60 shadow-md shadow-galaxy-star/30"
+                        )}
+                        style={{ transitionDelay: `${index * 150}ms` }}
+                      />
+                      
+                      {/* Content positioned to alternate sides */}
+                      <div className={`ml-${index % 2 === 0 ? 'auto pr-16' : '16 pl-auto'} w-[calc(50%-40px)]`}>
+                        <StoryPointNode 
+                          point={point}
+                          isSelected={selectedPoint?.id === point.id}
+                          onSelect={handleSelectPoint}
+                          index={index}
+                          isVisible={isSectionVisible}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -364,33 +435,82 @@ const StorytellingSection: React.FC = () => {
                       The Renaissance marked a period of explosive growth in art, science, literature, and exploration that forever changed European civilization and laid foundations for the modern world.
                     </p>
                     
-                    <div className="my-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {mockStoryData.map((point) => (
-                        <div 
-                          key={point.id}
-                          className="p-4 rounded-lg border border-galaxy-nova/30 bg-galaxy-core/20 hover:bg-galaxy-core/30 transition-colors"
-                        >
-                          <h4 className="text-lg font-semibold text-galaxy-star mb-2">{point.title}</h4>
-                          <p className="text-sm">{point.description}</p>
-                          <div className="mt-3 text-xs text-galaxy-nova/70">
-                            Key events: {point.events.length}
+                    <div className="my-8 relative">
+                      {/* Horizontal timeline */}
+                      <div className="absolute left-0 right-0 top-1/2 h-1 bg-gradient-to-r from-galaxy-nova/10 via-galaxy-nova/40 to-galaxy-nova/10 -translate-y-1/2 rounded-full"></div>
+                      
+                      {/* Moving walker on horizontal timeline */}
+                      <TimelineWalker isActive={walkerActive && isContentVisible} />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {mockStoryData.map((point, index) => (
+                          <div 
+                            key={point.id}
+                            className={cn(
+                              "p-4 rounded-lg border border-galaxy-nova/30 bg-galaxy-core/20 hover:bg-galaxy-core/30 transition-all duration-500 relative",
+                              isSectionVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+                            )}
+                            style={{ transitionDelay: `${index * 150}ms` }}
+                          >
+                            {/* Timeline node */}
+                            <div className={cn(
+                              "absolute left-1/2 -top-4 w-4 h-4 rounded-full -translate-x-1/2 -translate-y-1/2 z-10 border-2 border-galaxy-core/80 transition-all duration-700",
+                              isSectionVisible 
+                                ? "scale-100 opacity-100" 
+                                : "scale-0 opacity-0",
+                              "bg-galaxy-nova shadow-sm shadow-galaxy-nova/50"
+                            )} style={{ transitionDelay: `${index * 200}ms` }} />
+                            
+                            <h4 className="text-lg font-semibold text-galaxy-star mb-2">{point.title}</h4>
+                            <p className="text-sm">{point.description}</p>
+                            <div className="mt-3 text-xs text-galaxy-nova/70">
+                              Key events: {point.events.length}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                     
                     <p>
                       Beginning in 15th century Italy, the Renaissance represented a bridge between the Middle Ages and the Modern era. The period was characterized by a renewed interest in the classical learning of ancient Greece and Rome, as well as an emphasis on individual achievement and expression.
                     </p>
                     
-                    <div className="my-6 rounded-lg border border-galaxy-nova/20 p-4 bg-galaxy-core/10">
+                    <div className={cn(
+                      "my-6 rounded-lg border border-galaxy-nova/20 p-4 bg-galaxy-core/10 transition-all duration-700",
+                      isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                    )}>
                       <h5 className="font-semibold text-galaxy-nova mb-2">Major Contributions</h5>
                       <ul className="list-disc pl-5 space-y-2 text-sm">
-                        <li><span className="text-galaxy-star">Art:</span> Perspective, realism, and emotional expression</li>
-                        <li><span className="text-galaxy-star">Science:</span> Observation-based research and the scientific method</li>
-                        <li><span className="text-galaxy-star">Technology:</span> Printing press, improved navigation tools</li>
-                        <li><span className="text-galaxy-star">Exploration:</span> Age of Discovery connecting continents</li>
-                        <li><span className="text-galaxy-star">Philosophy:</span> Humanism focusing on human potential</li>
+                        <li className={cn(
+                          "transition-all duration-500",
+                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                        )} style={{ transitionDelay: "100ms" }}>
+                          <span className="text-galaxy-star">Art:</span> Perspective, realism, and emotional expression
+                        </li>
+                        <li className={cn(
+                          "transition-all duration-500",
+                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                        )} style={{ transitionDelay: "200ms" }}>
+                          <span className="text-galaxy-star">Science:</span> Observation-based research and the scientific method
+                        </li>
+                        <li className={cn(
+                          "transition-all duration-500",
+                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                        )} style={{ transitionDelay: "300ms" }}>
+                          <span className="text-galaxy-star">Technology:</span> Printing press, improved navigation tools
+                        </li>
+                        <li className={cn(
+                          "transition-all duration-500",
+                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                        )} style={{ transitionDelay: "400ms" }}>
+                          <span className="text-galaxy-star">Exploration:</span> Age of Discovery connecting continents
+                        </li>
+                        <li className={cn(
+                          "transition-all duration-500",
+                          isSectionVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"
+                        )} style={{ transitionDelay: "500ms" }}>
+                          <span className="text-galaxy-star">Philosophy:</span> Humanism focusing on human potential
+                        </li>
                       </ul>
                     </div>
                     
