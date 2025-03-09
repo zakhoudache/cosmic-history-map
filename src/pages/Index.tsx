@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -15,7 +14,7 @@ import {
   ChevronDown, 
   Search, 
   RotateCcw, 
-  Galaxy, 
+  Stars, 
   Network, 
   Clock, 
   BookOpen, 
@@ -220,7 +219,7 @@ const Index = () => {
           <FeatureCard
             title="Cosmic Visualization"
             description="Stunning interactive cosmic map where historical elements appear as celestial bodies."
-            icon={Galaxy}
+            icon={Stars}
           />
           
           <FeatureCard

@@ -2,7 +2,7 @@
 import React from 'react';
 import FeatureCard from './FeatureCard';
 import { Separator } from "@/components/ui/separator";
-import { RotateCcw, Star, Network, Clock, Search, Map } from 'lucide-react';
+import { RotateCcw, Stars, Network, Clock, Search, Map } from 'lucide-react';
 
 interface FeaturesSectionProps {
   className?: string;
@@ -30,7 +30,7 @@ const FeaturesSection: React.FC<FeaturesSectionProps> = ({ className = "" }) => 
         <FeatureCard
           title="Cosmic Visualization"
           description="Stunning interactive cosmic map where historical elements appear as celestial bodies."
-          icon={Star}
+          icon={Stars}
         />
         
         <FeatureCard

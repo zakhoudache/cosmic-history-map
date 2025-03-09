@@ -2,7 +2,7 @@
 import React from 'react';
 import { HistoricalEntity, mockHistoricalData } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
-import { X } from 'lucide-react';
+import { X, User, CalendarDays, MapPin, LightbulbIcon, Sparkles } from 'lucide-react';
 
 interface ElementCardProps {
   entity: HistoricalEntity;
@@ -36,16 +36,49 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
     : entity.startDate 
       ? `${formatDate(entity.startDate)}` 
       : '';
-  
-  const entityTypeIcon = () => {
+
+  // Get entity type specific styles and icons
+  const getEntityTypeStyles = () => {
     switch(entity.type.toLowerCase()) {
-      case "person": return "👤";
-      case "event": return "📅";
-      case "place": return "📍";
-      case "concept": return "💡";
-      default: return "•";
+      case "person":
+        return {
+          icon: <User className="h-6 w-6" />,
+          gradient: "bg-gradient-to-br from-blue-500 to-purple-600",
+          symbolBg: "bg-blue-400/20",
+          border: "border-blue-400/30"
+        };
+      case "event":
+        return {
+          icon: <CalendarDays className="h-6 w-6" />,
+          gradient: "bg-gradient-to-br from-red-500 to-orange-600",
+          symbolBg: "bg-red-400/20",
+          border: "border-red-400/30"
+        };
+      case "place":
+        return {
+          icon: <MapPin className="h-6 w-6" />,
+          gradient: "bg-gradient-to-br from-green-500 to-emerald-600",
+          symbolBg: "bg-green-400/20",
+          border: "border-green-400/30"
+        };
+      case "concept":
+        return {
+          icon: <LightbulbIcon className="h-6 w-6" />,
+          gradient: "bg-gradient-to-br from-amber-500 to-yellow-600",
+          symbolBg: "bg-amber-400/20",
+          border: "border-amber-400/30"
+        };
+      default:
+        return {
+          icon: <Sparkles className="h-6 w-6" />,
+          gradient: "bg-gradient-to-br from-cosmic-light to-cosmic-accent",
+          symbolBg: "bg-cosmic-light/20",
+          border: "border-cosmic-light/30"
+        };
     }
   };
+  
+  const typeStyles = getEntityTypeStyles();
   
   return (
     <div 
@@ -63,13 +96,16 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
           <X className="h-4 w-4" />
         </button>
         
-        {/* Header */}
-        <div className="cosmic-gradient p-4 relative overflow-hidden">
+        {/* Header with entity-specific styling */}
+        <div className={`p-4 relative overflow-hidden ${typeStyles.gradient}`}>
           <div className="relative z-10">
             <div className="flex items-start justify-between">
               <div>
-                <div className="inline-block px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium mb-2">
-                  {entityTypeIcon()} {entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
+                <div className={`inline-flex items-center px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium mb-2`}>
+                  <div className={`w-5 h-5 flex items-center justify-center rounded-full mr-1 ${typeStyles.symbolBg}`}>
+                    {typeStyles.icon}
+                  </div>
+                  <span>{entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}</span>
                 </div>
                 
                 {dateRange && (
@@ -85,9 +121,9 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
             <div className="h-1 w-12 bg-white/30 rounded-full my-2"></div>
           </div>
           
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-cosmic-accent/20 blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full bg-cosmic-light/20 blur-2xl translate-y-1/2 -translate-x-1/2"></div>
+          {/* Background decoration - customized per entity type */}
+          <div className={`absolute top-0 right-0 w-40 h-40 rounded-full ${typeStyles.symbolBg} blur-3xl -translate-y-1/2 translate-x-1/2`}></div>
+          <div className={`absolute bottom-0 left-0 w-20 h-20 rounded-full ${typeStyles.symbolBg} blur-2xl translate-y-1/2 -translate-x-1/2`}></div>
         </div>
         
         {/* Content */}
@@ -96,33 +132,47 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
             {entity.description}
           </p>
           
-          {/* Related entities */}
+          {/* Related entities with custom styling based on type */}
           {relatedEntities.length > 0 && (
             <div className="mt-4">
               <h4 className="text-sm font-medium mb-2">Related Elements</h4>
               <div className="flex flex-wrap gap-2">
-                {relatedEntities.map(related => (
-                  <div 
-                    key={related.id}
-                    className="inline-flex items-center px-3 py-1 rounded-full bg-secondary text-xs font-medium"
-                  >
-                    {(() => {
-                      switch(related.type.toLowerCase()) {
-                        case "person": return "👤 ";
-                        case "event": return "📅 ";
-                        case "place": return "📍 ";
-                        case "concept": return "💡 ";
-                        default: return "";
-                      }
-                    })()}
-                    {related.name}
-                  </div>
-                ))}
+                {relatedEntities.map(related => {
+                  const relatedTypeStyle = (() => {
+                    switch(related.type.toLowerCase()) {
+                      case "person": return "bg-blue-500/20 text-blue-300 border-blue-500/30";
+                      case "event": return "bg-red-500/20 text-red-300 border-red-500/30";
+                      case "place": return "bg-green-500/20 text-green-300 border-green-500/30";
+                      case "concept": return "bg-amber-500/20 text-amber-300 border-amber-500/30";
+                      default: return "bg-cosmic/20 text-cosmic-light border-cosmic/30";
+                    }
+                  })();
+                  
+                  const relatedIcon = (() => {
+                    switch(related.type.toLowerCase()) {
+                      case "person": return <User className="h-3 w-3 mr-1" />;
+                      case "event": return <CalendarDays className="h-3 w-3 mr-1" />;
+                      case "place": return <MapPin className="h-3 w-3 mr-1" />;
+                      case "concept": return <LightbulbIcon className="h-3 w-3 mr-1" />;
+                      default: return <Sparkles className="h-3 w-3 mr-1" />;
+                    }
+                  })();
+                  
+                  return (
+                    <div 
+                      key={related.id}
+                      className={`inline-flex items-center px-3 py-1 rounded-full border ${relatedTypeStyle} text-xs font-medium`}
+                    >
+                      {relatedIcon}
+                      {related.name}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
           
-          {/* Significance indicator */}
+          {/* Significance indicator with entity-specific colors */}
           <div className="mt-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Historical Significance</span>
@@ -130,7 +180,7 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
             </div>
             <div className="mt-1 h-1.5 w-full bg-muted rounded-full overflow-hidden">
               <div 
-                className="h-full cosmic-gradient rounded-full transition-all duration-1000"
+                className={`h-full ${typeStyles.gradient} rounded-full transition-all duration-1000`}
                 style={{ 
                   width: `${(entity.significance || 1) / 10 * 100}%`,
                   opacity: isVisible ? 1 : 0

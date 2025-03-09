@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -218,4 +219,25 @@
 
 .timeline-tick-label {
   @apply fill-muted-foreground text-xs;
+}
+
+/* Entity type-specific styling */
+.entity-person {
+  @apply bg-blue-500/20 border-blue-400;
+}
+
+.entity-event {
+  @apply bg-red-500/20 border-red-400;
+}
+
+.entity-place {
+  @apply bg-green-500/20 border-green-400;
+}
+
+.entity-concept {
+  @apply bg-amber-500/20 border-amber-400;
+}
+
+.entity-default {
+  @apply bg-cosmic/20 border-cosmic-light;
 }
