@@ -1,37 +1,38 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./hooks/useAuth";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Visualize from "./pages/Visualize";
-import About from "./pages/About";
-import Auth from "./pages/Auth";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from '@/components/ui/theme-provider';
 
+import Index from './pages/Index';
+import Visualize from './pages/Visualize';
+import NotFound from './pages/NotFound';
+import Auth from './pages/Auth';
+import About from './pages/About';
+import ProtectedRoute from './components/ProtectedRoute';
+import YouTubeAnalysis from './pages/YouTubeAnalysis';
+
+// Create a client
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <Router>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/visualize" element={<Visualize />} />
             <Route path="/about" element={<About />} />
             <Route path="/auth" element={<Auth />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/visualize" element={<Visualize />} />
+            <Route path="/youtube" element={<YouTubeAnalysis />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+        </Router>
+        <Toaster />
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

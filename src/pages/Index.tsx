@@ -1,280 +1,181 @@
-
-import React, { useState, useEffect } from "react";
-import MainLayout from "@/layouts/MainLayout";
-import TextInput from "@/components/TextInput";
-import CosmicVisualization from "@/components/CosmicVisualization";
-import KnowledgeGraph from "@/components/KnowledgeGraph";
-import Timeline from "@/components/Timeline";
-import ElementCard from "@/components/ElementCard";
-import FeatureCard from "@/components/FeatureCard";
-import { HistoricalEntity, SimulationNode, prepareSimulationData, mockHistoricalData } from "@/utils/mockData";
-import { initScrollAnimations } from "@/utils/animations";
-import { Separator } from "@/components/ui/separator";
+import React from "react";
 import { Link } from "react-router-dom";
-import { 
-  ChevronDown, 
-  Search, 
-  RotateCcw, 
-  Stars, 
-  Network, 
-  Clock, 
-  BookOpen, 
-  Map,
-  SendHorizonal
-} from "lucide-react";
-import { toast } from "sonner";
+import MainLayout from "@/layouts/MainLayout";
+import CosmicBackground from "@/components/CosmicBackground";
+import FeaturesSection from "@/components/FeaturesSection";
+import { Network, GanttChart as LucideGanttChart, Youtube } from "lucide-react";
 
 const Index = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasVisualization, setHasVisualization] = useState(false);
-  const [selectedEntity, setSelectedEntity] = useState<HistoricalEntity | null>(null);
-  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
-  const [historicalEntities, setHistoricalEntities] = useState<SimulationNode[]>(
-    prepareSimulationData(mockHistoricalData)
-  );
-  const [timelineData, setTimelineData] = useState<any>(null);
-
-  // Initialize scroll animations
-  useEffect(() => {
-    initScrollAnimations();
-    
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setShowScrollIndicator(false);
-      }
-    };
-    
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const handleTextSubmit = (text: string, analysisResult: any) => {
-    setIsLoading(true);
-    
-    try {
-      console.log("Analysis result:", analysisResult);
-      
-      if (analysisResult && analysisResult.entities && analysisResult.entities.length > 0) {
-        // Convert the Gemini API response to our HistoricalEntity format
-        const entities = analysisResult.entities.map((entity: any) => ({
-          id: entity.id,
-          name: entity.name,
-          type: entity.type,
-          startDate: entity.startDate,
-          endDate: entity.endDate,
-          description: entity.description,
-          significance: entity.significance || 5, // Default value if missing
-          group: entity.group,
-          relations: entity.relations || [] // Ensure relations exists
-        }));
-        
-        console.log("Processed entities:", entities);
-        
-        setHistoricalEntities(prepareSimulationData(entities));
-        setTimelineData(analysisResult.timeline);
-        setHasVisualization(true);
-        
-        // Ensure the page scrolls to the visualization section
-        setTimeout(() => {
-          const visualizationSection = document.querySelector('.visualization-section');
-          if (visualizationSection) {
-            visualizationSection.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 500);
-        
-        toast.success("Visualization created successfully");
-      } else {
-        // If no entities were found, show a more specific error
-        console.error("No entities found in analysis result:", analysisResult);
-        toast.error("No historical entities were found in the text. Please try a different text with clearer historical references.");
-      }
-    } catch (error) {
-      console.error("Error processing analysis result:", error);
-      toast.error("An error occurred while creating the visualization");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEntitySelect = (entity: HistoricalEntity) => {
-    setSelectedEntity(entity);
-  };
-
-  const handleCloseEntityCard = () => {
-    setSelectedEntity(null);
-  };
-
   return (
     <MainLayout>
-      {/* Hero section */}
-      <section className="relative min-h-[calc(100vh-5rem)] flex flex-col justify-center py-16">
-        {/* Subtle galaxy background effect for hero section */}
-        <div className="absolute inset-0 bg-galaxy-gradient opacity-20 animate-galaxy-spin pointer-events-none"></div>
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(50)].map((_, i) => (
-            <div
-              key={i}
-              className={`star absolute ${i % 4 === 0 ? 'star-large twinkle-slow' : i % 3 === 0 ? 'star-medium twinkle-medium' : 'star-small twinkle-fast'}`}
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-              }}
-            />
-          ))}
-        </div>
-        
-        <div className="max-w-3xl mx-auto text-center relative z-10 px-4">
-          <div className="inline-block px-3 py-1 rounded-full bg-secondary/80 border border-galaxy-nova/30 text-xs font-medium mb-4 animate-fade-in opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
-            Historical Data Visualization
-          </div>
+      <div className="relative isolate flex min-h-screen flex-col">
+        {/* Hero Section */}
+        <div className="relative isolate -z-10">
+          <CosmicBackground />
           
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-6 animate-fade-in opacity-0" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
-            Discover the cosmos of human history
-          </h1>
-          
-          <p className="text-muted-foreground text-lg mb-12 max-w-2xl mx-auto animate-fade-in opacity-0" style={{ animationDelay: "600ms", animationFillMode: "forwards" }}>
-            Enter any historical text and watch as ChronoMind transforms it into a beautiful interactive visualization revealing connections across time and space.
-          </p>
-          
-          <div className="cosmic-gradient mb-8 border border-galaxy-nova/30 shadow-lg shadow-galaxy-core/10 p-6 rounded-lg backdrop-blur-sm animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
-            <TextInput onSubmit={handleTextSubmit} isLoading={isLoading} />
-          </div>
-        </div>
-        
-        {/* Scroll indicator */}
-        {showScrollIndicator && (
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center text-muted-foreground animate-fade-in opacity-0" style={{ animationDelay: "1200ms", animationFillMode: "forwards" }}>
-            <span className="text-xs mb-2">Scroll to explore</span>
-            <ChevronDown className="h-5 w-5 animate-bounce" />
-          </div>
-        )}
-      </section>
-      
-      {/* Visualization section */}
-      {hasVisualization && (
-        <section className="py-16 visualization-section glass border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 backdrop-blur-sm mb-10" id="visualization">
-          <Separator className="mb-16" />
-          
-          <div className="mb-12 text-center animate-on-scroll">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Cosmic Visualization</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Explore historical entities and their relationships in an interactive cosmic map.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
-            <div className="lg:col-span-2 animate-on-scroll border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
-              <CosmicVisualization 
-                onEntitySelect={handleEntitySelect} 
-                entities={historicalEntities}
-              />
-            </div>
-            
-            <div className="animate-on-scroll">
-              {selectedEntity ? (
-                <ElementCard 
-                  entity={selectedEntity} 
-                  onClose={handleCloseEntityCard} 
-                />
-              ) : (
-                <div className="glass rounded-lg p-6 h-full flex flex-col justify-center items-center text-center border border-galaxy-nova/30 shadow-lg shadow-galaxy-core/10">
-                  <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
-                    <div className="h-5 w-5 rounded-full bg-background"></div>
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Select an Element</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Click on any element in the visualization to view detailed information.
-                  </p>
+          <div className="mx-auto max-w-6xl px-6 py-24 sm:py-32 lg:flex lg:items-center lg:gap-x-10 lg:px-8 lg:py-40">
+            <div className="mx-auto max-w-2xl lg:mx-0 lg:flex-auto">
+              <div className="flex">
+                <div className="relative flex items-center gap-x-4 rounded-full px-4 py-1 text-sm leading-6 text-gray-300 ring-1 ring-gray-700/10 hover:ring-gray-700/20">
+                  <span className="font-semibold text-primary">New</span>
+                  <span className="h-4 w-px bg-gray-600/20" aria-hidden="true" />
+                  <Link to="/youtube" className="flex items-center gap-x-1">
+                    <span>Analyze YouTube videos</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
                 </div>
-              )}
+              </div>
+              <h1 className="mt-10 max-w-lg text-4xl font-bold tracking-tight text-white sm:text-6xl">
+                Visualize Historical Connections
+              </h1>
+              <p className="mt-6 text-lg leading-8 text-gray-300">
+                Uncover the hidden connections between historical events, people, concepts, and places with ChronoLoom's advanced visualization tools.
+              </p>
+              <div className="mt-10 flex items-center gap-x-6">
+                <Link
+                  to="/visualize"
+                  className="cosmic-button px-6 py-3 text-base font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  Start Visualizing
+                </Link>
+                <Link to="/about" className="text-base font-semibold leading-6 text-white">
+                  Learn more <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+            <div className="mt-16 sm:mt-24 lg:mt-0 lg:flex-shrink-0 lg:flex-grow">
+              <div className="relative mx-auto w-full max-w-lg">
+                <img
+                  className="absolute -top-10 -right-10 w-[212px] max-w-none"
+                  src="/placeholder.svg"
+                  alt=""
+                />
+                <img
+                  className="absolute -bottom-20 -left-20 w-[180px] max-w-none"
+                  src="/placeholder.svg"
+                  alt=""
+                />
+                <div className="relative mx-auto h-[350px] w-[350px] sm:h-[400px] sm:w-[400px] rounded-full overflow-hidden border-8 border-gray-800/80 glow-sm bg-galaxy-core/30 backdrop-blur-sm">
+                  {/* This would be an image or animation showcasing the app */}
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div className="mb-16 animate-on-scroll">
-            <h3 className="text-xl font-medium text-galaxy-nova mb-4">Timeline View</h3>
-            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
-              <Timeline 
-                onEntitySelect={handleEntitySelect} 
-                entities={historicalEntities}
-                timelineData={timelineData}
-              />
+        </div>
+
+        {/* Features Section */}
+        <FeaturesSection />
+
+        {/* Demo/Preview section */}
+        <section className="py-16 sm:py-24">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-base font-semibold leading-7 text-primary">Multiple Visualization Types</h2>
+              <p className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+                Different Ways to See Connections
+              </p>
+              <p className="mt-6 text-lg leading-8 text-muted-foreground">
+                Choose from different visualization types to explore historical data in the way that works best for you.
+              </p>
             </div>
-          </div>
-          
-          <div className="animate-on-scroll">
-            <h3 className="text-xl font-medium text-galaxy-nova mb-4">Knowledge Graph</h3>
-            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
-              <KnowledgeGraph 
-                onEntitySelect={handleEntitySelect} 
-                entities={historicalEntities}
-              />
+
+            <div className="mt-16 sm:mt-20 flex flex-col gap-16">
+              {/* Graph Visualization */}
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold tracking-tight">Cosmic Network View</h3>
+                  <p className="mt-4 text-base text-muted-foreground">
+                    Visualize connections between historical entities as an interactive network graph. Zoom, pan, and explore relationships dynamically.
+                  </p>
+                  <Link
+                    to="/visualize"
+                    className="mt-6 inline-flex items-center text-sm font-medium text-primary"
+                  >
+                    Try Network View <span aria-hidden="true" className="ml-1">→</span>
+                  </Link>
+                </div>
+                <div className="flex-1 aspect-[4/3] overflow-hidden rounded-xl border border-galaxy-nova/30 bg-galaxy-core/10 backdrop-blur-sm">
+                  {/* Placeholder for network visualization */}
+                  <div className="h-full w-full flex items-center justify-center">
+                    <Network size={64} className="text-primary/50" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Visualization */}
+              <div className="flex flex-col-reverse md:flex-row gap-8 items-center">
+                <div className="flex-1 aspect-[4/3] overflow-hidden rounded-xl border border-galaxy-nova/30 bg-galaxy-core/10 backdrop-blur-sm">
+                  {/* Placeholder for timeline visualization */}
+                  <div className="h-full w-full flex items-center justify-center">
+                    <LucideGanttChart size={64} className="text-primary/50" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold tracking-tight">Chronological Timeline</h3>
+                  <p className="mt-4 text-base text-muted-foreground">
+                    See historical entities arranged along a timeline, making it easy to understand chronological relationships and the progression of events.
+                  </p>
+                  <Link
+                    to="/visualize"
+                    className="mt-6 inline-flex items-center text-sm font-medium text-primary"
+                  >
+                    Try Timeline View <span aria-hidden="true" className="ml-1">→</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* YouTube Analysis Visualization */}
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold tracking-tight">YouTube Video Analysis</h3>
+                  <p className="mt-4 text-base text-muted-foreground">
+                    Extract and analyze transcripts from YouTube videos to discover historical connections and create visualizations from video content.
+                  </p>
+                  <Link
+                    to="/youtube"
+                    className="mt-6 inline-flex items-center text-sm font-medium text-primary"
+                  >
+                    Try YouTube Analysis <span aria-hidden="true" className="ml-1">→</span>
+                  </Link>
+                </div>
+                <div className="flex-1 aspect-[4/3] overflow-hidden rounded-xl border border-galaxy-nova/30 bg-galaxy-core/10 backdrop-blur-sm">
+                  {/* Placeholder for YouTube analysis */}
+                  <div className="h-full w-full flex items-center justify-center">
+                    <Youtube size={64} className="text-primary/50" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
-      )}
-      
-      {/* Features section */}
-      <section className="py-16">
-        <Separator className="mb-16" />
-        
-        <div className="mb-12 text-center animate-on-scroll">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Features</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Discover the power of ChronoMind's historical data visualization capabilities.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureCard
-            title="AI-Powered Analysis"
-            description="Advanced AI analyzes any historical text to extract entities, events, and relationships."
-            icon={RotateCcw}
-          />
-          
-          <FeatureCard
-            title="Cosmic Visualization"
-            description="Stunning interactive cosmic map where historical elements appear as celestial bodies."
-            icon={Stars}
-          />
-          
-          <FeatureCard
-            title="Knowledge Graph"
-            description="Visual network representation of historical connections and influences."
-            icon={Network}
-          />
-          
-          <FeatureCard
-            title="Timeline View"
-            description="Chronological representation that adjusts based on temporal range of identified elements."
-            icon={Clock}
-          />
-          
-          <FeatureCard
-            title="Semantic Search"
-            description="AI-powered search that understands queries beyond exact keyword matching."
-            icon={Search}
-          />
-          
-          <FeatureCard
-            title="Historical Maps"
-            description="Multiple map types generated from historical text analysis."
-            icon={Map}
-          />
-        </div>
-      </section>
-      
-      <section className="py-8 mb-16">
-        <div className="text-center">
-          <Link 
-            to="/visualize" 
-            className="bg-gradient-to-r from-galaxy-spiral to-galaxy-core hover:from-galaxy-core hover:to-galaxy-nova text-white shadow-md shadow-galaxy-core/20 hover:shadow-lg hover:shadow-galaxy-nova/30 hover:-translate-y-0.5 transition-all duration-300 inline-block px-8 py-3 rounded-lg font-medium border border-galaxy-nova/30 relative overflow-hidden group"
-          >
-            Try Full Visualization Experience
-            <SendHorizonal className="ml-2 h-4 w-4 inline transition-transform group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </section>
+
+        {/* CTA Section */}
+        <section className="py-16">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Ready to explore history?</h2>
+              <p className="mt-6 text-lg leading-8 text-muted-foreground">
+                Start analyzing historical texts or YouTube videos to discover connections and visualize them in different ways.
+              </p>
+              <div className="mt-10 flex items-center justify-center gap-x-6">
+                <Link
+                  to="/visualize"
+                  className="cosmic-button px-3.5 py-2.5 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  Start with Text
+                </Link>
+                <Link
+                  to="/youtube"
+                  className="text-sm font-semibold leading-6 inline-flex items-center gap-1"
+                >
+                  <Youtube className="h-4 w-4" />
+                  Analyze a Video <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </MainLayout>
   );
 };

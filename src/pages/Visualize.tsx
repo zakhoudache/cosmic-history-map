@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+
+import React, { useState, useRef, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
 import { FormattedHistoricalEntity } from "@/types/supabase";
@@ -9,8 +10,6 @@ import VisualizationControls from "@/components/VisualizationControls";
 import { useAuth } from "@/hooks/useAuth";
 import StorytellingSection from "@/components/StorytellingSection";
 import ElementCard from "@/components/ElementCard";
-import { Card } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
 
@@ -23,6 +22,28 @@ const Visualize = () => {
   const { user } = useAuth();
   const cosmicVisualizationRef = useRef<SVGSVGElement>(null);
   const timelineRef = useRef<SVGSVGElement>(null);
+
+  // Check for entities in sessionStorage (from YouTube analysis)
+  useEffect(() => {
+    const storedEntities = sessionStorage.getItem('analyzedEntities');
+    const storedText = sessionStorage.getItem('analyzedText');
+    
+    if (storedEntities && storedText) {
+      try {
+        const parsedEntities = JSON.parse(storedEntities);
+        setEntities(parsedEntities);
+        setInputText(storedText);
+        
+        // Clear session storage after loading
+        sessionStorage.removeItem('analyzedEntities');
+        sessionStorage.removeItem('analyzedText');
+        
+        toast.success(`Loaded ${parsedEntities.length} entities from YouTube analysis`);
+      } catch (error) {
+        console.error("Error parsing stored entities:", error);
+      }
+    }
+  }, []);
 
   const handleTextSubmit = (text: string, analyzedEntities: FormattedHistoricalEntity[]) => {
     setInputText(text);
