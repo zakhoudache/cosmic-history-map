@@ -1,9 +1,10 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, getEntityConnections, mockHistoricalData, SimulationNode } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import VisualizationPlaceholder from './VisualizationPlaceholder';
+import VisualizationControls from './VisualizationControls';
+import { toast } from "sonner";
 
 interface KnowledgeGraphProps {
   entities?: HistoricalEntity[];
@@ -15,9 +16,21 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   onEntitySelect 
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isVisible = useAnimateOnMount(500);
   const [dimensions, setDimensions] = useState({ width: 500, height: 400 });
   const hasData = entities && entities.length > 0;
+  
+  // Zoom and fullscreen state
+  const [scale, setScale] = useState<number>(1);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [originalHeight, setOriginalHeight] = useState<number>(400);
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 3;
+  const SCALE_STEP = 0.2;
+  
+  // Simulation reference (to restart when zoom changes)
+  const simulationRef = useRef<any>(null);
 
   // Initialize layout and resize handling
   useEffect(() => {
@@ -25,6 +38,11 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       if (svgRef.current) {
         const { width, height } = svgRef.current.parentElement?.getBoundingClientRect() || { width: 500, height: 400 };
         setDimensions({ width, height });
+        
+        // Store original height when first initialized
+        if (!originalHeight || originalHeight === 400) {
+          setOriginalHeight(height);
+        }
       }
     };
     
@@ -36,17 +54,108 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     };
   }, []);
 
+  // Effect for zoom
+  useEffect(() => {
+    if (!svgRef.current || !containerRef.current) return;
+    
+    const containerElem = containerRef.current;
+    
+    // Set the transform based on scale
+    if (containerElem) {
+      const svg = d3.select(svgRef.current).select('g');
+      svg.attr('transform', `scale(${scale})`);
+      
+      // Restart simulation with adjusted forces if it exists
+      if (simulationRef.current) {
+        simulationRef.current.alpha(0.3).restart();
+      }
+    }
+  }, [scale]);
+
+  // Escape key handler for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  // Zoom handlers
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + SCALE_STEP, MAX_SCALE));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - SCALE_STEP, MIN_SCALE));
+  };
+
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    
+    // Reset scale when toggling fullscreen
+    if (!isFullscreen) {
+      // Wait for the fullscreen transition to complete
+      setTimeout(() => {
+        if (simulationRef.current) {
+          simulationRef.current.alpha(0.3).restart();
+        }
+      }, 300);
+    }
+  };
+
+  // Export as SVG
+  const handleExport = () => {
+    if (!svgRef.current) return;
+    
+    try {
+      // Clone the SVG to avoid modifying the displayed one
+      const svgClone = svgRef.current.cloneNode(true) as SVGSVGElement;
+      
+      // Set proper attributes for standalone SVG
+      svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svgClone.setAttribute('width', dimensions.width.toString());
+      svgClone.setAttribute('height', dimensions.height.toString());
+      
+      // Convert to string
+      const svgData = new XMLSerializer().serializeToString(svgClone);
+      
+      // Create a Blob and URL
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      
+      // Create a download link and trigger it
+      const downloadLink = document.createElement('a');
+      downloadLink.href = svgUrl;
+      downloadLink.download = 'knowledge-graph.svg';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      toast.success("Knowledge graph exported as SVG");
+    } catch (error) {
+      console.error('Error exporting knowledge graph:', error);
+      toast.error("Failed to export knowledge graph");
+    }
+  };
+
   // Only create and update visualization if we have data
   useEffect(() => {
     if (!svgRef.current || !isVisible || !hasData) return;
-    
-    // ... keep existing code (visualization creation with D3) but with the following enhancements:
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
     
     // Set up the SVG
     const { width, height } = dimensions;
+    
+    // Create a main group for all visualization elements (for zoom scaling)
+    const mainGroup = svg.append("g")
+      .attr("class", "main-group");
     
     // Create defs for patterns, filters, and custom shapes
     const defs = svg.append("defs");
@@ -210,8 +319,11 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collision", d3.forceCollide().radius(d => ((d as any).significance || 1) * 8 + 20));
     
+    // Store simulation in ref for zoom adjustments
+    simulationRef.current = simulation;
+    
     // Create link groups
-    const linkGroups = svg.append("g")
+    const linkGroups = mainGroup.append("g")
       .attr("class", "links")
       .selectAll("g")
       .data(indexedLinks)
@@ -266,7 +378,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     });
     
     // Create node groups
-    const nodeGroups = svg.append("g")
+    const nodeGroups = mainGroup.append("g")
       .attr("class", "nodes")
       .selectAll(".node")
       .data(nodes)
@@ -504,12 +616,16 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     // Cleanup on unmount
     return () => {
       simulation.stop();
+      simulationRef.current = null;
     };
-  }, [entities, isVisible, dimensions, onEntitySelect]);
+  }, [entities, isVisible, dimensions, onEntitySelect, scale]);
 
   // Helper function to render a grid layout when no links are available
   function renderGridLayout(svg, nodes, width, height, onEntitySelect) {
-    const nodeGroup = svg.append("g")
+    const mainGroup = svg.append("g")
+      .attr("class", "main-group");
+      
+    const nodeGroup = mainGroup.append("g")
       .attr("class", "nodes")
       .selectAll(".node")
       .data(nodes)
@@ -580,11 +696,25 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   }
 
   return (
-    <div className="w-full h-full min-h-[300px] relative glass rounded-lg overflow-hidden">
+    <div 
+      ref={containerRef}
+      className={`w-full h-full min-h-[300px] relative glass rounded-lg overflow-hidden ${
+        isFullscreen ? 'fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md p-8' : ''
+      }`}
+      style={isFullscreen ? { height: 'auto' } : { height: '500px' }}
+    >
+      <VisualizationControls
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onToggleFullscreen={toggleFullscreen}
+        onExport={handleExport}
+        isFullscreen={isFullscreen}
+      />
+      
       <svg
         ref={svgRef}
         width="100%"
-        height="100%"
+        height={isFullscreen ? '80vh' : '100%'}
         className="knowledge-graph"
         style={{
           opacity: isVisible ? 1 : 0,

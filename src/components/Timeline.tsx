@@ -1,9 +1,11 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import VisualizationPlaceholder from './VisualizationPlaceholder';
+import VisualizationControls from './VisualizationControls';
+import { Download } from 'lucide-react';
+import { toast } from "sonner";
 
 interface TimelineProps {
   entities?: HistoricalEntity[];
@@ -17,9 +19,18 @@ const Timeline: React.FC<TimelineProps> = ({
   timelineData
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isVisible = useAnimateOnMount(700);
   const [dimensions, setDimensions] = useState({ width: 800, height: 120 });
   const hasData = entities && entities.length > 0;
+  
+  // Zoom and fullscreen state
+  const [scale, setScale] = useState<number>(1);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [originalHeight, setOriginalHeight] = useState<number>(500);
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 3;
+  const SCALE_STEP = 0.2;
 
   // Filter entities that have start dates
   const timelineEntities = entities.filter(entity => entity.startDate);
@@ -30,6 +41,11 @@ const Timeline: React.FC<TimelineProps> = ({
       if (svgRef.current) {
         const { width, height } = svgRef.current.parentElement?.getBoundingClientRect() || { width: 800, height: 120 };
         setDimensions({ width, height });
+        
+        // Store original height when first initialized
+        if (!originalHeight || originalHeight === 500) {
+          setOriginalHeight(height);
+        }
       }
     };
     
@@ -40,6 +56,80 @@ const Timeline: React.FC<TimelineProps> = ({
       window.removeEventListener('resize', updateDimensions);
     };
   }, []);
+
+  // Effect for zoom
+  useEffect(() => {
+    if (!svgRef.current || !containerRef.current) return;
+    
+    const containerElem = containerRef.current;
+    
+    // Set the transform based on scale
+    if (containerElem) {
+      const svg = d3.select(svgRef.current).select('g');
+      svg.attr('transform', `scale(${scale})`);
+    }
+  }, [scale]);
+
+  // Escape key handler for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  // Zoom handlers
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + SCALE_STEP, MAX_SCALE));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - SCALE_STEP, MIN_SCALE));
+  };
+
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  // Export as SVG
+  const handleExport = () => {
+    if (!svgRef.current) return;
+    
+    try {
+      // Clone the SVG to avoid modifying the displayed one
+      const svgClone = svgRef.current.cloneNode(true) as SVGSVGElement;
+      
+      // Set proper attributes for standalone SVG
+      svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svgClone.setAttribute('width', dimensions.width.toString());
+      svgClone.setAttribute('height', dimensions.height.toString());
+      
+      // Convert to string
+      const svgData = new XMLSerializer().serializeToString(svgClone);
+      
+      // Create a Blob and URL
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      
+      // Create a download link and trigger it
+      const downloadLink = document.createElement('a');
+      downloadLink.href = svgUrl;
+      downloadLink.download = 'historical-timeline.svg';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      toast.success("Timeline exported as SVG");
+    } catch (error) {
+      console.error('Error exporting timeline:', error);
+      toast.error("Failed to export timeline");
+    }
+  };
 
   // Create and update visualization only if we have data
   useEffect(() => {
@@ -481,11 +571,25 @@ const Timeline: React.FC<TimelineProps> = ({
   }
 
   return (
-    <div className="w-full relative glass rounded-lg overflow-hidden">
+    <div 
+      ref={containerRef}
+      className={`w-full relative glass rounded-lg overflow-hidden ${
+        isFullscreen ? 'fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md p-8' : ''
+      }`}
+      style={isFullscreen ? { height: 'auto' } : { height: '500px' }}
+    >
+      <VisualizationControls
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onToggleFullscreen={toggleFullscreen}
+        onExport={handleExport}
+        isFullscreen={isFullscreen}
+      />
+      
       <svg
         ref={svgRef}
         width="100%"
-        height="100%"
+        height={isFullscreen ? '80vh' : '100%'}
         style={{
           opacity: isVisible ? 1 : 0,
           transition: 'opacity 0.5s ease-in-out'
