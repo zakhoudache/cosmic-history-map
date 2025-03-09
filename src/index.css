@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -199,7 +198,7 @@
 
 /* Input field styles */
 .text-input-container {
-  @apply w-full relative group;
+  @apply w-full relative;
 }
 
 .text-input-wrapper {

@@ -18,7 +18,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
   return (
     <div className="feature-card">
       <div className="feature-icon">
-        <Icon className="h-6 w-6 text-white" />
+        <Icon className="h-6 w-6" style={{ color: iconColor }} />
       </div>
       <h3 className="text-lg font-medium mb-2">{title}</h3>
       <p className="text-muted-foreground text-sm">
