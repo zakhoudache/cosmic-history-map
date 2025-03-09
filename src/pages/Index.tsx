@@ -40,7 +40,7 @@ const Index = () => {
     try {
       console.log("Analysis result:", analysisResult);
       
-      if (analysisResult && analysisResult.entities) {
+      if (analysisResult && analysisResult.entities && analysisResult.entities.length > 0) {
         // Convert the Gemini API response to our HistoricalEntity format
         const entities = analysisResult.entities.map((entity: any) => ({
           id: entity.id,
@@ -49,16 +49,28 @@ const Index = () => {
           startDate: entity.startDate,
           endDate: entity.endDate,
           description: entity.description,
-          significance: entity.significance,
-          group: entity.group
+          significance: entity.significance || 5, // Default value if missing
+          group: entity.group,
+          relations: entity.relations || [] // Ensure relations exists
         }));
         
         setHistoricalEntities(entities);
         setTimelineData(analysisResult.timeline);
         setHasVisualization(true);
+        
+        // Ensure the page scrolls to the visualization section
+        setTimeout(() => {
+          const visualizationSection = document.querySelector('.visualization-section');
+          if (visualizationSection) {
+            visualizationSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+        
         toast.success("Visualization created successfully");
       } else {
-        toast.error("Failed to analyze text properly. Please try again.");
+        // If no entities were found, show a more specific error
+        console.error("No entities found in analysis result:", analysisResult);
+        toast.error("No historical entities were found in the text. Please try a different text with clearer historical references.");
       }
     } catch (error) {
       console.error("Error processing analysis result:", error);
@@ -115,7 +127,7 @@ const Index = () => {
       
       {/* Visualization section */}
       {hasVisualization && (
-        <section className="py-16">
+        <section className="py-16 visualization-section">
           <Separator className="mb-16" />
           
           <div className="mb-12 text-center animate-on-scroll">
