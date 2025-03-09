@@ -170,7 +170,9 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       for (const entity of entities) {
         if (entity.relations && Array.isArray(entity.relations)) {
           for (const relation of entity.relations) {
-            const targetEntity = entities.find(e => e.id === relation.target);
+            // Fix the property name from 'target' to 'targetId'
+            const targetId = relation.target || relation.targetId;
+            const targetEntity = entities.find(e => e.id === targetId);
             if (targetEntity) {
               validLinks.push({
                 source: entity.id,

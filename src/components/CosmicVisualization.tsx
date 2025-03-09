@@ -238,7 +238,8 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       if (entity.relations && Array.isArray(entity.relations)) {
         return entity.relations
           .map(relation => {
-            const targetId = relation.target;
+            // Fix the property name from 'target' to 'targetId'
+            const targetId = relation.target || relation.targetId;
             const target = visualizationData.find(e => e.id === targetId);
             if (target) {
               return { source: entity, target, type: relation.type || "default", strength: relation.strength || 1 };

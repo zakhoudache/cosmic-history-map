@@ -1,3 +1,4 @@
+
 export interface HistoricalEntity {
   id: string;
   name: string;
@@ -7,7 +8,12 @@ export interface HistoricalEntity {
   description?: string;
   significance?: number;
   group?: string;
-  relations?: { target: string; type: string; strength?: number; }[];
+  relations?: { 
+    target?: string; // Support both target and targetId for backward compatibility
+    targetId?: string; 
+    type?: string; 
+    strength?: number;
+  }[];
   connections?: string[]; // For compatibility with ElementCard
 }
 
@@ -43,10 +49,16 @@ export function getEntityConnections(entities: HistoricalEntity[], entity: Histo
   if (entity.relations && Array.isArray(entity.relations)) {
     return entity.relations
       .map(relation => {
-        const targetId = relation.target;
+        // Support both target and targetId properties
+        const targetId = relation.target || relation.targetId;
         const target = entities.find(e => e.id === targetId);
         if (target) {
-          return { source: entity, target, type: relation.type, strength: relation.strength || 1 };
+          return { 
+            source: entity, 
+            target, 
+            type: relation.type || 'default', 
+            strength: relation.strength || 1 
+          };
         }
         return null;
       })
@@ -228,7 +240,7 @@ export const mockHistoricalData: HistoricalEntity[] = [
 // Add connections field to entities for ElementCard component
 mockHistoricalData.forEach(entity => {
   if (entity.relations) {
-    entity.connections = entity.relations.map(relation => relation.target);
+    entity.connections = entity.relations.map(relation => relation.target || relation.targetId || '');
   } else {
     entity.connections = [];
   }
