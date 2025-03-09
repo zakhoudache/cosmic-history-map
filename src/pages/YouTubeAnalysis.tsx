@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ElementCard from "@/components/ElementCard";
 import VisualizationPlaceholder from "@/components/VisualizationPlaceholder";
+import { VisualizationType } from "@/types/visualization";
 
 const YouTubeAnalysis = () => {
   const [url, setUrl] = useState<string>("");
@@ -199,7 +200,7 @@ const YouTubeAnalysis = () => {
                   )}
                 </div>
               ) : (
-                <VisualizationPlaceholder type="video" />
+                <VisualizationPlaceholder type={"video" as VisualizationType} />
               )}
             </Card>
           </TabsContent>
