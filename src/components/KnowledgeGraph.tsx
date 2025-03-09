@@ -36,7 +36,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 
   // Create and update visualization
   useEffect(() => {
-    if (!svgRef.current || !isVisible || entities.length === 0) return;
+    if (!svgRef.current || !isVisible || !entities || entities.length === 0) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -47,24 +47,38 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     // Prepare data
     const nodes = entities.map(entity => ({ ...entity }));
     
-    // Get connections with valid source and target
-    const connectionLinks = getEntityConnections();
-    const validLinks = connectionLinks.filter(link => {
-      const sourceExists = nodes.findIndex(node => node.id === link.source) >= 0;
-      const targetExists = nodes.findIndex(node => node.id === link.target) >= 0;
-      return sourceExists && targetExists;
-    });
+    // Get all connections with valid source and target from relations
+    const getValidLinks = () => {
+      // Create an array to hold all valid links
+      const validLinks = [];
+      
+      // Process each entity's relations
+      for (const entity of entities) {
+        if (entity.relations && Array.isArray(entity.relations)) {
+          for (const relation of entity.relations) {
+            // Find target entity
+            const targetEntity = entities.find(e => e.id === relation.targetId);
+            if (targetEntity) {
+              validLinks.push({
+                source: entity.id,
+                target: targetEntity.id,
+                type: relation.type,
+                strength: relation.strength || 1
+              });
+            }
+          }
+        }
+      }
+      
+      return validLinks;
+    };
     
-    // Create D3 compatible links
-    const links = validLinks.map(link => ({
-      ...link,
-      source: nodes.findIndex(node => node.id === link.source),
-      target: nodes.findIndex(node => node.id === link.target)
-    }));
+    // Get valid links
+    const validLinks = getValidLinks();
     
-    // Skip rendering if no valid links
-    if (links.length === 0) {
-      // Render nodes without links
+    // Skip rendering if no valid links, and display a grid layout instead
+    if (validLinks.length === 0) {
+      // Render nodes without links in a grid layout
       const nodeGroup = svg.append("g")
         .attr("class", "nodes")
         .selectAll(".node")
@@ -72,7 +86,14 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         .enter()
         .append("g")
         .attr("class", "node")
-        .attr("transform", (d, i) => `translate(${width/2 + (i % 3) * 50 - 50}, ${height/2 + Math.floor(i/3) * 50 - 50})`)
+        .attr("transform", (d, i) => {
+          const cols = Math.ceil(Math.sqrt(nodes.length));
+          const row = Math.floor(i / cols);
+          const col = i % cols;
+          const xSpacing = width / (cols + 1);
+          const ySpacing = height / (Math.ceil(nodes.length / cols) + 1);
+          return `translate(${(col + 1) * xSpacing}, ${(row + 1) * ySpacing})`;
+        })
         .style("cursor", "pointer")
         .on("click", (event, d) => {
           if (onEntitySelect) {
@@ -134,9 +155,16 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       return;
     }
     
+    // Create D3 compatible links (using entity indices)
+    const indexedLinks = validLinks.map(link => ({
+      ...link,
+      source: nodes.findIndex(node => node.id === link.source),
+      target: nodes.findIndex(node => node.id === link.target)
+    }));
+    
     // Create forces
     const simulation = d3.forceSimulation(nodes as d3.SimulationNodeDatum[])
-      .force("link", d3.forceLink(links).id((d, i) => i.toString()))
+      .force("link", d3.forceLink(indexedLinks).id((d, i) => i))
       .force("charge", d3.forceManyBody().strength(-200))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collision", d3.forceCollide().radius(30));
@@ -145,11 +173,11 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     const link = svg.append("g")
       .attr("class", "links")
       .selectAll("line")
-      .data(links)
+      .data(indexedLinks)
       .enter()
       .append("line")
       .attr("stroke", "rgba(255, 255, 255, 0.2)")
-      .attr("stroke-width", 1)
+      .attr("stroke-width", d => Math.max(1, d.strength / 2))
       .attr("opacity", 0)
       .transition()
       .delay((_, i) => i * 30)
@@ -270,7 +298,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           transition: 'opacity 0.5s ease-in-out'
         }}
       />
-      {entities.length === 0 && (
+      {(!entities || entities.length === 0) && (
         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
           No entities to display
         </div>

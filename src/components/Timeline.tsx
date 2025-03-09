@@ -7,7 +7,7 @@ import { useAnimateOnMount } from '@/utils/animations';
 interface TimelineProps {
   entities?: HistoricalEntity[];
   onEntitySelect?: (entity: HistoricalEntity) => void;
-  timelineData?: any; // Add the timelineData prop to the interface
+  timelineData?: any;
 }
 
 const Timeline: React.FC<TimelineProps> = ({ 
@@ -41,7 +41,7 @@ const Timeline: React.FC<TimelineProps> = ({
 
   // Create and update visualization
   useEffect(() => {
-    if (!svgRef.current || !isVisible || timelineEntities.length === 0) return;
+    if (!svgRef.current || !isVisible || !timelineEntities || timelineEntities.length === 0) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -58,7 +58,14 @@ const Timeline: React.FC<TimelineProps> = ({
     
     // Parse dates and find min/max
     const parseDate = (dateStr: string | Date) => {
+      if (!dateStr) return new Date();
       if (dateStr instanceof Date) return dateStr;
+      
+      // Handle year-only dates
+      if (/^\d{1,4}$/.test(dateStr)) {
+        return new Date(parseInt(dateStr, 10), 0, 1);
+      }
+      
       return new Date(dateStr);
     };
     
@@ -69,11 +76,15 @@ const Timeline: React.FC<TimelineProps> = ({
       minDate = new Date(timelineData.startYear, 0, 1);
       maxDate = new Date(timelineData.endYear, 11, 31);
     } else {
-      const dates = timelineEntities.map(d => parseDate(d.startDate!));
-      minDate = d3.min(dates) || new Date(1400, 0, 1);
-      maxDate = d3.max(timelineEntities.map(d => 
-        d.endDate ? parseDate(d.endDate) : parseDate(d.startDate!)
-      )) || new Date(1600, 0, 1);
+      // Add fallback if no dates are available
+      const dates = timelineEntities.map(d => parseDate(d.startDate!)).filter(d => !isNaN(d.getTime()));
+      minDate = d3.min(dates) || new Date(1700, 0, 1);
+      
+      const endDates = timelineEntities
+        .map(d => d.endDate ? parseDate(d.endDate) : parseDate(d.startDate!))
+        .filter(d => !isNaN(d.getTime()));
+      
+      maxDate = d3.max(endDates) || new Date(1900, 0, 1);
     }
     
     // Create scales
@@ -144,7 +155,11 @@ const Timeline: React.FC<TimelineProps> = ({
       
       periods.append("rect")
         .attr("x", d => xScale(new Date(d.startYear, 0, 1)))
-        .attr("width", d => xScale(new Date(d.endYear, 11, 31)) - xScale(new Date(d.startYear, 0, 1)))
+        .attr("width", d => {
+          const endDate = new Date(d.endYear, 11, 31);
+          const startDate = new Date(d.startYear, 0, 1);
+          return Math.max(0, xScale(endDate) - xScale(startDate));
+        })
         .attr("y", 0)
         .attr("height", innerHeight)
         .attr("fill", "rgba(100, 100, 255, 0.05)")
@@ -172,14 +187,25 @@ const Timeline: React.FC<TimelineProps> = ({
       .append("g")
       .attr("class", "event")
       .attr("transform", d => {
-        const x = xScale(parseDate(d.startDate!));
-        
-        // Place different entity types in different rows
-        let y = innerHeight / 2;
-        if (d.type === "person") y = innerHeight / 4;
-        if (d.type === "concept") y = (innerHeight / 4) * 3;
-        
-        return `translate(${x}, ${y})`;
+        try {
+          const parsedDate = parseDate(d.startDate!);
+          if (isNaN(parsedDate.getTime())) {
+            // Skip invalid dates
+            return `translate(-100, -100)`;
+          }
+          
+          const x = xScale(parsedDate);
+          
+          // Place different entity types in different rows
+          let y = innerHeight / 2;
+          if (d.type === "person") y = innerHeight / 4;
+          if (d.type === "concept") y = (innerHeight / 4) * 3;
+          
+          return `translate(${x}, ${y})`;
+        } catch (error) {
+          console.error("Error parsing date for entity:", d.name, d.startDate, error);
+          return `translate(-100, -100)`;
+        }
       })
       .style("cursor", "pointer")
       .on("click", (event, d) => {
@@ -192,33 +218,44 @@ const Timeline: React.FC<TimelineProps> = ({
     timelineEntities
       .filter(d => d.startDate && d.endDate)
       .forEach(entity => {
-        const startX = xScale(parseDate(entity.startDate!));
-        const endX = xScale(parseDate(entity.endDate!));
-        let y = innerHeight / 2;
-        
-        // Place different entity types in different rows
-        if (entity.type === "person") y = innerHeight / 4;
-        if (entity.type === "concept") y = (innerHeight / 4) * 3;
-        
-        g.append("line")
-          .attr("x1", startX)
-          .attr("x2", endX)
-          .attr("y1", y)
-          .attr("y2", y)
-          .attr("stroke", d => {
-            switch (entity.type) {
-              case "person": return "hsl(280, 70%, 50%)";
-              case "event": return "hsl(240, 70%, 50%)";
-              case "place": return "hsl(200, 70%, 50%)";
-              case "concept": return "hsl(320, 70%, 50%)";
-              default: return "hsl(240, 70%, 50%)";
-            }
-          })
-          .attr("stroke-width", 2)
-          .attr("opacity", 0)
-          .transition()
-          .duration(1000)
-          .attr("opacity", 0.5);
+        try {
+          const startDate = parseDate(entity.startDate!);
+          const endDate = parseDate(entity.endDate!);
+          
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return;
+          }
+          
+          const startX = xScale(startDate);
+          const endX = xScale(endDate);
+          let y = innerHeight / 2;
+          
+          // Place different entity types in different rows
+          if (entity.type === "person") y = innerHeight / 4;
+          if (entity.type === "concept") y = (innerHeight / 4) * 3;
+          
+          g.append("line")
+            .attr("x1", startX)
+            .attr("x2", endX)
+            .attr("y1", y)
+            .attr("y2", y)
+            .attr("stroke", d => {
+              switch (entity.type) {
+                case "person": return "hsl(280, 70%, 50%)";
+                case "event": return "hsl(240, 70%, 50%)";
+                case "place": return "hsl(200, 70%, 50%)";
+                case "concept": return "hsl(320, 70%, 50%)";
+                default: return "hsl(240, 70%, 50%)";
+              }
+            })
+            .attr("stroke-width", 2)
+            .attr("opacity", 0)
+            .transition()
+            .duration(1000)
+            .attr("opacity", 0.5);
+        } catch (error) {
+          console.error("Error creating timeline span for entity:", entity.name, error);
+        }
       });
     
     // Add circles for event points
@@ -296,6 +333,11 @@ const Timeline: React.FC<TimelineProps> = ({
           transition: 'opacity 0.5s ease-in-out'
         }}
       />
+      {(!timelineEntities || timelineEntities.length === 0) && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+          No timeline data to display
+        </div>
+      )}
     </div>
   );
 };

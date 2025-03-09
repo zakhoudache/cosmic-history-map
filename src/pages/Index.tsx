@@ -54,6 +54,8 @@ const Index = () => {
           relations: entity.relations || [] // Ensure relations exists
         }));
         
+        console.log("Processed entities:", entities);
+        
         setHistoricalEntities(entities);
         setTimelineData(analysisResult.timeline);
         setHasVisualization(true);
@@ -64,7 +66,7 @@ const Index = () => {
           if (visualizationSection) {
             visualizationSection.scrollIntoView({ behavior: 'smooth' });
           }
-        }, 100);
+        }, 500);
         
         toast.success("Visualization created successfully");
       } else {
@@ -127,7 +129,7 @@ const Index = () => {
       
       {/* Visualization section */}
       {hasVisualization && (
-        <section className="py-16 visualization-section">
+        <section className="py-16 visualization-section" id="visualization">
           <Separator className="mb-16" />
           
           <div className="mb-12 text-center animate-on-scroll">

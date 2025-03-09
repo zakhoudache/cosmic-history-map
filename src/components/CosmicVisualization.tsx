@@ -37,7 +37,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   
   // Create and update visualization
   useEffect(() => {
-    if (!svgRef.current || !isVisible) return;
+    if (!svgRef.current || !isVisible || !visualizationData || visualizationData.length === 0) return;
     
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -98,33 +98,42 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     const simulation = d3.forceSimulation()
       .nodes(visualizationData as d3.SimulationNodeDatum[])
       .force("center", d3.forceCenter(centerX, centerY))
-      .force("charge", d3.forceManyBody().strength(d => d.significance * -50))
-      .force("collision", d3.forceCollide().radius(d => (d as HistoricalEntity).significance * 5 + 20))
+      .force("charge", d3.forceManyBody().strength(d => (d as HistoricalEntity).significance ? (d as HistoricalEntity).significance * -50 : -150))
+      .force("collision", d3.forceCollide().radius(d => {
+        const entity = d as HistoricalEntity;
+        return (entity.significance || 5) * 5 + 20;
+      }))
       .force("x", d3.forceX(centerX).strength(0.05))
       .force("y", d3.forceY(centerY).strength(0.05));
     
     // Extract entity connections
-    // Check if entities have 'connections' or 'relations' property
     const getEntityConnections = (entity: HistoricalEntity) => {
-      if ('connections' in entity && Array.isArray(entity.connections)) {
-        return entity.connections.map(connId => ({
-          source: entity,
-          target: visualizationData.find(e => e.id === connId)
-        })).filter(link => link.target); // Filter out undefined targets
-      } else if ('relations' in entity && Array.isArray((entity as any).relations)) {
-        return (entity as any).relations.map((relation: any) => ({
-          source: entity,
-          target: visualizationData.find(e => e.id === relation.targetId)
-        })).filter(link => link.target); // Filter out undefined targets
-      }
+      // Handle both 'connections' (from mock data) and 'relations' (from API)
+      if (entity.relations && Array.isArray(entity.relations)) {
+        return entity.relations
+          .map(relation => {
+            const targetId = relation.targetId;
+            const target = visualizationData.find(e => e.id === targetId);
+            if (target) {
+              return { source: entity, target };
+            }
+            return null;
+          })
+          .filter(Boolean); // Remove null values
+      } 
       return [];
     };
+    
+    // Get all valid links
+    const allLinks = visualizationData
+      .flatMap(entity => getEntityConnections(entity))
+      .filter(link => link !== null);
     
     // Create entity links
     const links = svg.append("g")
       .attr("class", "links")
       .selectAll("line")
-      .data(visualizationData.flatMap(entity => getEntityConnections(entity)))
+      .data(allLinks)
       .enter()
       .append("line")
       .attr("stroke", "rgba(255, 255, 255, 0.1)")
@@ -167,7 +176,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     
     // Add circles for each entity
     nodeGroups.append("circle")
-      .attr("r", d => d.significance * 4 + 8)
+      .attr("r", d => (d.significance || 5) * 4 + 8)
       .attr("fill", d => {
         // Color based on entity type
         switch(d.type) {
@@ -188,7 +197,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
 
     // Add ripple effect
     nodeGroups.append("circle")
-      .attr("r", d => d.significance * 4 + 8)
+      .attr("r", d => (d.significance || 5) * 4 + 8)
       .attr("fill", "none")
       .attr("stroke", d => {
         // Color based on entity type
@@ -211,26 +220,26 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       
       function animateRipple() {
         ripple
-          .attr("r", entity.significance * 4 + 8)
+          .attr("r", (entity.significance || 5) * 4 + 8)
           .attr("opacity", 0.5)
           .transition()
           .duration(2000)
-          .attr("r", entity.significance * 8 + 16)
+          .attr("r", (entity.significance || 5) * 8 + 16)
           .attr("opacity", 0)
           .on("end", animateRipple);
       }
       
       // Start animation with delay based on significance
-      setTimeout(animateRipple, entity.significance * 300);
+      setTimeout(animateRipple, (entity.significance || 5) * 300);
     });
     
     // Add labels
     nodeGroups.append("text")
       .text(d => d.name)
       .attr("text-anchor", "middle")
-      .attr("dy", d => -d.significance * 4 - 12)
+      .attr("dy", d => -(d.significance || 5) * 4 - 12)
       .attr("fill", "white")
-      .attr("font-size", d => 10 + d.significance / 2)
+      .attr("font-size", d => 10 + (d.significance || 5) / 2)
       .attr("pointer-events", "none")
       .attr("opacity", 0)
       .transition()
@@ -251,7 +260,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       })
       .attr("text-anchor", "middle")
       .attr("dy", "0.3em")
-      .attr("font-size", d => 10 + d.significance / 2)
+      .attr("font-size", d => 10 + (d.significance || 5) / 2)
       .attr("pointer-events", "none")
       .attr("opacity", 0)
       .transition()
@@ -292,6 +301,11 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           transition: 'opacity 1s ease-in-out'
         }}
       />
+      {(!visualizationData || visualizationData.length === 0) && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+          No entities to display
+        </div>
+      )}
     </div>
   );
 };
