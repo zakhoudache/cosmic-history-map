@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import Visualize from "./pages/Visualize";
 import About from "./pages/About";
 import Auth from "./pages/Auth";
+import YouTubeAnalysis from "./pages/YouTubeAnalysis";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/visualize" element={<Visualize />} />
             <Route path="/about" element={<About />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/youtube-analysis" element={<YouTubeAnalysis />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

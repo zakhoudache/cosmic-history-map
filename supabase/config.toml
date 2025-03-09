@@ -1,1 +1,12 @@
-project_id = "uimmjzuqdqxfqoikcexf"
+
+[project_id]
+id = "uimmjzuqdqxfqoikcexf"
+
+[functions]
+[functions.deploy]
+[functions.permissions.analyze-historical-text]
+include = ["auth.users.email"]
+
+[[functions.paths]]
+src = "functions/*"
+dest = ".functions/"
