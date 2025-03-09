@@ -8,12 +8,13 @@ import CosmicVisualization from "@/components/CosmicVisualization";
 import Timeline from "@/components/Timeline";
 import VisualizationControls from "@/components/VisualizationControls";
 import { useAuth } from "@/hooks/useAuth";
+import StorytellingSection from "@/components/StorytellingSection";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
   const [entities, setEntities] = useState<FormattedHistoricalEntity[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [visualizationType, setVisualizationType] = useState<"graph" | "timeline">("graph");
+  const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story">("graph");
   const { user } = useAuth();
 
   const handleTextSubmit = (text: string, analyzedEntities: FormattedHistoricalEntity[]) => {
@@ -26,7 +27,7 @@ const Visualize = () => {
     setLoading(true);
   };
 
-  const handleVisTypeChange = (type: "graph" | "timeline") => {
+  const handleVisTypeChange = (type: "graph" | "timeline" | "story") => {
     setVisualizationType(type);
   };
 
@@ -70,14 +71,21 @@ const Visualize = () => {
               <VisualizationPlaceholder />
             ) : (
               <>
-                {visualizationType === "graph" ? (
+                {visualizationType === "graph" && (
                   <CosmicVisualization 
                     entities={entities}
                     visualizationType={visualizationType}
                   />
-                ) : (
+                )}
+                {visualizationType === "timeline" && (
                   <Timeline 
                     entities={entities}
+                  />
+                )}
+                {visualizationType === "story" && (
+                  <StorytellingSection 
+                    entities={entities}
+                    text={inputText}
                   />
                 )}
               </>
