@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers for browser requests
@@ -37,11 +38,6 @@ interface AnalysisResult {
   };
 }
 
-// Helper function to check if text contains Arabic characters
-function containsArabic(text: string): boolean {
-  return /[\u0600-\u06FF]/.test(text);
-}
-
 // Helper function to create a simplified summary when API rate limits are hit
 function createBasicSummary(text: string): string {
   // Calculate a simplified summary by taking the first few sentences
@@ -53,36 +49,6 @@ function createBasicSummary(text: string): string {
 // Helper function to create a fallback analysis result when API rate limits are hit
 function createFallbackAnalysisResult(text: string): AnalysisResult {
   const summary = createBasicSummary(text);
-  
-  // For Arabic text, provide a more specific fallback
-  if (containsArabic(text)) {
-    return {
-      entities: [
-        {
-          id: "arabic_content",
-          name: "Arabic Historical Content",
-          type: "concept",
-          description: "This is a simplified analysis of Arabic text. Our system currently has limited support for Arabic language processing.",
-          significance: 5,
-          group: "history",
-          domains: ["historical", "arabic"],
-          relations: []
-        }
-      ],
-      summary: "Arabic text analysis is currently limited. Please try English text for more detailed results.",
-      timeline: {
-        startYear: 1800,
-        endYear: 2000,
-        periods: [
-          {
-            name: "Modern Period",
-            startYear: 1800,
-            endYear: 2000
-          }
-        ]
-      }
-    };
-  }
   
   return {
     entities: [
@@ -135,40 +101,11 @@ serve(async (req: Request) => {
 
     console.log(`Request action: ${action}`);
     console.log(`Processing text: ${text.substring(0, 100)}...`);
-    console.log(`Contains Arabic: ${containsArabic(text)}`);
 
     // Retrieve the Gemini API key from environment variable
     const apiKey = "AIzaSyClmQFOT0ce7uTlVjGs9_qQ8zQIL0ihBuY";
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
-    }
-
-    // Special handling for Arabic text - provide early fallback response
-    if (containsArabic(text)) {
-      console.log("Arabic text detected, using specialized handling");
-      
-      if (action === "summarize") {
-        // Provide a basic summary for Arabic text without calling Gemini
-        const basicSummary = createBasicSummary(text);
-        return new Response(
-          JSON.stringify({ 
-            summary: basicSummary, 
-            message: "Arabic text summarization is limited. Using basic extraction." 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      } else {
-        // Provide a fallback analysis for Arabic text without calling Gemini
-        const fallbackResult = createFallbackAnalysisResult(text);
-        return new Response(
-          JSON.stringify(fallbackResult),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
     }
 
     // If the action is to summarize, use a different prompt
