@@ -8,6 +8,8 @@ id = "uimmjzuqdqxfqoikcexf"
 include = ["auth.users.email"]
 [functions.permissions.get-youtube-transcription]
 include = ["*"]
+[functions.permissions.fetch-youtube-captions]
+include = ["*"]
 
 [[functions.paths]]
 src = "functions/*"

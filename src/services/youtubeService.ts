@@ -44,6 +44,47 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
 };
 
 /**
+ * Fetches the transcription for a YouTube video using the alternative captions endpoint
+ * @param videoId YouTube video ID
+ * @returns Transcription text
+ */
+export const fetchYoutubeCaptions = async (videoId: string): Promise<string> => {
+  try {
+    console.log(`Calling the new captions edge function for video ID: ${videoId}`);
+    
+    // Add detailed logging
+    console.log("Supabase client initialized:", !!supabase);
+    console.log("Functions API available:", !!supabase.functions);
+    
+    const { data, error } = await supabase.functions.invoke("fetch-youtube-captions", {
+      body: JSON.stringify({ videoId })
+    });
+
+    if (error) {
+      console.error("Supabase function error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+    }
+    
+    console.log("Response from captions edge function:", data);
+    
+    if (data && data.transcription) {
+      return data.transcription;
+    } else if (data && data.error) {
+      throw new Error(`Edge function error: ${data.error}`);
+    }
+    
+    throw new Error("No caption data received");
+  } catch (error) {
+    console.error("Error fetching YouTube captions:", error);
+    if (error instanceof Error) {
+      throw new Error(`Error fetching YouTube captions: ${error.message}`);
+    }
+    throw new Error("Unknown error while fetching YouTube captions");
+  }
+};
+
+/**
  * Analyzes a transcription to extract historical entities
  * @param transcription Text to analyze
  * @returns Array of historical entities

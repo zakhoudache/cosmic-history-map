@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
 import { Loader2, ExternalLink, Youtube, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { fetchYoutubeTranscription, analyzeTranscription } from "@/services/youtubeService";
+import { fetchYoutubeTranscription, fetchYoutubeCaptions, analyzeTranscription } from "@/services/youtubeService";
 import { FormattedHistoricalEntity } from "@/types/supabase";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -21,6 +22,7 @@ const YouTubeAnalysis = () => {
   const [entities, setEntities] = useState<FormattedHistoricalEntity[]>([]);
   const [activeTab, setActiveTab] = useState<"video" | "transcription" | "visualization">("video");
   const [error, setError] = useState<string | null>(null);
+  const [useFallbackMethod, setUseFallbackMethod] = useState<boolean>(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Function to extract video ID from YouTube URL
@@ -40,6 +42,7 @@ const YouTubeAnalysis = () => {
       setTranscription("");
       setEntities([]);
       setActiveTab("video");
+      setUseFallbackMethod(false);
       toast.success("YouTube video loaded successfully");
     } else {
       toast.error("Invalid YouTube URL");
@@ -55,7 +58,25 @@ const YouTubeAnalysis = () => {
     setError(null);
     try {
       console.log(`Fetching transcription for video ID: ${videoId}`);
-      const transcriptionText = await fetchYoutubeTranscription(videoId);
+      console.log(`Using ${useFallbackMethod ? 'alternative' : 'standard'} method`);
+      
+      let transcriptionText;
+      
+      if (useFallbackMethod) {
+        // Use the new captions endpoint
+        transcriptionText = await fetchYoutubeCaptions(videoId);
+      } else {
+        // Use the original transcription endpoint
+        try {
+          transcriptionText = await fetchYoutubeTranscription(videoId);
+        } catch (mainError) {
+          console.error("Error with main method, trying fallback:", mainError);
+          setUseFallbackMethod(true);
+          toast.info("Trying alternative method to fetch captions...");
+          transcriptionText = await fetchYoutubeCaptions(videoId);
+        }
+      }
+      
       setTranscription(transcriptionText);
       setActiveTab("transcription");
       toast.success("Transcription fetched successfully");
@@ -67,6 +88,12 @@ const YouTubeAnalysis = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Toggle between transcription methods
+  const toggleTranscriptionMethod = () => {
+    setUseFallbackMethod(!useFallbackMethod);
+    toast.info(`Using ${!useFallbackMethod ? 'alternative' : 'standard'} transcription method`);
   };
 
   // Analyze transcription to extract historical entities
@@ -156,13 +183,21 @@ const YouTubeAnalysis = () => {
                   ></iframe>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')}
-                >
-                  Open in YouTube <ExternalLink className="ml-2 h-4 w-4" />
-                </Button>
+              <CardFooter className="flex justify-between flex-wrap gap-2">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')}
+                  >
+                    Open in YouTube <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={toggleTranscriptionMethod}
+                  >
+                    {useFallbackMethod ? "Use Standard Method" : "Use Alternative Method"}
+                  </Button>
+                </div>
                 <Button 
                   onClick={fetchTranscription} 
                   disabled={loading}
