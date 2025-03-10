@@ -12,4 +12,3 @@ include = ["*"]
 [[functions.paths]]
 src = "functions/*"
 dest = ".functions/"
-

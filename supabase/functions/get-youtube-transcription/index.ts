@@ -21,16 +21,69 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body
-    let videoId;
-    try {
-      const body = await req.json();
-      videoId = body.videoId;
-      console.log(`Request received for video ID: ${videoId}`);
-    } catch (e) {
-      console.error("Error parsing request body:", e);
+    console.log("Request method:", req.method);
+    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+    
+    // Check if Content-Type is application/json
+    const contentType = req.headers.get('content-type');
+    console.log("Content-Type:", contentType);
+    
+    if (!contentType || !contentType.includes('application/json')) {
       return new Response(
-        JSON.stringify({ error: "Invalid request body" }), 
+        JSON.stringify({ error: "Invalid Content-Type, expected application/json" }), 
+        { 
+          status: 400, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+    
+    // Parse request body with error handling
+    let requestBody;
+    let videoId;
+    
+    try {
+      const bodyText = await req.text();
+      console.log("Raw request body:", bodyText);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        return new Response(
+          JSON.stringify({ error: "Empty request body" }), 
+          { 
+            status: 400, 
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json' 
+            } 
+          }
+        );
+      }
+      
+      try {
+        requestBody = JSON.parse(bodyText);
+      } catch (parseError) {
+        console.error("Error parsing JSON:", parseError);
+        return new Response(
+          JSON.stringify({ error: `Invalid JSON in request body: ${parseError.message}` }), 
+          { 
+            status: 400, 
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json' 
+            } 
+          }
+        );
+      }
+      
+      videoId = requestBody.videoId;
+      console.log("Parsed videoId:", videoId);
+    } catch (e) {
+      console.error("Error reading request body:", e);
+      return new Response(
+        JSON.stringify({ error: `Error reading request body: ${e.message}` }), 
         { 
           status: 400, 
           headers: { 

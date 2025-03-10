@@ -14,10 +14,9 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
     // Add more detailed logging
     console.log("Supabase client initialized:", !!supabase);
     console.log("Functions API available:", !!supabase.functions);
-    console.log("Trying to invoke function with URL:", supabase.functions.url);
     
     const { data, error } = await supabase.functions.invoke("get-youtube-transcription", {
-      body: { videoId }
+      body: JSON.stringify({ videoId })
     });
 
     if (error) {
@@ -54,7 +53,7 @@ export const analyzeTranscription = async (transcription: string): Promise<Forma
     console.log(`Analyzing transcription (${transcription.length} characters)`);
     
     const { data, error } = await supabase.functions.invoke("analyze-historical-text", {
-      body: { text: transcription }
+      body: JSON.stringify({ text: transcription })
     });
 
     if (error) {
