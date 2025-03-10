@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FormattedHistoricalEntity } from "@/types/supabase";
 
@@ -222,5 +221,50 @@ export const analyzeTranscription = async (transcription: string): Promise<Forma
       throw new Error(`Error analyzing transcription: ${error.message}`);
     }
     throw new Error("Unknown error while analyzing transcription");
+  }
+};
+
+/**
+ * Scrapes a YouTube video page to extract video information and captions
+ * @param videoId YouTube video ID
+ * @returns Object containing video information and transcription
+ */
+export const scrapeYoutubePage = async (videoId: string) => {
+  try {
+    console.log(`Scraping YouTube page for video ID: ${videoId}`);
+    
+    // Add detailed logging
+    console.log("Supabase client initialized:", !!supabase);
+    console.log("Functions API available:", !!supabase.functions);
+    
+    // Add try/catch for better error reporting
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-youtube-page", {
+        body: { videoId }
+      });
+
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("Response from scrape-youtube-page function:", data);
+      
+      if (data) {
+        return data;
+      } else {
+        throw new Error("No data received from scraping function");
+      }
+    } catch (innerError) {
+      console.error("Detailed error in function invocation:", innerError);
+      throw innerError;
+    }
+  } catch (error) {
+    console.error("Error scraping YouTube page:", error);
+    if (error instanceof Error) {
+      throw new Error(`Error scraping YouTube page: ${error.message}`);
+    }
+    throw new Error("Unknown error while scraping YouTube page");
   }
 };

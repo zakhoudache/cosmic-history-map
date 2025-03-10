@@ -2,7 +2,7 @@
 project_id = "uimmjzuqdqxfqoikcexf"
 
 [functions]
-directory = "functions"  # قم بتحديد مجلد الوظائف بدون `src` و `dest`
+directory = "functions"
 
 [permissions]
 "analyze-historical-text" = { include = ["auth.users.email"] }
@@ -11,3 +11,4 @@ directory = "functions"  # قم بتحديد مجلد الوظائف بدون `s
 "get-youtube-api-captions" = { include = ["*"] }
 "gemini-youtube-transcription" = { include = ["*"] }
 "test-env-vars" = { include = ["*"] }
+"scrape-youtube-page" = { include = ["*"] }
