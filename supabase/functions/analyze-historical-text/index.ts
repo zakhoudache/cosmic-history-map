@@ -138,7 +138,7 @@ serve(async (req: Request) => {
     console.log(`Contains Arabic: ${containsArabic(text)}`);
 
     // Retrieve the Gemini API key from environment variable
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    const apiKey = "AIzaSyClmQFOT0ce7uTlVjGs9_qQ8zQIL0ihBuY";
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
     }
