@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Loader } from "lucide-react";
@@ -443,7 +442,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   };
   
   return (
-    <Card className="overflow-hidden border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10 backdrop-blur-sm bg-black/30 w-full h-full relative">
+    <Card className="overflow-hidden border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10 backdrop-blur-sm bg-muted w-full h-full relative">
       {isLoading ? (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
@@ -455,7 +454,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         <>
           <div 
             ref={mapContainerRef} 
-            className="w-full h-full min-h-[400px] relative"
+            className="w-full h-full min-h-[400px] relative bg-gradient-to-b from-background/80 to-muted"
           >
             {renderMapElements()}
           </div>
