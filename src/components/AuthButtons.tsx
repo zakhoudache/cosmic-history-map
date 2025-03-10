@@ -25,7 +25,7 @@ const AuthButtons = () => {
   if (loading) {
     return (
       <Button variant="outline" size="sm" disabled className="border-galaxy-nova/30">
-        <span className="animate-pulse">Loading...</span>
+        <span className="animate-pulse text-white">Loading...</span>
       </Button>
     );
   }
@@ -34,7 +34,11 @@ const AuthButtons = () => {
   if (!user) {
     return (
       <Link to="/auth">
-        <Button variant="outline" size="sm" className="border-galaxy-nova/30 hover:border-galaxy-nova/60">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star"
+        >
           <LogIn className="mr-2 h-4 w-4" />
           Sign In
         </Button>
@@ -49,7 +53,7 @@ const AuthButtons = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          className="border-galaxy-nova/30 hover:border-galaxy-nova/60"
+          className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star"
         >
           <User className="mr-2 h-4 w-4" />
           {user.email ? user.email.split('@')[0] : 'Account'}
