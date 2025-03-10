@@ -80,24 +80,31 @@ export const analyzeHistoricalText = async (text: string): Promise<FormattedHist
       throw new Error(error.message);
     }
 
-    if (!data || !data.entities) {
-      console.error('No data returned from analysis:', data);
+    if (!data) {
+      console.error('No data returned from analysis');
       throw new Error('No data returned from analysis');
     }
 
-    console.log('Analysis successful, entities found:', data.entities.length);
-    
-    // Check if user is authenticated to determine if we store data
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // If user is authenticated, store entities in database
-    if (user) {
-      console.log('User authenticated, storing entities in database');
-      return await storeAnalyzedEntities(data.entities);
+    // Check for the new response format (entities property)
+    if (data.entities && Array.isArray(data.entities)) {
+      console.log('Analysis successful, entities found:', data.entities.length);
+      
+      // Check if user is authenticated to determine if we store data
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // If user is authenticated, store entities in database
+      if (user) {
+        console.log('User authenticated, storing entities in database');
+        return await storeAnalyzedEntities(data.entities);
+      } else {
+        // For non-authenticated users, format without storing
+        console.log('User not authenticated, using in-memory processing');
+        return formatAnalyzedEntitiesWithoutStoring(data.entities);
+      }
     } else {
-      // For non-authenticated users, format without storing
-      console.log('User not authenticated, using in-memory processing');
-      return formatAnalyzedEntitiesWithoutStoring(data.entities);
+      // If no entities property, it might be the old format or an error
+      console.error('Unexpected response format:', data);
+      throw new Error('Unexpected response format from analysis');
     }
   } catch (error) {
     console.error('Error analyzing historical text:', error);
