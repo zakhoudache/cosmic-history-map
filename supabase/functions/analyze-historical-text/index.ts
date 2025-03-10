@@ -45,7 +45,9 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { text } = await req.json();
+    const requestData = await req.json();
+    const text = requestData.text;
+    const action = requestData.action || "analyze"; // Default action is analyze
     
     if (!text || typeof text !== 'string') {
       return new Response(
@@ -57,8 +59,99 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Analyzing text: ${text.substring(0, 100)}...`);
+    console.log(`Request action: ${action}`);
+    console.log(`Processing text: ${text.substring(0, 100)}...`);
 
+    // Retrieve the Gemini API key from environment variable
+    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not set in environment variables");
+    }
+
+    // If the action is to summarize, use a different prompt
+    if (action === "summarize") {
+      console.log("Summarizing text...");
+      
+      const summarizePrompt = `
+      Summarize the following historical text in a concise way that preserves the key historical information.
+      Focus on keeping:
+      - Important people, events, and places
+      - Key dates and time periods
+      - Major concepts and movements
+      - Significant relationships between events and people
+
+      Your summary should be approximately 25-33% of the original length but ensure that it still contains
+      all the key historical information needed for analysis.
+
+      Text to summarize:
+      ${text}
+      
+      Format your response as text only, with no headers or explanations.
+      `;
+
+      // Call the Gemini API for text summarization
+      const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: summarizePrompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 8192
+          }
+        })
+      });
+
+      if (!geminiResponse.ok) {
+        const errorData = await geminiResponse.text();
+        console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
+        throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
+      }
+
+      const geminiData = await geminiResponse.json();
+      console.log("Gemini API summary response received");
+      
+      // Extract the text content
+      let summary = "";
+      
+      try {
+        if (geminiData.candidates && 
+            Array.isArray(geminiData.candidates) && 
+            geminiData.candidates.length > 0 && 
+            geminiData.candidates[0].content && 
+            geminiData.candidates[0].content.parts && 
+            Array.isArray(geminiData.candidates[0].content.parts) &&
+            geminiData.candidates[0].content.parts.length > 0) {
+          
+          summary = geminiData.candidates[0].content.parts[0].text;
+          console.log("Summary generated successfully", summary.substring(0, 100) + "...");
+        }
+      } catch (error) {
+        console.error("Error extracting summary from Gemini response:", error);
+        throw error;
+      }
+
+      // Return the summary
+      return new Response(
+        JSON.stringify({ summary }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // For regular analysis, continue with the existing code
     // Generate a unique identifier for each entity based on name
     const generateId = (name: string) => {
       return name.toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -137,12 +230,6 @@ serve(async (req: Request) => {
       }
     }
     `;
-
-    // Retrieve the Gemini API key from environment variable
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not set in environment variables");
-    }
 
     // Call the Gemini API for text analysis
     const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
