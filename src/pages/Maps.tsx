@@ -1,11 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import VisualizationControls from "@/components/VisualizationControls";
+import MapDisplay from "@/components/MapDisplay";
 import { toast } from "@/hooks/use-toast";
 import { 
   Globe, 
@@ -20,15 +21,48 @@ import {
   Info,
   Download
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Maps = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentView, setCurrentView] = useState<"historical" | "thematic" | "outline" | "relief" | "interactive" | "concept">("historical");
-  
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [selectedMapExample, setSelectedMapExample] = useState<string | null>(null);
+  const [generatedContent, setGeneratedContent] = useState<any>(null);
+
+  // Handle fullscreen toggle
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
   
+  // Fetch generated content from Supabase
+  useEffect(() => {
+    const fetchGeneratedContent = async () => {
+      try {
+        // Try to fetch from Supabase
+        const { data, error } = await supabase
+          .from('generated_content')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (error) {
+          console.error("Error fetching generated content:", error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          setGeneratedContent(data[0]);
+        }
+      } catch (error) {
+        console.error("Error in content fetch:", error);
+      }
+    };
+    
+    fetchGeneratedContent();
+  }, []);
+  
+  // Map data - definitions for different map types
   const mapTypes = [
     {
       id: "historical",
@@ -122,6 +156,20 @@ const Maps = () => {
     }
   ];
   
+  // Get the current map type data
+  const currentMapType = mapTypes.find(type => type.id === currentView) || mapTypes[0];
+  
+  // Handle loading a specific map example
+  const handleLoadMapExample = (exampleName: string) => {
+    setSelectedMapExample(exampleName);
+    setIsMapLoaded(true);
+    
+    toast({
+      title: "Map Loaded",
+      description: `${exampleName} has been loaded`,
+    });
+  };
+  
   return (
     <MainLayout>
       <div className="container max-w-7xl py-10">
@@ -140,7 +188,7 @@ const Maps = () => {
           <div className={`${isFullscreen ? 'h-full' : 'min-h-[600px]'} relative overflow-hidden rounded-xl backdrop-blur-sm border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10 bg-gradient-to-b from-background to-background/70`}>
             {/* Visualization Controls */}
             <VisualizationControls 
-              visualizationType="graph"
+              visualizationType="map"
               onToggleFullscreen={toggleFullscreen}
               isFullscreen={isFullscreen}
               onExport={() => toast({ title: "Success", description: "Map exported as SVG" })}
@@ -151,7 +199,11 @@ const Maps = () => {
             <div className="h-full p-6 pt-16">
               <Tabs 
                 value={currentView} 
-                onValueChange={(value) => setCurrentView(value as any)} 
+                onValueChange={(value) => {
+                  setCurrentView(value as any);
+                  setIsMapLoaded(false);
+                  setSelectedMapExample(null);
+                }} 
                 className="h-full"
               >
                 <TabsList className="grid grid-cols-3 lg:grid-cols-6 gap-2 bg-black/30 backdrop-blur-sm h-auto p-1 rounded-xl border border-galaxy-nova/20">
@@ -170,16 +222,37 @@ const Maps = () => {
                 {mapTypes.map((type) => (
                   <TabsContent key={type.id} value={type.id} className="mt-6 h-full">
                     <div className="grid md:grid-cols-7 gap-6 h-full">
-                      {/* Map Placeholder */}
-                      <div className="md:col-span-5 rounded-xl border border-galaxy-nova/20 bg-black/30 backdrop-blur-sm flex items-center justify-center relative overflow-hidden min-h-[400px]">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(142,101,218,0.08)_0,_transparent_70%)]"></div>
-                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                          <type.icon className="w-32 h-32" />
-                        </div>
-                        <Button className="relative z-10 nebula-button">
-                          <MapIcon className="mr-2 h-4 w-4" />
-                          Load {type.title} 
-                        </Button>
+                      {/* Map Display Area */}
+                      <div className="md:col-span-5 rounded-xl overflow-hidden relative min-h-[400px]">
+                        {isMapLoaded ? (
+                          <MapDisplay 
+                            mapType={currentView}
+                            mapTitle={selectedMapExample || type.title}
+                            mapSubtitle={type.description}
+                            regionData={generatedContent?.entities}
+                          />
+                        ) : (
+                          <div className="rounded-xl border border-galaxy-nova/20 bg-black/30 backdrop-blur-sm flex items-center justify-center relative overflow-hidden min-h-[400px] h-full">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(142,101,218,0.08)_0,_transparent_70%)]"></div>
+                            <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                              <type.icon className="w-32 h-32" />
+                            </div>
+                            <Button 
+                              className="relative z-10 nebula-button"
+                              onClick={() => {
+                                setIsMapLoaded(true);
+                                setSelectedMapExample(type.title);
+                                toast({
+                                  title: "Map Generated",
+                                  description: `${type.title} has been loaded`,
+                                });
+                              }}
+                            >
+                              <MapIcon className="mr-2 h-4 w-4" />
+                              Load {type.title} 
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Info Panel */}
@@ -204,7 +277,11 @@ const Maps = () => {
                           </h3>
                           <ul className="space-y-3">
                             {type.examples.map((example, index) => (
-                              <li key={index} className="text-sm p-2 rounded-lg hover:bg-galaxy-nova/10 transition-colors">
+                              <li 
+                                key={index} 
+                                className={`text-sm p-2 rounded-lg hover:bg-galaxy-nova/10 transition-colors cursor-pointer ${selectedMapExample === example.name ? 'bg-galaxy-nova/20 border border-galaxy-nova/30' : ''}`}
+                                onClick={() => handleLoadMapExample(example.name)}
+                              >
                                 <div className="font-medium text-foreground/90">{example.name}</div>
                                 <div className="text-foreground/60 text-xs mt-1">{example.description}</div>
                               </li>
@@ -213,15 +290,42 @@ const Maps = () => {
                         </div>
                         
                         <div className="flex flex-col gap-2">
-                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all"
+                            onClick={() => {
+                              toast({
+                                title: "Map Details",
+                                description: `Details for ${currentMapType.title} opened`,
+                              });
+                            }}
+                          >
                             <Info className="mr-2 h-4 w-4 text-galaxy-nova" />
                             Map Details
                           </Button>
-                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all"
+                            onClick={() => {
+                              toast({
+                                title: "Download Started",
+                                description: `Downloading ${currentMapType.title}`,
+                              });
+                            }}
+                          >
                             <Download className="mr-2 h-4 w-4 text-galaxy-nova" />
                             Download
                           </Button>
-                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all"
+                            onClick={() => {
+                              toast({
+                                title: "Historical Context",
+                                description: `Context for ${currentMapType.title} opened`,
+                              });
+                            }}
+                          >
                             <History className="mr-2 h-4 w-4 text-galaxy-nova" />
                             Historical Context
                           </Button>
