@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers for browser requests
@@ -178,20 +177,20 @@ serve(async (req: Request) => {
       
       try {
         const summarizePrompt = `
-        Summarize the following historical text in a concise way that preserves the key historical information.
-        Focus on keeping:
-        - Important people, events, and places
-        - Key dates and time periods
-        - Major concepts and movements
-        - Significant relationships between events and people
+        قم بتلخيص النص التاريخي التالي بطريقة موجزة تحافظ على المعلومات التاريخية الرئيسية.
+        ركز على الحفاظ على:
+        - الشخصيات والأحداث والأماكن المهمة
+        - التواريخ الرئيسية والفترات الزمنية
+        - المفاهيم والحركات الكبرى
+        - العلاقات المهمة بين الأحداث والأشخاص
 
-        Your summary should be approximately 25-33% of the original length but ensure that it still contains
-        all the key historical information needed for analysis.
+        يجب أن يكون ملخصك حوالي 25-33٪ من طول النص الأصلي مع ضمان احتوائه على
+        جميع المعلومات التاريخية الرئيسية اللازمة للتحليل.
 
-        Text to summarize:
+        النص المراد تلخيصه:
         ${text}
         
-        Format your response as text only, with no headers or explanations.
+        قدم إجابتك كنص فقط، بدون عناوين أو تفسيرات.
         `;
 
         // Call the Gemini API for text summarization
@@ -288,72 +287,72 @@ serve(async (req: Request) => {
 
     // The prompt for Gemini to analyze the text
     const prompt = `
-    Analyze the following historical text and extract structured information.
-    Extract entities (people, events, places, concepts, artifacts) mentioned in the text.
-    For each entity, determine:
-    1. Name
-    2. Type (person, event, place, concept, period, artwork, document, building, theory, invention, process, play)
-    3. Time period (startDate and endDate if applicable, in YYYY-MM-DD format, or just the year if that's all that is known)
-    4. Brief description (2-3 sentences)
-    5. Significance (a number from 1-10)
-    6. Group/category (e.g., politics, art, technology, philosophy)
-    7. Domains (array of areas of influence like 'artistic', 'cultural', 'political', 'scientific', etc.)
-    8. Relations to other entities (list of target entities and relationship types)
+    قم بتحليل النص التاريخي التالي واستخراج المعلومات المهيكلة.
+    استخرج الكيانات (الأشخاص، الأحداث، الأماكن، المفاهيم، القطع الأثرية) المذكورة في النص.
+    لكل كيان، حدد:
+    1. الاسم
+    2. النوع (شخص، حدث، مكان، مفهوم، فترة، عمل فني، وثيقة، مبنى، نظرية، اختراع، عملية، مسرحية)
+    3. الفترة الزمنية (تاريخ البدء والانتهاء إذا كان ذلك ممكناً، بتنسيق YYYY-MM-DD، أو السنة فقط إذا كان ذلك كل ما هو معروف)
+    4. وصف موجز (2-3 جمل)
+    5. الأهمية (رقم من 1-10)
+    6. المجموعة/الفئة (مثل السياسة، الفن، التكنولوجيا، الفلسفة)
+    7. المجالات (مصفوفة من مجالات التأثير مثل 'فني'، 'ثقافي'، 'سياسي'، 'علمي'، إلخ)
+    8. العلاقات مع الكيانات الأخرى (قائمة بالكيانات المستهدفة وأنواع العلاقات)
 
-    IMPORTANT: For relations, make sure to include diverse relationship types such as:
-    - influenced/was influenced by
-    - created/was created by
-    - participated in/included
-    - opposed/was opposed by
-    - preceded/followed
-    - located in/contains
-    - associated with
-    - married to/divorced from
-    - parent of/child of
-    - teacher of/student of
-    - ally of/enemy of
-    Be specific about the relationship type based on the context.
+    مهم: بالنسبة للعلاقات، تأكد من تضمين أنواع متنوعة من العلاقات مثل:
+    - أثر/تأثر بـ
+    - أنشأ/تم إنشاؤه بواسطة
+    - شارك في/شمل
+    - عارض/عارضه
+    - سبق/تبع
+    - يقع في/يحتوي
+    - مرتبط بـ
+    - متزوج من/مطلق من
+    - والد/ابن
+    - معلم/تلميذ
+    - حليف/عدو
+    كن محددًا بشأن نوع العلاقة بناءً على السياق.
 
-    Also ensure each relationship has a strength value from 1-10 indicating how strong the connection is.
+    تأكد أيضًا من أن كل علاقة لها قيمة قوة من 1-10 تشير إلى مدى قوة الاتصال.
 
-    Also provide:
-    - A brief summary of the text
-    - Timeline information (overall start year, end year, and key periods)
+    قدم أيضًا:
+    - ملخص موجز للنص
+    - معلومات الجدول الزمني (سنة البداية الإجمالية، سنة النهاية، والفترات الرئيسية)
 
-    Text to analyze:
+    النص المراد تحليله:
     ${text}
     
-    Format your response ONLY as a valid JSON object with the following structure, with no explanations or other text:
+    صيغ إجابتك فقط ككائن JSON صالح بالهيكل التالي، بدون تفسيرات أو نص آخر:
     {
       "entities": [
         {
           "id": "auto_generated_id",
-          "name": "Name of entity",
+          "name": "اسم الكيان",
           "type": "person/event/place/concept/period/artwork/document/building/theory/invention/process/play",
-          "startDate": "YYYY-MM-DD or YYYY (optional)",
-          "endDate": "YYYY-MM-DD or YYYY (optional)",
-          "description": "Brief description",
-          "significance": number from 1-10,
-          "group": "category",
-          "domains": ["artistic", "cultural", "political", etc],
+          "startDate": "YYYY-MM-DD أو YYYY (اختياري)",
+          "endDate": "YYYY-MM-DD أو YYYY (اختياري)",
+          "description": "وصف موجز",
+          "significance": رقم من 1-10,
+          "group": "الفئة",
+          "domains": ["فني", "ثقافي", "سياسي", إلخ],
           "relations": [
             {
               "targetId": "id_of_target_entity",
-              "type": "influenced/created/participated in/etc",
-              "strength": number from 1-10
+              "type": "أثر/أنشأ/شارك في/إلخ",
+              "strength": رقم من 1-10
             }
           ]
         }
       ],
-      "summary": "Brief summary of text",
+      "summary": "ملخص موجز للنص",
       "timeline": {
-        "startYear": starting year as number,
-        "endYear": ending year as number,
+        "startYear": سنة البداية كرقم,
+        "endYear": سنة النهاية كرقم,
         "periods": [
           {
-            "name": "Period name",
-            "startYear": starting year as number,
-            "endYear": ending year as number
+            "name": "اسم الفترة",
+            "startYear": سنة البداية كرقم,
+            "endYear": سنة النهاية كرقم
           }
         ]
       }
