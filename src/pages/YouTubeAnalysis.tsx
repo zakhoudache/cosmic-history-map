@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
-import { Loader2, ExternalLink, Youtube, AlertTriangle, FileText, Info, Stars } from "lucide-react";
+import { Loader2, ExternalLink, Youtube, AlertTriangle, FileText, Info } from "lucide-react";
 import { toast } from "sonner";
 import { 
   fetchYoutubeTranscription, 
@@ -18,7 +18,6 @@ import {
 import { FormattedHistoricalEntity } from "@/types/supabase";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import { MainLayout } from "@/layouts/MainLayout";
 
 const YouTubeAnalysis = () => {
   // States for the YouTube video and analysis
@@ -351,273 +350,247 @@ const YouTubeAnalysis = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden relative">
-      {/* Cosmic background elements */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-black to-black"></div>
-        <div className="stars absolute inset-0"></div>
-        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-galaxy-nova/30 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/3 w-64 h-64 bg-galaxy-spiral/30 rounded-full blur-3xl opacity-20 animate-pulse-slow"></div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
-        <div className="flex items-center gap-3 mb-6">
-          <Stars className="h-8 w-8 text-galaxy-nova" />
-          <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-galaxy-star to-galaxy-nova">
-            YouTube Video Analysis
-          </h1>
-        </div>
-        
-        {/* Error Display */}
-        {error && (
-          <Alert variant="destructive" className="mb-4 border-red-500/50 bg-red-950/30 backdrop-blur-sm">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {/* URL Input Form */}
-        <form onSubmit={handleSubmit} className="mb-6 flex gap-2">
-          <Input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=...)"
-            className="flex-1 border-galaxy-nova/30 bg-black/50 backdrop-blur-sm text-white"
-            required
-          />
-          <Button 
-            type="submit" 
-            disabled={!url}
-            variant="galaxy"
-            className="relative group overflow-hidden"
-          >
-            <span className="relative z-10">Load Video</span>
-          </Button>
-        </form>
-        
-        {/* Tabs for Video, Transcription, and Visualization */}
-        {videoId && (
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4 bg-black/50 backdrop-blur-md border border-galaxy-nova/20">
-              <TabsTrigger value="video" className="data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova">Video</TabsTrigger>
-              <TabsTrigger value="transcription" className="data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova">Transcription</TabsTrigger>
-              <TabsTrigger value="visualization" className="data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova">Visualization</TabsTrigger>
-              <TabsTrigger value="metadata" className="data-[state=active]:bg-galaxy-nova/20 data-[state=active]:text-galaxy-nova">Metadata</TabsTrigger>
-            </TabsList>
-            
-            {/* Video Tab */}
-            <TabsContent value="video" className="space-y-4">
-              <Card className="border-galaxy-nova/20 bg-black/50 backdrop-blur-md">
-                <CardHeader className="border-b border-galaxy-nova/10">
-                  <CardTitle className="flex items-center gap-2 text-galaxy-star">
-                    <Youtube className="h-5 w-5 text-galaxy-nova" /> YouTube Video
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Watch the video and then fetch its transcription for analysis
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div ref={videoContainerRef} className="relative aspect-video w-full overflow-hidden rounded-md">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${videoId}`}
-                      title="YouTube video player"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute top-0 left-0 w-full h-full"
-                    ></iframe>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between flex-wrap gap-2 border-t border-galaxy-nova/10 pt-4">
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')}
-                      className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star"
-                    >
-                      Open in YouTube <ExternalLink className="ml-2 h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={toggleTranscriptionMethod}
-                      className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star"
-                    >
-                      {`Using ${transcriptionMethod} method`}
-                    </Button>
-                  </div>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <h1 className="text-3xl font-bold mb-6 text-white">YouTube Video Analysis</h1>
+      
+      {/* Error Display */}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {/* URL Input Form */}
+      <form onSubmit={handleSubmit} className="mb-6 flex gap-2">
+        <Input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=...)"
+          className="flex-1"
+          required
+        />
+        <Button type="submit" disabled={!url}>Load Video</Button>
+      </form>
+      
+      {/* Tabs for Video, Transcription, and Visualization */}
+      {videoId && (
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="video">Video</TabsTrigger>
+            <TabsTrigger value="transcription">Transcription</TabsTrigger>
+            <TabsTrigger value="visualization">Visualization</TabsTrigger>
+            <TabsTrigger value="metadata">Metadata</TabsTrigger>
+          </TabsList>
+          
+          {/* Video Tab */}
+          <TabsContent value="video" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Youtube className="h-5 w-5" /> YouTube Video
+                </CardTitle>
+                <CardDescription>
+                  Watch the video and then fetch its transcription for analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div ref={videoContainerRef} className="relative aspect-video w-full overflow-hidden rounded-md">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    title="YouTube video player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute top-0 left-0 w-full h-full"
+                  ></iframe>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between flex-wrap gap-2">
+                <div className="flex gap-2">
                   <Button 
-                    onClick={transcriptionMethod === "scraping" ? fetchTranscriptionWithScraping : fetchTranscription} 
-                    disabled={loading}
-                    variant="galaxy"
+                    variant="outline" 
+                    onClick={() => window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')}
                   >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {transcriptionMethod === "scraping" ? "Scraping..." : "Fetching..."}
-                      </>
-                    ) : (
-                      transcriptionMethod === "scraping" ? "Scrape Video Info" : "Fetch Transcription"
-                    )}
+                    Open in YouTube <ExternalLink className="ml-2 h-4 w-4" />
                   </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            {/* Transcription Tab */}
-            <TabsContent value="transcription" className="space-y-4">
-              <Card className="border-galaxy-nova/20 bg-black/50 backdrop-blur-md">
-                <CardHeader className="border-b border-galaxy-nova/10">
-                  <CardTitle className="text-galaxy-star">Video Transcription</CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Review the transcription and analyze it to extract knowledge entities
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="mb-2 text-sm text-slate-400">
-                    Fetched using the <span className="font-semibold text-galaxy-nova">{transcriptionMethod}</span> method
-                  </div>
-                  <Textarea 
-                    value={transcription} 
-                    onChange={(e) => setTranscription(e.target.value)}
-                    placeholder="Transcription will appear here..."
-                    className="min-h-[300px] font-mono text-sm border-galaxy-nova/30 bg-black/30 backdrop-blur-sm text-white"
+                  <Button 
+                    variant="outline" 
+                    onClick={toggleTranscriptionMethod}
+                  >
+                    {`Using ${transcriptionMethod} method`}
+                  </Button>
+                </div>
+                <Button 
+                  onClick={transcriptionMethod === "scraping" ? fetchTranscriptionWithScraping : fetchTranscription} 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {transcriptionMethod === "scraping" ? "Scraping..." : "Fetching..."}
+                    </>
+                  ) : (
+                    transcriptionMethod === "scraping" ? "Scrape Video Info" : "Fetch Transcription"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          {/* Transcription Tab */}
+          <TabsContent value="transcription" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Video Transcription</CardTitle>
+                <CardDescription>
+                  Review the transcription and analyze it to extract knowledge entities
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-2 text-sm text-muted-foreground">
+                  Fetched using the <span className="font-semibold">{transcriptionMethod}</span> method
+                </div>
+                <Textarea 
+                  value={transcription} 
+                  onChange={(e) => setTranscription(e.target.value)}
+                  placeholder="Transcription will appear here..."
+                  className="min-h-[300px] font-mono text-sm"
+                />
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  onClick={handleAnalyzeTranscription} 
+                  disabled={!transcription || analyzing} 
+                  className="ml-auto"
+                >
+                  {analyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    "Analyze Transcription"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          {/* Visualization Tab */}
+          <TabsContent value="visualization" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Knowledge Graph</CardTitle>
+                <CardDescription>
+                  Visual representation of entities and connections from the video
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="min-h-[600px] relative">
+                {entities.length > 0 ? (
+                  <KnowledgeGraph 
+                    entities={entities} 
+                    onEntitySelect={(entity) => {
+                      toast.info(`Selected: ${entity.name}`);
+                    }} 
                   />
-                </CardContent>
-                <CardFooter className="border-t border-galaxy-nova/10 pt-4">
-                  <Button 
-                    onClick={handleAnalyzeTranscription} 
-                    disabled={!transcription || analyzing} 
-                    className="ml-auto"
-                    variant="nebula"
-                  >
-                    {analyzing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      "Analyze Transcription"
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            {/* Visualization Tab */}
-            <TabsContent value="visualization" className="space-y-4">
-              <Card className="border-galaxy-nova/20 bg-black/50 backdrop-blur-md">
-                <CardHeader className="border-b border-galaxy-nova/10">
-                  <CardTitle className="text-galaxy-star">Knowledge Graph</CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Visual representation of entities and connections from the video
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="min-h-[600px] relative pt-6">
-                  {entities.length > 0 ? (
-                    <KnowledgeGraph 
-                      entities={entities} 
-                      onEntitySelect={(entity) => {
-                        toast.info(`Selected: ${entity.name}`);
-                      }} 
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-[500px] text-slate-400">
-                      <p>No visualization data available yet.</p>
-                      <p className="text-sm mt-2">Analyze the transcription to generate a knowledge graph.</p>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+                    <p>No visualization data available yet.</p>
+                    <p className="text-sm mt-2">Analyze the transcription to generate a knowledge graph.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Metadata Tab */}
+          <TabsContent value="metadata" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Video Metadata
+                </CardTitle>
+                <CardDescription>
+                  Additional information scraped from the YouTube video page
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {videoMetadata ? (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-1">{videoMetadata.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Uploaded by {videoMetadata.channelName} • {videoMetadata.uploadDate}
+                      </p>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {/* Metadata Tab */}
-            <TabsContent value="metadata" className="space-y-4">
-              <Card className="border-galaxy-nova/20 bg-black/50 backdrop-blur-md">
-                <CardHeader className="border-b border-galaxy-nova/10">
-                  <CardTitle className="flex items-center gap-2 text-galaxy-star">
-                    <FileText className="h-5 w-5 text-galaxy-nova" /> Video Metadata
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Additional information scraped from the YouTube video page
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  {videoMetadata ? (
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-1 text-white">{videoMetadata.title}</h3>
-                        <p className="text-sm text-slate-400">
-                          Uploaded by {videoMetadata.channelName} • {videoMetadata.uploadDate}
-                        </p>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Description</h4>
+                      <div className="bg-secondary/50 rounded-md p-3 whitespace-pre-wrap text-sm">
+                        {videoMetadata.description || "No description available"}
                       </div>
-                      
+                    </div>
+                    
+                    {videoMetadata.captionTracks && videoMetadata.captionTracks.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="font-medium text-galaxy-star">Description</h4>
-                        <div className="bg-black/30 rounded-md p-3 whitespace-pre-wrap text-sm text-white border border-galaxy-nova/10">
-                          {videoMetadata.description || "No description available"}
+                        <h4 className="font-medium">Available Captions</h4>
+                        <div className="bg-secondary/50 rounded-md p-3">
+                          <ul className="list-disc pl-5 space-y-1 text-sm">
+                            {videoMetadata.captionTracks.map((track: any, index: number) => (
+                              <li key={index}>
+                                {track.name || track.languageCode} ({track.languageCode})
+                                {track.isAutoGenerated ? ' (Auto-generated)' : ''}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       </div>
-                      
-                      {videoMetadata.captionTracks && videoMetadata.captionTracks.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="font-medium text-galaxy-star">Available Captions</h4>
-                          <div className="bg-black/30 rounded-md p-3 border border-galaxy-nova/10">
-                            <ul className="list-disc pl-5 space-y-1 text-sm text-white">
-                              {videoMetadata.captionTracks.map((track: any, index: number) => (
-                                <li key={index}>
-                                  {track.name || track.languageCode} ({track.languageCode})
-                                  {track.isAutoGenerated ? ' (Auto-generated)' : ''}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-[300px] text-slate-400">
-                      <Info className="h-12 w-12 mb-4 opacity-50" />
-                      <p>No metadata available yet.</p>
-                      <p className="text-sm mt-2">Use the scraping method to fetch video metadata.</p>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter className="border-t border-galaxy-nova/10 pt-4">
-                  <Button 
-                    onClick={fetchTranscriptionWithScraping} 
-                    disabled={loading} 
-                    variant="outline"
-                    className="ml-auto border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Refreshing...
-                      </>
-                    ) : (
-                      "Refresh Metadata"
                     )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
-        
-        {/* Initial state when no video is loaded */}
-        {!videoId && (
-          <Card className="mt-6 border-galaxy-nova/20 bg-black/50 backdrop-blur-md">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Youtube className="h-16 w-16 text-galaxy-nova mb-4 animate-pulse" />
-              <h3 className="text-xl font-semibold mb-2 text-galaxy-star">No Video Loaded</h3>
-              <p className="text-slate-400 text-center max-w-md">
-                Enter a YouTube URL above to start. The tool will scrape the video page,
-                extract the transcription, and analyze it to create a knowledge graph of concepts and relationships.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                    <Info className="h-12 w-12 mb-4 opacity-50" />
+                    <p>No metadata available yet.</p>
+                    <p className="text-sm mt-2">Use the scraping method to fetch video metadata.</p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  onClick={fetchTranscriptionWithScraping} 
+                  disabled={loading} 
+                  variant="outline"
+                  className="ml-auto"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Refreshing...
+                    </>
+                  ) : (
+                    "Refresh Metadata"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+      
+      {/* Initial state when no video is loaded */}
+      {!videoId && (
+        <Card className="mt-6">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Youtube className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No Video Loaded</h3>
+            <p className="text-muted-foreground text-center max-w-md">
+              Enter a YouTube URL above to start. The tool will scrape the video page,
+              extract the transcription, and analyze it to create a knowledge graph of concepts and relationships.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
