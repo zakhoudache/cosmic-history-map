@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Loader } from "lucide-react";
@@ -32,6 +33,7 @@ interface MapSettings {
   zoom: number;
   center: [number, number];
   style: string;
+  bounds?: [[number, number], [number, number]]; // Southwest and Northeast corners
 }
 
 interface MapMetadata {
@@ -196,21 +198,25 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       }
     };
     
-    // Generate mock map data for demonstration
+    // Generate mock map data for demonstration with appropriate focus areas
     const generateMockMapData = () => {
       // This is a fallback for demo purposes
+      const regions = getMockRegionsForType(mapType);
+      const focusArea = getMapFocusAreaForType(mapType, regions);
+      
       const mockData: MapData = {
         mapType: mapType,
         title: mapTitle,
-        regions: getMockRegionsForType(mapType),
+        regions: regions,
         settings: {
-          zoom: 2,
-          center: [0, 20],
-          style: getMapStyleForType(mapType)
+          zoom: focusArea.zoom,
+          center: focusArea.center,
+          style: getMapStyleForType(mapType),
+          bounds: focusArea.bounds
         },
         legend: {
           title: "Key Elements",
-          items: getMockRegionsForType(mapType).slice(0, 3).map(region => ({
+          items: regions.slice(0, 3).map(region => ({
             label: region.name,
             color: region.color
           }))
@@ -218,8 +224,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         metadata: {
           generatedFrom: sourceType || "Historical Analysis",
           timeperiod: mapType === 'historical' ? {
-            start: "1066",
-            end: "1279"
+            start: regions[0]?.startYear?.toString() || "1066",
+            end: regions[0]?.endYear?.toString() || "1279"
           } : undefined
         }
       };
@@ -267,6 +273,14 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       // Wait for map to load before adding data
       mapInstance.current.on('load', () => {
         addMapData(mapInstance.current!, mapData);
+        
+        // Fit map to bounds if provided
+        if (mapData.settings?.bounds) {
+          mapInstance.current!.fitBounds(mapData.settings.bounds, {
+            padding: 50,
+            duration: 1000
+          });
+        }
       });
     } else {
       // The map already exists, just update it
@@ -281,18 +295,34 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         // Re-add data after style change
         map.once('style.load', () => {
           addMapData(map, mapData);
+          
+          // Fit map to bounds if provided
+          if (mapData.settings?.bounds) {
+            map.fitBounds(mapData.settings.bounds, {
+              padding: 50,
+              duration: 1000
+            });
+          }
         });
       } else {
         // Update map data directly
         addMapData(map, mapData);
-      }
-      
-      // Update center and zoom
-      if (mapData.settings?.center) {
-        map.setCenter(mapData.settings.center);
-      }
-      if (mapData.settings?.zoom) {
-        map.setZoom(mapData.settings.zoom);
+        
+        // Fit map to bounds if provided
+        if (mapData.settings?.bounds) {
+          map.fitBounds(mapData.settings.bounds, {
+            padding: 50,
+            duration: 1000
+          });
+        } else {
+          // Update center and zoom
+          if (mapData.settings?.center) {
+            map.setCenter(mapData.settings.center);
+          }
+          if (mapData.settings?.zoom) {
+            map.setZoom(mapData.settings.zoom);
+          }
+        }
       }
     }
     
@@ -311,9 +341,9 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     
     // Create GeoJSON feature collection for map points
     const geojson = {
-      type: 'FeatureCollection',
+      type: 'FeatureCollection' as const,
       features: mapData.regions.map(region => ({
-        type: 'Feature',
+        type: 'Feature' as const,
         properties: {
           id: region.id,
           name: region.name,
@@ -325,7 +355,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
           type: region.type
         },
         geometry: {
-          type: 'Point',
+          type: 'Point' as const,
           coordinates: region.coordinates
         }
       }))
@@ -400,7 +430,11 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       
       const feature = e.features[0];
       const props = feature.properties;
-      const coordinates = feature.geometry.coordinates.slice();
+      
+      if (!feature.geometry || feature.geometry.type !== 'Point') return;
+      
+      // Get coordinates using Mapbox's point geometry type
+      const coordinates = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
       
       // Format popup content
       let popupContent = `<h3>${props.name}</h3>`;
@@ -428,47 +462,140 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     });
   };
   
-  // Get mock regions data based on map type
+  // Get mock regions data based on map type with more historical context
   const getMockRegionsForType = (type: string): MapRegion[] => {
     switch (type) {
       case 'historical':
         return [
-          { id: 'roman_empire', name: 'Roman Empire', coordinates: [12, 41], significance: 10, color: '#8E76DB', startYear: 117, endYear: 476, type: 'empire' },
-          { id: 'byzantine_empire', name: 'Byzantine Empire', coordinates: [28, 41], significance: 9, color: '#6A9CE2', startYear: 395, endYear: 1453, type: 'empire' },
-          { id: 'mongol_empire', name: 'Mongol Empire', coordinates: [100, 46], significance: 10, color: '#EB6784', startYear: 1206, endYear: 1368, type: 'empire' }
+          { id: 'roman_empire', name: 'Roman Empire', coordinates: [12.5, 41.9], significance: 10, color: '#8E76DB', startYear: 117, endYear: 476, type: 'empire', description: 'The Roman Empire at its greatest territorial extent under Emperor Trajan.' },
+          { id: 'constantinople', name: 'Constantinople', coordinates: [28.9, 41.0], significance: 9, color: '#6A9CE2', startYear: 330, endYear: 1453, type: 'capital', description: 'Capital of the Byzantine Empire and major cultural center.' },
+          { id: 'athens', name: 'Athens', coordinates: [23.7, 37.9], significance: 8, color: '#76CCB9', startYear: -500, endYear: -323, type: 'city-state', description: 'Center of Greek civilization and birthplace of democracy.' },
+          { id: 'alexandria', name: 'Alexandria', coordinates: [29.9, 31.2], significance: 8, color: '#EB6784', startYear: -331, endYear: 641, type: 'city', description: 'Major Hellenistic cultural center founded by Alexander the Great.' }
         ];
       case 'thematic':
         return [
-          { id: 'population_dense', name: 'High Density', coordinates: [2, 48], significance: 8, color: '#8E76DB', type: 'population' },
-          { id: 'population_medium', name: 'Medium Density', coordinates: [15, 45], significance: 7, color: '#6A9CE2', type: 'population' },
-          { id: 'population_low', name: 'Low Density', coordinates: [30, 40], significance: 6, color: '#76CCB9', type: 'population' }
+          { id: 'agricultural_revolution', name: 'Agricultural Revolution', coordinates: [44.0, 33.0], significance: 10, color: '#8E76DB', startYear: -10000, endYear: -8000, type: 'development', description: 'Birth of farming in the Fertile Crescent.' },
+          { id: 'silk_road_east', name: 'Silk Road (East)', coordinates: [80.0, 41.0], significance: 9, color: '#6A9CE2', startYear: -200, endYear: 1450, type: 'trade', description: 'Eastern section of the ancient trade network connecting East and West.' },
+          { id: 'silk_road_west', name: 'Silk Road (West)', coordinates: [35.0, 40.0], significance: 9, color: '#76CCB9', startYear: -200, endYear: 1450, type: 'trade', description: 'Western section of the trade route connecting China with the Mediterranean.' },
+          { id: 'plague_europe', name: 'Black Death', coordinates: [15.0, 45.0], significance: 8, color: '#EB6784', startYear: 1347, endYear: 1351, type: 'pandemic', description: 'Devastating plague that killed 30-60% of Europe\'s population.' }
         ];
       case 'outline':
         return [
-          { id: 'north_america', name: 'North America', coordinates: [-100, 40], significance: 8, color: '#8E76DB', type: 'continent' },
-          { id: 'south_america', name: 'South America', coordinates: [-60, -20], significance: 8, color: '#6A9CE2', type: 'continent' },
-          { id: 'europe', name: 'Europe', coordinates: [10, 50], significance: 8, color: '#76CCB9', type: 'continent' }
+          { id: 'mesopotamia', name: 'Mesopotamia', coordinates: [44.0, 33.0], significance: 10, color: '#8E76DB', startYear: -3500, endYear: -500, type: 'region', description: 'The "Cradle of Civilization" between the Tigris and Euphrates rivers.' },
+          { id: 'nile_valley', name: 'Nile Valley', coordinates: [31.2, 30.0], significance: 9, color: '#6A9CE2', startYear: -3000, endYear: -30, type: 'region', description: 'Ancient Egyptian civilization centered on the Nile.' },
+          { id: 'indus_valley', name: 'Indus Valley', coordinates: [72.0, 24.0], significance: 8, color: '#76CCB9', startYear: -3300, endYear: -1300, type: 'region', description: 'Early urbanized society in South Asia.' },
+          { id: 'yellow_river', name: 'Yellow River Valley', coordinates: [114.0, 34.0], significance: 8, color: '#EB6784', startYear: -1800, endYear: -200, type: 'region', description: 'Birthplace of Chinese civilization.' }
         ];
       case 'relief':
         return [
-          { id: 'himalaya', name: 'Himalayan Mountains', coordinates: [80, 30], significance: 9, color: '#8C7B68', type: 'mountain' },
-          { id: 'alps', name: 'Alps', coordinates: [8, 46], significance: 8, color: '#A9BD86', type: 'mountain' },
-          { id: 'ganges', name: 'Ganges Plain', coordinates: [85, 25], significance: 7, color: '#D0E4B0', type: 'plain' }
+          { id: 'himalaya', name: 'Himalayan Mountains', coordinates: [86.9, 27.9], significance: 10, color: '#8C7B68', type: 'mountain', description: 'Natural barrier that shaped Asian civilizations and trade routes.' },
+          { id: 'mediterranean', name: 'Mediterranean Sea', coordinates: [15.0, 38.0], significance: 10, color: '#6A9CE2', type: 'sea', description: 'Major route for trade and cultural exchange in the ancient world.' },
+          { id: 'sahara', name: 'Sahara Desert', coordinates: [2.0, 23.0], significance: 9, color: '#D4B16A', type: 'desert', description: 'Natural barrier that isolated Sub-Saharan Africa.' },
+          { id: 'ganges', name: 'Ganges Plain', coordinates: [83.0, 25.3], significance: 8, color: '#76CCB9', type: 'plain', description: 'Fertile region that supported dense populations and major Indian civilizations.' }
         ];
       case 'interactive':
         return [
-          { id: 'layer_political', name: 'Political Boundaries', coordinates: [0, 0], significance: 10, color: '#8E76DB', type: 'layer' },
-          { id: 'layer_terrain', name: 'Terrain', coordinates: [5, 5], significance: 9, color: '#6A9CE2', type: 'layer' },
-          { id: 'layer_climate', name: 'Climate Zones', coordinates: [10, 10], significance: 8, color: '#76CCB9', type: 'layer' }
+          { id: 'mongol_empire', name: 'Mongol Empire', coordinates: [107.0, 47.9], significance: 10, color: '#8E76DB', startYear: 1206, endYear: 1368, type: 'empire', description: 'Largest contiguous land empire in history.' },
+          { id: 'viking_expansion', name: 'Viking Expansion', coordinates: [10.7, 59.9], significance: 8, color: '#6A9CE2', startYear: 793, endYear: 1066, type: 'expansion', description: 'Norse seafarers who raided, traded, and settled throughout Europe.' },
+          { id: 'crusades', name: 'Crusades', coordinates: [35.2, 31.8], significance: 9, color: '#EB6784', startYear: 1095, endYear: 1291, type: 'conflict', description: 'Series of religious wars sanctioned by the Latin Church.' },
+          { id: 'islamic_caliphate', name: 'Islamic Caliphate', coordinates: [39.8, 21.4], significance: 10, color: '#76CCB9', startYear: 632, endYear: 750, type: 'empire', description: 'Early Islamic state established after Muhammad\'s death.' }
         ];
       case 'concept':
         return [
-          { id: 'concept_1', name: 'Democracy', coordinates: [0, 40], significance: 10, color: '#8E76DB', type: 'concept' },
-          { id: 'concept_2', name: 'Authoritarianism', coordinates: [20, 50], significance: 9, color: '#6A9CE2', type: 'concept' },
-          { id: 'concept_3', name: 'Theocracy', coordinates: [40, 30], significance: 8, color: '#76CCB9', type: 'concept' }
+          { id: 'democracy_athens', name: 'Athenian Democracy', coordinates: [23.7, 37.9], significance: 9, color: '#8E76DB', startYear: -508, endYear: -322, type: 'concept', description: 'First known democracy in the world.' },
+          { id: 'magna_carta', name: 'Magna Carta', coordinates: [-0.8, 51.4], significance: 8, color: '#6A9CE2', startYear: 1215, endYear: 1215, type: 'document', description: 'Charter of rights limiting monarchical powers.' },
+          { id: 'renaissance_florence', name: 'Renaissance', coordinates: [11.2, 43.8], significance: 10, color: '#76CCB9', startYear: 1400, endYear: 1600, type: 'movement', description: 'Cultural movement that profoundly affected European intellectual life.' },
+          { id: 'enlightenment_paris', name: 'Enlightenment', coordinates: [2.3, 48.8], significance: 9, color: '#EB6784', startYear: 1715, endYear: 1789, type: 'movement', description: 'Intellectual movement emphasizing reason and individualism.' }
         ];
       default:
         return [];
+    }
+  };
+  
+  // Get map focus area (center, zoom, bounds) for different map types
+  const getMapFocusAreaForType = (type: string, regions: MapRegion[]) => {
+    // Calculate bounds based on region coordinates
+    const calculateBounds = (regions: MapRegion[]): [[number, number], [number, number]] | undefined => {
+      if (!regions.length) return undefined;
+      
+      let minLng = regions[0].coordinates[0];
+      let maxLng = regions[0].coordinates[0];
+      let minLat = regions[0].coordinates[1];
+      let maxLat = regions[0].coordinates[1];
+      
+      regions.forEach(region => {
+        minLng = Math.min(minLng, region.coordinates[0]);
+        maxLng = Math.max(maxLng, region.coordinates[0]);
+        minLat = Math.min(minLat, region.coordinates[1]);
+        maxLat = Math.max(maxLat, region.coordinates[1]);
+      });
+      
+      // Add padding around bounds
+      const padLng = (maxLng - minLng) * 0.3;
+      const padLat = (maxLat - minLat) * 0.3;
+      
+      return [
+        [minLng - padLng, minLat - padLat],
+        [maxLng + padLng, maxLat + padLat]
+      ];
+    };
+    
+    // Calculate center based on regions
+    const calculateCenter = (regions: MapRegion[]): [number, number] => {
+      if (!regions.length) return [0, 20];
+      
+      const sumLng = regions.reduce((sum, region) => sum + region.coordinates[0], 0);
+      const sumLat = regions.reduce((sum, region) => sum + region.coordinates[1], 0);
+      
+      return [sumLng / regions.length, sumLat / regions.length];
+    };
+    
+    const bounds = calculateBounds(regions);
+    const center = calculateCenter(regions);
+    
+    switch (type) {
+      case 'historical':
+        return {
+          center: center,
+          zoom: 5,
+          bounds: bounds
+        };
+      case 'thematic':
+        return {
+          center: [60, 40], // Centered on Eurasia for trade routes
+          zoom: 3,
+          bounds: bounds
+        };
+      case 'outline':
+        return {
+          center: [60, 30], // Centered on early civilizations
+          zoom: 4,
+          bounds: bounds
+        };
+      case 'relief':
+        return {
+          center: center,
+          zoom: 4,
+          bounds: bounds
+        };
+      case 'interactive':
+        return {
+          center: center,
+          zoom: 4,
+          bounds: bounds
+        };
+      case 'concept':
+        return {
+          center: [15, 40], // Centered on Mediterranean/Europe for most concept examples
+          zoom: 4,
+          bounds: bounds
+        };
+      default:
+        return {
+          center: [0, 20],
+          zoom: 2,
+          bounds: undefined
+        };
     }
   };
   
