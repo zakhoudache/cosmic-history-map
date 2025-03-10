@@ -14,7 +14,11 @@ export default {
       center: true,
       padding: '2rem',
       screens: {
-        '2xl': '1400px'
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
       }
     },
     extend: {
@@ -52,33 +56,26 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        cosmic: {
-          DEFAULT: 'hsl(var(--cosmic))',
-          dark: 'hsl(var(--cosmic-dark))',
-          light: 'hsl(var(--cosmic-light))',
-          accent: 'hsl(var(--cosmic-accent))',
-          muted: 'hsl(var(--cosmic-muted))',
-          nebula: 'hsl(var(--cosmic-nebula))',
-          supernova: 'hsl(var(--cosmic-supernova))',
-          void: 'hsl(var(--cosmic-void))',
-          stardust: 'hsl(var(--cosmic-stardust))'
-        },
         galaxy: {
           core: 'hsl(var(--galaxy-core))',
-          spiral: 'hsl(var(--galaxy-spiral))',
+          arm: 'hsl(var(--galaxy-arm))',
           dust: 'hsl(var(--galaxy-dust))',
           star: 'hsl(var(--galaxy-star))',
-          nova: 'hsl(var(--galaxy-nova))'
+          'bright-star': 'hsl(var(--galaxy-bright-star))',
+          nova: 'hsl(var(--galaxy-nova))',
+          nebula: 'hsl(var(--galaxy-nebula))',
+          void: 'hsl(var(--galaxy-void))',
+          stardust: 'hsl(var(--galaxy-stardust))',
+          'blue-giant': 'hsl(var(--galaxy-blue-giant))',
+          'red-giant': 'hsl(var(--galaxy-red-giant))',
+          'cosmic-ray': 'hsl(var(--galaxy-cosmic-ray))',
+          wormhole: 'hsl(var(--galaxy-wormhole))'
         },
-        sidebar: {
-          DEFAULT: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-          border: 'hsl(var(--sidebar-border))',
-          ring: 'hsl(var(--sidebar-ring))'
+        aurora: {
+          green: 'hsl(var(--aurora-green))',
+          blue: 'hsl(var(--aurora-blue))',
+          purple: 'hsl(var(--aurora-purple))',
+          pink: 'hsl(var(--aurora-pink))'
         }
       },
       borderRadius: {
@@ -147,6 +144,14 @@ export default {
         'star-pulse': {
           '0%, 100%': { opacity: '1', boxShadow: '0 0 20px 2px rgba(255, 255, 255, 0.5)' },
           '50%': { opacity: '0.6', boxShadow: '0 0 10px 1px rgba(255, 255, 255, 0.3)' }
+        },
+        'cosmic-glow': {
+          '0%, 100%': { boxShadow: '0 0 15px 2px hsla(var(--galaxy-nova), 0.4)' },
+          '50%': { boxShadow: '0 0 25px 5px hsla(var(--galaxy-nova), 0.6)' }
+        },
+        'wormhole': {
+          '0%': { transform: 'rotate(0) scale(1)' },
+          '100%': { transform: 'rotate(360deg) scale(0)' }
         }
       },
       animation: {
@@ -164,13 +169,25 @@ export default {
         'twinkle-slow': 'twinkle-slow 6s ease-in-out infinite',
         'nebula-shift': 'nebula-shift 120s infinite alternate',
         'galaxy-spin': 'galaxy-spin 180s linear infinite',
-        'star-pulse': 'star-pulse 4s ease-in-out infinite'
+        'star-pulse': 'star-pulse 4s ease-in-out infinite',
+        'cosmic-glow': 'cosmic-glow
+3s ease-in-out infinite',
+        'wormhole': 'wormhole 10s cubic-bezier(0.65, 0, 0.35, 1) infinite'
       },
       backgroundImage: {
-        'galaxy-gradient': 'radial-gradient(ellipse at center, hsl(var(--galaxy-core)), hsl(var(--cosmic-dark)))',
-        'nebula-gradient': 'linear-gradient(135deg, hsl(var(--cosmic-nebula)/0.8), hsl(var(--cosmic-void)/0.9))',
-        'stardust-pattern': 'radial-gradient(circle, transparent 20%, hsl(var(--cosmic-stardust)/0.1) 70%)',
-        'cosmic-glow': 'conic-gradient(from 0deg, hsl(var(--cosmic-light)/0.2), hsl(var(--cosmic-supernova)/0.3), hsl(var(--cosmic-light)/0.2))'
+        'galaxy-spiral-gradient': 'radial-gradient(ellipse at center, hsl(var(--galaxy-core)), transparent 70%), conic-gradient(from 0deg, hsl(var(--galaxy-arm)/0.3), hsl(var(--galaxy-dust)/0.3), hsl(var(--galaxy-arm)/0.3))',
+        'nebula-glow': 'radial-gradient(ellipse at center, hsl(var(--galaxy-nebula)/0.6), transparent 70%)',
+        'stars-pattern': 'radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 50%, white 1px, transparent 1px), radial-gradient(circle at 40% 80%, white 1px, transparent 1px)',
+        'stardust-pattern': 'radial-gradient(circle, transparent 20%, hsl(var(--galaxy-stardust)/0.05) 80%)',
+        'cosmic-ray-gradient': 'linear-gradient(45deg, hsl(var(--galaxy-cosmic-ray)/0.1), transparent 70%)',
+        'wormhole-gradient': 'radial-gradient(circle, hsl(var(--galaxy-wormhole)) 0%, transparent 70%)',
+        'aurora-flow': 'linear-gradient(to right, hsl(var(--aurora-green)/0.3), hsl(var(--aurora-blue)/0.3), hsl(var(--aurora-purple)/0.3), hsl(var(--aurora-pink)/0.3))'
+      },
+      boxShadow: {
+        'cosmic': '0 0 20px 5px rgba(130, 100, 255, 0.2)',
+        'nebula': '0 0 30px 8px rgba(180, 120, 255, 0.25)',
+        'star': '0 0 10px 2px rgba(255, 255, 255, 0.7)',
+        'nova': '0 0 40px 10px rgba(255, 120, 200, 0.3)'
       }
     }
   },
