@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -11,6 +10,7 @@ import { HistoricalEntity, SimulationNode, prepareSimulationData, mockHistorical
 import { initScrollAnimations } from "@/utils/animations";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { 
   ChevronDown, 
   Search, 
@@ -20,9 +20,17 @@ import {
   Clock, 
   BookOpen, 
   Map,
-  SendHorizonal
+  SendHorizonal,
+  Globe,
+  Landmark,
+  Navigation,
+  FileText,
+  Mountain,
+  Tent
 } from "lucide-react";
 import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -103,6 +111,65 @@ const Index = () => {
   const handleCloseEntityCard = () => {
     setSelectedEntity(null);
   };
+
+  const mapTypes = [
+    {
+      id: "historical",
+      title: "Historical Maps",
+      description: "Visualize how territories, borders, and civilizations have changed over time.",
+      icon: Globe,
+      color: "from-amber-400 to-orange-600",
+      bgColor: "bg-amber-50",
+      details: "Historical maps show the geographical features, political boundaries, and cultural landscapes of the past. They help students visualize how territories have expanded and contracted, where ancient civilizations flourished, and how geography influenced historical events."
+    },
+    {
+      id: "thematic",
+      title: "Thematic Maps",
+      description: "Illustrate specific themes or subjects across geographical areas.",
+      icon: Landmark,
+      color: "from-sky-400 to-blue-600",
+      bgColor: "bg-sky-50",
+      details: "Thematic maps focus on displaying specific data patterns across geographical areas. They can show population density, climate patterns, economic activity, resource distribution, or cultural diffusion. These maps help students understand complex concepts through visual spatial representation."
+    },
+    {
+      id: "practice",
+      title: "Outline Maps",
+      description: "Blank or partially labeled maps for practice and assessment.",
+      icon: FileText,
+      color: "from-emerald-400 to-green-600",
+      bgColor: "bg-emerald-50",
+      details: "These blank or partially labeled maps allow students to practice identifying geographical features, political borders, and important locations. They're essential for active learning and self-assessment in geography education."
+    },
+    {
+      id: "relief",
+      title: "Relief Maps",
+      description: "Three-dimensional representations of terrain and elevation.",
+      icon: Mountain,
+      color: "from-stone-400 to-stone-600",
+      bgColor: "bg-stone-50",
+      details: "Relief maps provide tactile, three-dimensional representations of terrain and elevation. They help students understand how landforms like mountains, valleys, and plateaus affect human settlement, agriculture, and historical development."
+    },
+    {
+      id: "interactive",
+      title: "Interactive Maps",
+      description: "Digital maps with layers of information and interactive features.",
+      icon: Navigation,
+      color: "from-violet-400 to-purple-600",
+      bgColor: "bg-violet-50",
+      details: "Digital interactive maps allow students to explore multiple layers of geographic information. Students can toggle between different data sets, zoom in on specific regions, and observe how different factors interact across space and time."
+    },
+    {
+      id: "concept",
+      title: "Concept Maps",
+      description: "Visual representations of relationships between concepts.",
+      icon: Network,
+      color: "from-rose-400 to-pink-600",
+      bgColor: "bg-rose-50",
+      details: "Concept maps help organize and connect ideas in geography and history. They visualize how different historical events are connected, how geographical features influence societies, and how complex systems interact."
+    }
+  ];
+
+  const [selectedMapType, setSelectedMapType] = useState(mapTypes[0].id);
 
   return (
     <MainLayout>
@@ -213,6 +280,87 @@ const Index = () => {
           </div>
         </section>
       )}
+      
+      {/* Maps section */}
+      <section className="py-16">
+        <Separator className="mb-16" />
+        
+        <div className="mb-12 text-center animate-on-scroll">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Educational Maps</h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Explore different types of maps essential for understanding history and geography.
+          </p>
+        </div>
+        
+        <div className="mb-10">
+          <Tabs defaultValue={selectedMapType} onValueChange={setSelectedMapType} className="w-full">
+            <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-2 bg-transparent h-auto">
+              {mapTypes.map((mapType) => (
+                <TabsTrigger
+                  key={mapType.id}
+                  value={mapType.id}
+                  className={`flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:${mapType.bgColor} border data-[state=active]:border-galaxy-nova/30`}
+                >
+                  <mapType.icon className={`w-5 h-5 bg-gradient-to-r ${mapType.color} bg-clip-text text-transparent`} />
+                  <span className="text-xs font-medium">{mapType.title}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            {mapTypes.map((mapType) => (
+              <TabsContent key={mapType.id} value={mapType.id} className="mt-6">
+                <Card className="border border-galaxy-nova/30 cosmic-gradient shadow-lg shadow-galaxy-core/10 overflow-hidden">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-full ${mapType.bgColor}`}>
+                        <mapType.icon className={`w-6 h-6 bg-gradient-to-r ${mapType.color} bg-clip-text text-transparent`} />
+                      </div>
+                      <div>
+                        <CardTitle>{mapType.title}</CardTitle>
+                        <CardDescription>{mapType.description}</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-2 gap-6 items-center">
+                      <div className="space-y-4">
+                        <p className="text-muted-foreground">{mapType.details}</p>
+                        <Button variant="galaxy" size="sm">
+                          Explore {mapType.title}
+                          <SendHorizonal className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className={`aspect-video rounded-lg ${mapType.bgColor} flex items-center justify-center border border-galaxy-nova/20 shadow-inner overflow-hidden`}>
+                        <div className="relative w-full h-full">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <mapType.icon className={`w-16 h-16 opacity-20`} />
+                          </div>
+                          <div className="absolute bottom-4 right-4">
+                            <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur-sm">
+                              <FileText className="w-4 h-4 mr-1" />
+                              Preview
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </div>
+        
+        <div className="text-center">
+          <Link 
+            to="/maps" 
+            className="bg-gradient-to-r from-galaxy-spiral to-galaxy-core hover:from-galaxy-core hover:to-galaxy-nova text-white shadow-md shadow-galaxy-core/20 hover:shadow-lg hover:shadow-galaxy-nova/30 hover:-translate-y-0.5 transition-all duration-300 inline-block px-8 py-3 rounded-lg font-medium border border-galaxy-nova/30 relative overflow-hidden group"
+          >
+            Explore All Map Types
+            <Map className="ml-2 h-4 w-4 inline transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
+      </section>
       
       {/* Features section */}
       <section className="py-16">
