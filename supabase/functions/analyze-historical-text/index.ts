@@ -103,7 +103,7 @@ serve(async (req: Request) => {
     console.log(`Processing text: ${text.substring(0, 100)}...`);
 
     // Retrieve the Gemini API key from environment variable
-    const apiKey = "AIzaSyA4jRzYxoEfdXDW1n8VEXk7oO93knmlRb0";
+    const apiKey = "AIzaSyC2zuaCfRU3A-ULZ5HGdrycjRKbzXFMQz4";
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
     }
