@@ -5,26 +5,76 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
-    const { videoId } = await req.json();
+    // Parse request body
+    let videoId;
+    try {
+      const body = await req.json();
+      videoId = body.videoId;
+      console.log(`Request received for video ID: ${videoId}`);
+    } catch (e) {
+      console.error("Error parsing request body:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }), 
+        { 
+          status: 400, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
     
     if (!videoId) {
-      throw new Error('No videoId provided');
+      return new Response(
+        JSON.stringify({ error: 'No videoId provided' }), 
+        { 
+          status: 400, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
     
     console.log(`Fetching transcription for YouTube video ID: ${videoId}`);
     
     // Fetch video info to get available captions
     const videoInfoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const videoResponse = await fetch(videoInfoUrl);
+    let videoResponse;
+    try {
+      videoResponse = await fetch(videoInfoUrl);
+      if (!videoResponse.ok) {
+        throw new Error(`YouTube request failed with status ${videoResponse.status}`);
+      }
+    } catch (error) {
+      console.error("Error fetching YouTube video page:", error);
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch YouTube video: ${error.message}` }), 
+        { 
+          status: 500, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+    
     const videoHtml = await videoResponse.text();
     
     // Extract the captions track URL from the video page
@@ -37,6 +87,7 @@ serve(async (req) => {
     if (captionsMatch && captionsMatch[1]) {
       try {
         const captionTracks = JSON.parse(captionsMatch[1]);
+        console.log(`Found ${captionTracks.length} caption tracks`);
         
         // First try to find English captions
         let englishTrack = captionTracks.find((track: any) => 
@@ -64,12 +115,40 @@ serve(async (req) => {
     }
     
     if (!captionsUrl) {
-      throw new Error('No captions found for this video');
+      return new Response(
+        JSON.stringify({ error: 'No captions found for this video' }), 
+        { 
+          status: 404, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
     
     // Fetch the captions XML
     console.log(`Fetching captions from URL: ${captionsUrl}`);
-    const captionsResponse = await fetch(captionsUrl);
+    let captionsResponse;
+    try {
+      captionsResponse = await fetch(captionsUrl);
+      if (!captionsResponse.ok) {
+        throw new Error(`Captions request failed with status ${captionsResponse.status}`);
+      }
+    } catch (error) {
+      console.error("Error fetching captions:", error);
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch captions: ${error.message}` }), 
+        { 
+          status: 500, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+    
     const captionsXml = await captionsResponse.text();
     
     // Parse the XML to extract text
@@ -93,7 +172,7 @@ serve(async (req) => {
     console.error('Error in get-youtube-transcription function:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ error: error.message || 'Unknown error' }), 
       { 
         status: 500, 
         headers: { 

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
-import { Loader2, ExternalLink, Youtube } from "lucide-react";
+import { Loader2, ExternalLink, Youtube, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { fetchYoutubeTranscription, analyzeTranscription } from "@/services/youtubeService";
 import { FormattedHistoricalEntity } from "@/types/supabase";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const YouTubeAnalysis = () => {
   // States for the YouTube video and analysis
@@ -20,6 +20,7 @@ const YouTubeAnalysis = () => {
   const [transcription, setTranscription] = useState<string>("");
   const [entities, setEntities] = useState<FormattedHistoricalEntity[]>([]);
   const [activeTab, setActiveTab] = useState<"video" | "transcription" | "visualization">("video");
+  const [error, setError] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Function to extract video ID from YouTube URL
@@ -32,6 +33,7 @@ const YouTubeAnalysis = () => {
   // Handle URL submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     const id = extractVideoId(url);
     if (id) {
       setVideoId(id);
@@ -41,6 +43,7 @@ const YouTubeAnalysis = () => {
       toast.success("YouTube video loaded successfully");
     } else {
       toast.error("Invalid YouTube URL");
+      setError("Please enter a valid YouTube URL (e.g., https://www.youtube.com/watch?v=...)");
     }
   };
 
@@ -49,14 +52,18 @@ const YouTubeAnalysis = () => {
     if (!videoId) return;
     
     setLoading(true);
+    setError(null);
     try {
+      console.log(`Fetching transcription for video ID: ${videoId}`);
       const transcriptionText = await fetchYoutubeTranscription(videoId);
       setTranscription(transcriptionText);
       setActiveTab("transcription");
       toast.success("Transcription fetched successfully");
     } catch (error) {
       console.error("Error fetching transcription:", error);
-      toast.error("Failed to fetch transcription: " + (error instanceof Error ? error.message : "Unknown error"));
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setError(`Failed to fetch transcription: ${errorMessage}. Please try again later.`);
+      toast.error("Failed to fetch transcription: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -70,7 +77,9 @@ const YouTubeAnalysis = () => {
     }
     
     setAnalyzing(true);
+    setError(null);
     try {
+      console.log(`Analyzing transcription of length: ${transcription.length}`);
       const extractedEntities = await analyzeTranscription(transcription);
       
       if (extractedEntities.length > 0) {
@@ -79,10 +88,13 @@ const YouTubeAnalysis = () => {
         toast.success(`Analysis complete: ${extractedEntities.length} entities found`);
       } else {
         toast.warning("No significant entities found in the transcription");
+        setError("No significant historical entities were found in this transcription.");
       }
     } catch (error) {
       console.error("Error analyzing transcription:", error);
-      toast.error("Failed to analyze transcription: " + (error instanceof Error ? error.message : "Unknown error"));
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setError(`Failed to analyze transcription: ${errorMessage}`);
+      toast.error("Failed to analyze transcription: " + errorMessage);
     } finally {
       setAnalyzing(false);
     }
@@ -91,6 +103,14 @@ const YouTubeAnalysis = () => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <h1 className="text-3xl font-bold mb-6 text-white">YouTube Video Analysis</h1>
+      
+      {/* Error Display */}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
       {/* URL Input Form */}
       <form onSubmit={handleSubmit} className="mb-6 flex gap-2">

@@ -9,11 +9,18 @@ import { FormattedHistoricalEntity } from "@/types/supabase";
  */
 export const fetchYoutubeTranscription = async (videoId: string): Promise<string> => {
   try {
+    console.log(`Calling edge function for video ID: ${videoId}`);
+    
     const { data, error } = await supabase.functions.invoke("get-youtube-transcription", {
       body: { videoId }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase function error:", error);
+      throw error;
+    }
+    
+    console.log("Response from edge function:", data);
     
     if (data && data.transcription) {
       return data.transcription;
@@ -33,11 +40,18 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
  */
 export const analyzeTranscription = async (transcription: string): Promise<FormattedHistoricalEntity[]> => {
   try {
+    console.log(`Analyzing transcription (${transcription.length} characters)`);
+    
     const { data, error } = await supabase.functions.invoke("analyze-historical-text", {
       body: { text: transcription }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase function error:", error);
+      throw error;
+    }
+    
+    console.log("Analysis response:", data);
     
     if (data && data.entities && data.entities.length > 0) {
       return data.entities;

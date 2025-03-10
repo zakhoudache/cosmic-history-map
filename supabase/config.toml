@@ -6,6 +6,8 @@ id = "uimmjzuqdqxfqoikcexf"
 [functions.deploy]
 [functions.permissions.analyze-historical-text]
 include = ["auth.users.email"]
+[functions.permissions.get-youtube-transcription]
+include = ["*"]
 
 [[functions.paths]]
 src = "functions/*"
