@@ -56,8 +56,18 @@ const TextInput: React.FC<TextInputProps> = ({
       
       // Use the real analysis function
       const analysisResult = await analyzeHistoricalText(textToAnalyze);
-      onSubmit(textToAnalyze, analysisResult);
-      toast.success(`Analysis complete! Found ${analysisResult.length} historical entities.`);
+      
+      // Check if we have entities before proceeding
+      if (analysisResult && analysisResult.length > 0) {
+        console.log("Analysis complete, entities found:", analysisResult.length);
+        onSubmit(textToAnalyze, analysisResult);
+        toast.success(`Analysis complete! Found ${analysisResult.length} historical entities.`);
+      } else {
+        // Handle the case where analysis worked but no entities were found
+        console.log("Analysis returned no entities:", analysisResult);
+        setError("No historical entities were found in the text. Please try a different text with clearer historical references.");
+        toast.error("No historical entities found. Try text with more specific historical references.");
+      }
     } catch (error) {
       console.error("Error analyzing text:", error);
       setError("Failed to analyze text. Please try again with different content or shorter text.");

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -63,24 +62,20 @@ const Index = () => {
     try {
       console.log("Analysis result:", analysisResult);
       
-      if (analysisResult && analysisResult.entities && analysisResult.entities.length > 0) {
-        // Convert the Gemini API response to our HistoricalEntity format
-        const entities = analysisResult.entities.map((entity: any) => ({
-          id: entity.id,
-          name: entity.name,
-          type: entity.type,
-          startDate: entity.startDate,
-          endDate: entity.endDate,
-          description: entity.description,
-          significance: entity.significance || 5, // Default value if missing
-          group: entity.group,
-          relations: entity.relations || [] // Ensure relations exists
-        }));
+      if (analysisResult && analysisResult.length > 0) {
+        // The analysis result is already in the expected format
+        setHistoricalEntities(prepareSimulationData(analysisResult));
         
-        console.log("Processed entities:", entities);
+        // Create basic timeline data if not provided
+        if (!timelineData) {
+          const timelineData = {
+            startYear: Math.min(...analysisResult.filter(e => e.startDate).map(e => parseInt(e.startDate.split('-')[0]))),
+            endYear: Math.max(...analysisResult.filter(e => e.endDate).map(e => parseInt(e.endDate.split('-')[0]))),
+            periods: []
+          };
+          setTimelineData(timelineData);
+        }
         
-        setHistoricalEntities(prepareSimulationData(entities));
-        setTimelineData(analysisResult.timeline);
         setHasVisualization(true);
         
         // Ensure the page scrolls to the visualization section
@@ -91,11 +86,11 @@ const Index = () => {
           }
         }, 500);
         
-        toast.success("Visualization created successfully");
+        toast.success(`Visualization created with ${analysisResult.length} entities`);
       } else {
-        // If no entities were found, show a more specific error
-        console.error("No entities found in analysis result:", analysisResult);
-        toast.error("No historical entities were found in the text. Please try a different text with clearer historical references.");
+        // This should not happen because the TextInput component should filter this case
+        console.error("No valid entities in analysis result:", analysisResult);
+        toast.error("No historical entities were found in the text.");
       }
     } catch (error) {
       console.error("Error processing analysis result:", error);
