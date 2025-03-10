@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import VisualizationControls from "@/components/VisualizationControls";
+import { toast } from "@/hooks/use-toast";
 import { 
   Globe, 
   Landmark, 
@@ -121,7 +122,7 @@ const Maps = () => {
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-6">Educational Maps</h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-xl text-foreground max-w-3xl mx-auto">
             Explore different types of maps essential for understanding history and geography.
           </p>
         </div>
@@ -136,8 +137,8 @@ const Maps = () => {
               visualizationType="graph"
               onToggleFullscreen={toggleFullscreen}
               isFullscreen={isFullscreen}
-              onExport={() => toast.success("Map exported as SVG")}
-              onExportPDF={() => toast.success("Map exported as PDF")}
+              onExport={() => toast({ title: "Success", description: "Map exported as SVG" })}
+              onExportPDF={() => toast({ title: "Success", description: "Map exported as PDF" })}
             />
             
             {/* Map Content Area */}
@@ -179,42 +180,42 @@ const Maps = () => {
                       <div className="md:col-span-2 space-y-4">
                         <Card className="border border-galaxy-nova/30 cosmic-gradient shadow-md">
                           <CardHeader className="pb-2">
-                            <CardTitle className="flex items-center gap-2">
+                            <CardTitle className="flex items-center gap-2 text-foreground">
                               <type.icon className={`w-5 h-5 bg-gradient-to-r ${type.color} bg-clip-text text-transparent`} />
                               {type.title}
                             </CardTitle>
-                            <CardDescription>{type.description}</CardDescription>
+                            <CardDescription className="text-foreground/80">{type.description}</CardDescription>
                           </CardHeader>
                           <CardContent>
-                            <p className="text-sm text-muted-foreground">{type.details}</p>
+                            <p className="text-sm text-foreground/70">{type.details}</p>
                           </CardContent>
                         </Card>
                         
                         <div className="bg-background/50 backdrop-blur-sm rounded-lg border border-galaxy-nova/30 p-4">
-                          <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <h3 className="text-sm font-medium mb-3 flex items-center gap-2 text-foreground">
                             <BookOpen className="w-4 h-4" />
                             Examples
                           </h3>
                           <ul className="space-y-3">
                             {type.examples.map((example, index) => (
                               <li key={index} className="text-sm">
-                                <div className="font-medium">{example.name}</div>
-                                <div className="text-muted-foreground text-xs">{example.description}</div>
+                                <div className="font-medium text-foreground">{example.name}</div>
+                                <div className="text-foreground/70 text-xs">{example.description}</div>
                               </li>
                             ))}
                           </ul>
                         </div>
                         
                         <div className="flex flex-col gap-2">
-                          <Button variant="outline" className="w-full justify-start">
+                          <Button variant="outline" className="w-full justify-start text-foreground">
                             <Info className="mr-2 h-4 w-4" />
                             Map Details
                           </Button>
-                          <Button variant="outline" className="w-full justify-start">
+                          <Button variant="outline" className="w-full justify-start text-foreground">
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </Button>
-                          <Button variant="outline" className="w-full justify-start">
+                          <Button variant="outline" className="w-full justify-start text-foreground">
                             <History className="mr-2 h-4 w-4" />
                             Historical Context
                           </Button>
@@ -230,44 +231,44 @@ const Maps = () => {
         
         {/* Additional resources section */}
         <section className="mt-16">
-          <h2 className="text-2xl font-bold mb-6">Additional Resources</h2>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">Additional Resources</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Teaching with Maps</CardTitle>
-                <CardDescription>Educational strategies for map-based learning</CardDescription>
+                <CardTitle className="text-foreground">Teaching with Maps</CardTitle>
+                <CardDescription className="text-foreground/80">Educational strategies for map-based learning</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground text-sm">Discover effective methods for incorporating different map types into your history and geography curriculum.</p>
+                <p className="text-foreground/70 text-sm">Discover effective methods for incorporating different map types into your history and geography curriculum.</p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full">Learn More</Button>
+                <Button variant="outline" className="w-full text-foreground">Learn More</Button>
               </CardFooter>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>Map Creation Tools</CardTitle>
-                <CardDescription>Resources for creating custom educational maps</CardDescription>
+                <CardTitle className="text-foreground">Map Creation Tools</CardTitle>
+                <CardDescription className="text-foreground/80">Resources for creating custom educational maps</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground text-sm">Explore software and online tools that help educators and students create customized maps for specific learning objectives.</p>
+                <p className="text-foreground/70 text-sm">Explore software and online tools that help educators and students create customized maps for specific learning objectives.</p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full">View Tools</Button>
+                <Button variant="outline" className="w-full text-foreground">View Tools</Button>
               </CardFooter>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>Map Analysis Workshop</CardTitle>
-                <CardDescription>Learn to interpret and analyze historical maps</CardDescription>
+                <CardTitle className="text-foreground">Map Analysis Workshop</CardTitle>
+                <CardDescription className="text-foreground/80">Learn to interpret and analyze historical maps</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground text-sm">Develop critical thinking skills by learning how to analyze and interpret various types of historical and geographical maps.</p>
+                <p className="text-foreground/70 text-sm">Develop critical thinking skills by learning how to analyze and interpret various types of historical and geographical maps.</p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full">Join Workshop</Button>
+                <Button variant="outline" className="w-full text-foreground">Join Workshop</Button>
               </CardFooter>
             </Card>
           </div>
