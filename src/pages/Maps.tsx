@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +33,8 @@ const Maps = () => {
   const [showStyleEditor, setShowStyleEditor] = useState(false);
   const [currentMapStyle, setCurrentMapStyle] = useState<MapStyle | undefined>(undefined);
 
+  // Handle fullscreen toggle and map style change functions
+  
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
@@ -192,6 +193,19 @@ const Maps = () => {
         
         <Separator className="mb-10 bg-gradient-to-r from-galaxy-nova/20 via-galaxy-blue-giant/20 to-aurora-purple/20 h-0.5 rounded-full" />
         
+        {/* Map Style Editor Button - Now more prominent in the main UI */}
+        <div className="flex justify-end mb-4">
+          <Button 
+            onClick={() => setShowStyleEditor(!showStyleEditor)}
+            className="relative flex items-center gap-2 group"
+            variant="galaxy"
+          >
+            <Palette className="w-4 h-4" />
+            {showStyleEditor ? "Hide Map Style Editor" : "Open Map Style Editor"}
+            <span className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-galaxy-nova/0 via-galaxy-nova/50 to-galaxy-nova/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+          </Button>
+        </div>
+        
         {/* Map Explorer */}
         <div className={`${isFullscreen ? 'fixed inset-0 z-50 p-4 bg-background' : 'relative'}`}>
           <div className={`${isFullscreen ? 'h-full' : 'min-h-[600px]'} relative overflow-hidden rounded-xl backdrop-blur-sm border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10 bg-gradient-to-b from-background to-background/70`}>
@@ -202,17 +216,6 @@ const Maps = () => {
               isFullscreen={isFullscreen}
               onExport={() => toast({ title: "Success", description: "Map exported as SVG" })}
               onExportPDF={() => toast({ title: "Success", description: "Map exported as PDF" })}
-              additionalControls={
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-1.5 bg-black/30 text-foreground/90 border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5"
-                  onClick={() => setShowStyleEditor(!showStyleEditor)}
-                >
-                  <Palette className="w-4 h-4 text-galaxy-nova" />
-                  {showStyleEditor ? "Hide Map Style" : "Edit Map Style"}
-                </Button>
-              }
             />
             
             {/* Map Content Area */}
@@ -279,10 +282,23 @@ const Maps = () => {
                       {/* Style Editor (when enabled) */}
                       {showStyleEditor && (
                         <div className="md:col-span-3 space-y-4">
-                          <MapStyleEditor 
-                            onStyleChange={handleStyleChange}
-                            currentMapType={currentView}
-                          />
+                          <Card className="border border-galaxy-nova/30 bg-black/30 backdrop-blur-sm shadow-md shadow-galaxy-nova/10">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Palette className="h-5 w-5 text-galaxy-nova" />
+                                Map Style Editor
+                              </CardTitle>
+                              <CardDescription>
+                                Customize the appearance of your historical map
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <MapStyleEditor 
+                                onStyleChange={handleStyleChange}
+                                currentMapType={currentView}
+                              />
+                            </CardContent>
+                          </Card>
                         </div>
                       )}
                       
