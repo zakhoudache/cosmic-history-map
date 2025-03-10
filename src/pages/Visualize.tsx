@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -10,7 +11,6 @@ import { useAuth } from "@/hooks/useAuth";
 import StorytellingSection from "@/components/StorytellingSection";
 import ElementCard from "@/components/ElementCard";
 import { Card } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
 
@@ -93,43 +93,66 @@ const Visualize = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Visualize Historical Connections</h1>
-          <p className="text-muted-foreground">
+      {/* Cosmic Background Effects */}
+      <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(91,33,182,0.15),rgba(0,0,0,0)_70%)]"></div>
+      <div className="fixed inset-0 -z-10 bg-background"></div>
+      <div className="fixed inset-0 -z-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIi8+PC9nPjwvc3ZnPg==')] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)]"></div>
+      
+      <div className="container mx-auto px-4 py-12 relative z-10">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-galaxy-star via-galaxy-nova to-galaxy-blue-giant bg-clip-text text-transparent mb-3">
+            Visualize Historical Connections
+          </h1>
+          <p className="text-foreground/70 max-w-2xl mx-auto">
             Enter historical text to analyze and visualize connections between people, events, and concepts.
             {user ? " Your visualizations will be saved to your account." : " Sign in to save your visualizations."}
           </p>
         </div>
 
-        <TextInput 
-          onSubmit={handleTextSubmit} 
-          isLoading={loading} 
-          onStartAnalysis={handleAnalysisStart}
-        />
+        <Card className="backdrop-blur-lg bg-black/30 border border-galaxy-nova/30 shadow-xl shadow-galaxy-nova/10 overflow-hidden p-6 mb-8">
+          {/* Glowing Orb Top Right */}
+          <div className="absolute top-0 right-0 -m-10 w-40 h-40 bg-galaxy-nova/20 rounded-full blur-2xl pointer-events-none"></div>
+          {/* Glowing Orb Bottom Left */}
+          <div className="absolute bottom-0 left-0 -m-10 w-40 h-40 bg-galaxy-blue-giant/20 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <TextInput 
+            onSubmit={handleTextSubmit} 
+            isLoading={loading} 
+            onStartAnalysis={handleAnalysisStart}
+          />
+        </Card>
 
         <div className="mt-8 relative">
           {!showPlaceholder && (
-            <VisualizationControls 
-              visualizationType={visualizationType} 
-              onVisTypeChange={handleVisTypeChange}
-              entityCount={entities.length}
-              onExportPDF={handleExportPDF}
-            />
+            <Card className="backdrop-blur-lg bg-black/20 border border-galaxy-nova/20 shadow-lg p-4 mb-4">
+              <VisualizationControls 
+                visualizationType={visualizationType} 
+                onVisTypeChange={handleVisTypeChange}
+                entityCount={entities.length}
+                onExportPDF={handleExportPDF}
+              />
+            </Card>
           )}
           
-          <div className="mt-4 bg-background/50 backdrop-blur-sm rounded-lg border border-galaxy-nova/20 shadow-xl p-4 min-h-[700px] relative overflow-hidden">
+          <Card className="backdrop-blur-lg bg-black/30 border border-galaxy-nova/30 shadow-xl shadow-galaxy-nova/10 overflow-hidden relative min-h-[700px]">
+            {/* Glowing Orb Top Right */}
+            <div className="absolute top-0 right-0 -m-10 w-40 h-40 bg-galaxy-nova/10 rounded-full blur-2xl pointer-events-none"></div>
+            {/* Glowing Orb Bottom Left */}
+            <div className="absolute bottom-0 left-0 -m-10 w-40 h-40 bg-galaxy-blue-giant/10 rounded-full blur-2xl pointer-events-none"></div>
+            
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-                  <p className="mt-4 text-muted-foreground">Analyzing and preparing visualization...</p>
+                  <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-galaxy-nova border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                  <p className="mt-6 text-foreground/70">Analyzing and preparing visualization...</p>
                 </div>
               </div>
             ) : showPlaceholder ? (
-              <VisualizationPlaceholder />
+              <div className="p-6">
+                <VisualizationPlaceholder />
+              </div>
             ) : (
-              <>
+              <div className="p-2">
                 {visualizationType === "graph" && (
                   <div className="relative h-full">
                     <CosmicVisualization 
@@ -172,9 +195,9 @@ const Visualize = () => {
                     />
                   </div>
                 )}
-              </>
+              </div>
             )}
-          </div>
+          </Card>
         </div>
       </div>
     </MainLayout>

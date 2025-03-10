@@ -12,15 +12,15 @@ const Header: React.FC = () => {
   const isLoggedIn = !!user;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-cosmic-nebula/20 bg-black/30 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-black/40 border-b border-galaxy-nova/20">
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex">
           <Link
             to="/"
             className="mr-6 flex items-center space-x-2 hover:opacity-80 transition-opacity"
           >
-            <Globe className="h-6 w-6 text-cosmic-nebula" />
-            <span className="hidden font-bold sm:inline-block text-cosmic-light">
+            <Globe className="h-6 w-6 text-galaxy-nova" />
+            <span className="hidden font-bold sm:inline-block bg-gradient-to-r from-galaxy-star to-galaxy-nova bg-clip-text text-transparent">
               HistoryGPT
             </span>
           </Link>
@@ -28,10 +28,10 @@ const Header: React.FC = () => {
             <Link
               to="/visualize"
               className={cn(
-                "transition-colors hover:text-cosmic-nebula",
+                "transition-colors hover:text-galaxy-nova",
                 location.pathname === "/visualize"
-                  ? "text-cosmic-nebula"
-                  : "text-muted-foreground"
+                  ? "text-galaxy-nova"
+                  : "text-foreground/70"
               )}
             >
               <span className="flex items-center gap-1">
@@ -42,10 +42,10 @@ const Header: React.FC = () => {
             <Link
               to="/youtube-analysis"
               className={cn(
-                "transition-colors hover:text-cosmic-nebula",
+                "transition-colors hover:text-galaxy-nova",
                 location.pathname === "/youtube-analysis"
-                  ? "text-cosmic-nebula"
-                  : "text-muted-foreground"
+                  ? "text-galaxy-nova"
+                  : "text-foreground/70"
               )}
             >
               <span className="flex items-center gap-1">
@@ -56,10 +56,10 @@ const Header: React.FC = () => {
             <Link
               to="/about"
               className={cn(
-                "transition-colors hover:text-cosmic-nebula",
+                "transition-colors hover:text-galaxy-nova",
                 location.pathname === "/about"
-                  ? "text-cosmic-nebula"
-                  : "text-muted-foreground"
+                  ? "text-galaxy-nova"
+                  : "text-foreground/70"
               )}
             >
               <span className="flex items-center gap-1">
