@@ -33,11 +33,11 @@ const AuthButtons = () => {
   // Show login/signup buttons if not authenticated
   if (!user) {
     return (
-      <Link to="/auth">
+      <Link to="/auth" className="inline-block">
         <Button 
           variant="outline" 
           size="sm" 
-          className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star"
+          className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star cursor-pointer"
         >
           <LogIn className="mr-2 h-4 w-4" />
           Sign In
@@ -53,7 +53,7 @@ const AuthButtons = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star"
+          className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star cursor-pointer"
         >
           <User className="mr-2 h-4 w-4" />
           {user.email ? user.email.split('@')[0] : 'Account'}
@@ -65,7 +65,7 @@ const AuthButtons = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+            className="w-full justify-start text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 cursor-pointer"
             onClick={handleSignOut}
           >
             <LogOut className="mr-2 h-4 w-4" />
