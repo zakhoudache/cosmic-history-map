@@ -1,16 +1,17 @@
 
-[project_id]
-id = "uimmjzuqdqxfqoikcexf"
+project_id = "uimmjzuqdqxfqoikcexf"
 
 [functions]
-[functions.deploy]
-[functions.permissions.analyze-historical-text]
-include = ["auth.users.email"]
-[functions.permissions.get-youtube-transcription]
-include = ["*"]
-[functions.permissions.fetch-youtube-captions]
-include = ["*"]
-
-[[functions.paths]]
+[functions.paths]
 src = "functions/*"
 dest = ".functions/"
+
+[functions.permissions]
+[functions.permissions.analyze-historical-text.include]
+patterns = ["auth.users.email"]
+
+[functions.permissions.get-youtube-transcription.include]
+patterns = ["*"]
+
+[functions.permissions.fetch-youtube-captions.include]
+patterns = ["*"]
