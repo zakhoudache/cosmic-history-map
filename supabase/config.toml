@@ -15,3 +15,6 @@ patterns = ["*"]
 
 [functions.permissions.fetch-youtube-captions.include]
 patterns = ["*"]
+
+[functions.permissions.get-youtube-api-captions.include]
+patterns = ["*"]

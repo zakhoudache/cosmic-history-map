@@ -1,6 +1,5 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   console.log("Function invoked: fetch-youtube-captions");
   
   // Handle CORS preflight requests
@@ -21,67 +20,14 @@ serve(async (req) => {
   }
 
   try {
-    // Log request information
     console.log("Request method:", req.method);
-    console.log("Request headers:", Object.fromEntries(req.headers.entries()));
     
-    // Check if Content-Type is application/json
-    const contentType = req.headers.get('content-type');
-    console.log("Content-Type:", contentType);
-    
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error("Invalid Content-Type:", contentType);
-      return new Response(
-        JSON.stringify({ error: "Invalid Content-Type, expected application/json" }), 
-        { 
-          status: 400, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-    }
-    
-    // Parse request body with enhanced error handling
+    // Parse request body
     let requestBody;
     let videoId;
     
     try {
-      const bodyText = await req.text();
-      console.log("Raw request body:", bodyText);
-      
-      if (!bodyText || bodyText.trim() === '') {
-        console.error("Empty request body received");
-        return new Response(
-          JSON.stringify({ error: "Empty request body" }), 
-          { 
-            status: 400, 
-            headers: { 
-              ...corsHeaders, 
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
-      try {
-        requestBody = JSON.parse(bodyText);
-        console.log("Parsed request body:", requestBody);
-      } catch (parseError) {
-        console.error("Error parsing JSON:", parseError);
-        return new Response(
-          JSON.stringify({ error: `Invalid JSON in request body: ${parseError.message}` }), 
-          { 
-            status: 400, 
-            headers: { 
-              ...corsHeaders, 
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
+      requestBody = await req.json();
       videoId = requestBody.videoId;
       console.log("Parsed videoId:", videoId);
     } catch (e) {

@@ -85,6 +85,43 @@ export const fetchYoutubeCaptions = async (videoId: string): Promise<string> => 
 };
 
 /**
+ * Fetches captions using the YouTube API method
+ * @param videoId YouTube video ID
+ * @returns Information about available caption tracks
+ */
+export const fetchYoutubeApiCaptions = async (videoId: string) => {
+  try {
+    console.log(`Calling YouTube API captions function for video ID: ${videoId}`);
+    
+    const { data, error } = await supabase.functions.invoke("get-youtube-api-captions", {
+      body: JSON.stringify({ videoId })
+    });
+
+    if (error) {
+      console.error("Supabase function error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+    }
+    
+    console.log("Response from YouTube API captions function:", data);
+    
+    if (data && data.captionTracks) {
+      return data;
+    } else if (data && data.error) {
+      throw new Error(`Edge function error: ${data.error}`);
+    }
+    
+    throw new Error("No caption data received from YouTube API");
+  } catch (error) {
+    console.error("Error fetching YouTube API captions:", error);
+    if (error instanceof Error) {
+      throw new Error(`Error fetching YouTube API captions: ${error.message}`);
+    }
+    throw new Error("Unknown error while fetching YouTube API captions");
+  }
+};
+
+/**
  * Analyzes a transcription to extract historical entities
  * @param transcription Text to analyze
  * @returns Array of historical entities
