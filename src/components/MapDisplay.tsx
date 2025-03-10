@@ -325,24 +325,56 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     });
   };
   
-  // Render actual map elements based on the data - this is the key improvement
+  // Render actual map elements based on the data
   const renderMapElements = () => {
     if (!mapData || !mapData.regions) return null;
     
-    // Create an actual map-like visualization with regions and labels
     return (
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* This simulates a map with territory markers */}
-        <div className="absolute inset-0 bg-cover bg-center" style={{
-          backgroundImage: `url('https://via.placeholder.com/1200x800?text=Map+${mapType}')`,
-          opacity: 0.7,
-        }}></div>
+        {/* Map background image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-60" 
+          style={{
+            backgroundImage: `url('https://via.placeholder.com/1500x800?text=Map+Background')`,
+          }}
+        />
         
+        {/* Map grid lines */}
+        <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.2 }}>
+          {/* Latitude lines */}
+          {Array.from({ length: 9 }).map((_, i) => (
+            <line 
+              key={`lat-${i}`} 
+              x1="0%" 
+              y1={`${(i + 1) * 10}%`} 
+              x2="100%" 
+              y2={`${(i + 1) * 10}%`} 
+              stroke="white" 
+              strokeWidth="1" 
+              strokeDasharray="5,5"
+            />
+          ))}
+          
+          {/* Longitude lines */}
+          {Array.from({ length: 9 }).map((_, i) => (
+            <line 
+              key={`lon-${i}`} 
+              x1={`${(i + 1) * 10}%`} 
+              y1="0%" 
+              x2={`${(i + 1) * 10}%`} 
+              y2="100%" 
+              stroke="white" 
+              strokeWidth="1" 
+              strokeDasharray="5,5"
+            />
+          ))}
+        </svg>
+                
         {/* Territory markers */}
         {mapData.regions.map((region) => (
           <div 
             key={region.id}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 hover:z-50"
             style={{
               left: `${((region.coordinates[0] + 180) / 360) * 100}%`,
               top: `${((90 - region.coordinates[1]) / 180) * 100}%`,
@@ -454,7 +486,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         <>
           <div 
             ref={mapContainerRef} 
-            className="w-full h-full min-h-[400px] relative bg-gradient-to-b from-background/80 to-muted"
+            className="w-full h-full min-h-[400px] relative"
+            style={{ background: getMapBackgroundForType(mapType || 'historical') }}
           >
             {renderMapElements()}
           </div>
