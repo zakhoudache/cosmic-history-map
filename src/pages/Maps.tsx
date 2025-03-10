@@ -188,7 +188,7 @@ const Maps = () => {
           <div className={`${isFullscreen ? 'h-full' : 'min-h-[600px]'} relative overflow-hidden rounded-xl backdrop-blur-sm border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10 bg-gradient-to-b from-background to-background/70`}>
             {/* Visualization Controls */}
             <VisualizationControls 
-              visualizationType="graph"
+              visualizationType="map"
               onToggleFullscreen={toggleFullscreen}
               isFullscreen={isFullscreen}
               onExport={() => toast({ title: "Success", description: "Map exported as SVG" })}

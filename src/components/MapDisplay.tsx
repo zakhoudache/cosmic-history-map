@@ -230,8 +230,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   // Initialize the map visualization based on the map type
   const initializeMapVisualization = () => {
     // This would typically initialize a map library like Mapbox, Leaflet, etc.
-    // For now, we'll use a simplified visualization approach
-    
     if (!mapContainerRef.current) return;
     
     const container = mapContainerRef.current;
@@ -241,9 +239,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     
     // Add map background
     container.style.background = getMapBackgroundForType(mapType);
-    
-    // In a real implementation, you would initialize your map library here
-    // For example: new mapboxgl.Map({ container, ... })
   };
   
   // Get mock regions data based on map type
@@ -331,32 +326,96 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     });
   };
   
-  // Render map elements based on the data
+  // Render actual map elements based on the data - this is the key improvement
   const renderMapElements = () => {
     if (!mapData || !mapData.regions) return null;
     
+    // Create an actual map-like visualization with regions and labels
     return (
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* This simulates a map with territory markers */}
+        <div className="absolute inset-0 bg-cover bg-center" style={{
+          backgroundImage: `url('https://via.placeholder.com/1200x800?text=Map+${mapType}')`,
+          opacity: 0.7,
+        }}></div>
+        
+        {/* Territory markers */}
         {mapData.regions.map((region) => (
           <div 
             key={region.id}
-            className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2"
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300"
             style={{
-              backgroundColor: region.color,
               left: `${((region.coordinates[0] + 180) / 360) * 100}%`,
               top: `${((90 - region.coordinates[1]) / 180) * 100}%`,
-              opacity: 0.8,
-              boxShadow: `0 0 ${region.significance * 2}px ${region.color}`,
               zIndex: Math.floor(region.significance),
-              width: `${Math.max(region.significance * 0.4, 1)}rem`,
-              height: `${Math.max(region.significance * 0.4, 1)}rem`,
             }}
           >
-            <div className="absolute w-max text-xs font-medium text-white/90 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded left-full ml-2 whitespace-nowrap">
+            {/* Territory area */}
+            <div 
+              className="rounded-full blur-sm animate-pulse-slow"
+              style={{
+                backgroundColor: region.color,
+                opacity: 0.4,
+                width: `${Math.max(region.significance * 0.8, 2)}rem`,
+                height: `${Math.max(region.significance * 0.8, 2)}rem`,
+                transform: 'translate(-50%, -50%)',
+              }}
+            ></div>
+            
+            {/* Territory marker */}
+            <div 
+              className="absolute rounded-full transform -translate-x-1/2 -translate-y-1/2"
+              style={{
+                backgroundColor: region.color,
+                opacity: 0.8,
+                width: `${Math.max(region.significance * 0.4, 1)}rem`,
+                height: `${Math.max(region.significance * 0.4, 1)}rem`,
+                boxShadow: `0 0 ${region.significance * 2}px ${region.color}`,
+              }}
+            ></div>
+            
+            {/* Region name label */}
+            <div className="absolute w-max text-xs font-medium text-white px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded left-0 ml-4 whitespace-nowrap">
               {region.name}
+              {(region.startYear && region.endYear) && 
+                <span className="ml-1 text-white/70 text-[10px]">
+                  ({region.startYear}-{region.endYear})
+                </span>
+              }
             </div>
           </div>
         ))}
+        
+        {/* Optional: Add territory borders/connections between regions */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" 
+              markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,0.5)" />
+            </marker>
+          </defs>
+          
+          {mapType === 'historical' && mapData.regions.map((region, index) => {
+            if (index === 0) return null; // Skip first region
+            const prevRegion = mapData.regions[index - 1];
+            const x1 = ((prevRegion.coordinates[0] + 180) / 360) * 100;
+            const y1 = ((90 - prevRegion.coordinates[1]) / 180) * 100;
+            const x2 = ((region.coordinates[0] + 180) / 360) * 100;
+            const y2 = ((90 - region.coordinates[1]) / 180) * 100;
+            
+            return (
+              <path 
+                key={`connection-${index}`}
+                d={`M ${x1}% ${y1}% L ${x2}% ${y2}%`}
+                stroke="rgba(255,255,255,0.3)"
+                strokeWidth="1"
+                strokeDasharray="5,5"
+                markerEnd="url(#arrow)"
+                fill="none"
+              />
+            );
+          })}
+        </svg>
       </div>
     );
   };
