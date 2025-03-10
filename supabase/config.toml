@@ -1,3 +1,4 @@
+
 project_id = "uimmjzuqdqxfqoikcexf"
 
 [functions]
@@ -8,3 +9,5 @@ directory = "functions"  # قم بتحديد مجلد الوظائف بدون `s
 "get-youtube-transcription" = { include = ["*"] }
 "fetch-youtube-captions" = { include = ["*"] }
 "get-youtube-api-captions" = { include = ["*"] }
+"gemini-youtube-transcription" = { include = ["*"] }
+"test-env-vars" = { include = ["*"] }

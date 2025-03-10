@@ -1,3 +1,4 @@
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
@@ -63,7 +64,10 @@ Deno.serve(async (req: Request) => {
     
     let videoResponse;
     try {
+      console.log("Attempting to fetch YouTube page...");
       videoResponse = await fetch(videoUrl);
+      console.log(`YouTube response status: ${videoResponse.status}`);
+      
       if (!videoResponse.ok) {
         throw new Error(`YouTube request failed with status ${videoResponse.status}`);
       }
@@ -90,13 +94,17 @@ Deno.serve(async (req: Request) => {
     if (titleMatch && titleMatch[1]) {
       videoTitle = titleMatch[1].replace(" - YouTube", "").trim();
       console.log(`Video title: ${videoTitle}`);
+    } else {
+      console.log("Could not extract video title");
     }
     
     // Retrieve the Gemini API key from environment variable
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) {
+      console.error("GEMINI_API_KEY is not set in environment variables");
       throw new Error("GEMINI_API_KEY is not set in environment variables");
     }
+    console.log("GEMINI_API_KEY is configured");
     
     // We'll use Gemini to extract transcription from the video using the YouTube URL
     const prompt = `
@@ -111,37 +119,52 @@ Deno.serve(async (req: Request) => {
     console.log("Calling Gemini API to extract transcription");
     
     // Call the Gemini API for text analysis
-    const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
+    console.log("Sending request to Gemini API...");
+    let geminiResponse;
+    try {
+      geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 8192
           }
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 8192
-        }
-      })
-    });
-
-    if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.text();
-      console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
-      throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
+        })
+      });
+      
+      console.log(`Gemini API response status: ${geminiResponse.status}`);
+      
+      if (!geminiResponse.ok) {
+        const errorData = await geminiResponse.text();
+        console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
+        throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
+      }
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      throw new Error(`Failed to call Gemini API: ${error.message}`);
     }
     
-    const geminiData = await geminiResponse.json();
-    console.log("Gemini API response received");
+    let geminiData;
+    try {
+      geminiData = await geminiResponse.json();
+      console.log("Gemini API response received and parsed");
+    } catch (error) {
+      console.error("Error parsing Gemini API response:", error);
+      throw new Error(`Failed to parse Gemini API response: ${error.message}`);
+    }
     
     // Extract the transcription from Gemini's response
     let transcription = "";
@@ -155,10 +178,12 @@ Deno.serve(async (req: Request) => {
           Array.isArray(geminiData.candidates[0].content.parts) &&
           geminiData.candidates[0].content.parts.length > 0) {
         
+        console.log("Successfully extracted Gemini response structure");
         transcription = geminiData.candidates[0].content.parts[0].text.trim();
         
         // Check if Gemini couldn't access the transcription
         if (transcription === "UNABLE_TO_ACCESS_TRANSCRIPTION") {
+          console.error("Gemini could not access the video transcription");
           throw new Error("Gemini could not access the video transcription");
         }
         
@@ -173,6 +198,7 @@ Deno.serve(async (req: Request) => {
     }
     
     // Return the transcription
+    console.log("Returning successful response with transcription");
     return new Response(
       JSON.stringify({ 
         transcription, 

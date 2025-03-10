@@ -15,24 +15,31 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
     console.log("Supabase client initialized:", !!supabase);
     console.log("Functions API available:", !!supabase.functions);
     
-    const { data, error } = await supabase.functions.invoke("get-youtube-transcription", {
-      body: { videoId }
-    });
+    // Added try/catch for better error reporting
+    try {
+      const { data, error } = await supabase.functions.invoke("get-youtube-transcription", {
+        body: { videoId }
+      });
 
-    if (error) {
-      console.error("Supabase function error:", error);
-      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("Response from edge function:", data);
+      
+      if (data && data.transcription) {
+        return data.transcription;
+      } else if (data && data.error) {
+        throw new Error(`Edge function error: ${data.error}`);
+      }
+      
+      throw new Error("No transcription data received");
+    } catch (innerError) {
+      console.error("Detailed error in function invocation:", innerError);
+      throw innerError;
     }
-    
-    console.log("Response from edge function:", data);
-    
-    if (data && data.transcription) {
-      return data.transcription;
-    } else if (data && data.error) {
-      throw new Error(`Edge function error: ${data.error}`);
-    }
-    
-    throw new Error("No transcription data received");
   } catch (error) {
     console.error("Error fetching YouTube transcription:", error);
     if (error instanceof Error) {
@@ -55,24 +62,31 @@ export const fetchYoutubeCaptions = async (videoId: string): Promise<string> => 
     console.log("Supabase client initialized:", !!supabase);
     console.log("Functions API available:", !!supabase.functions);
     
-    const { data, error } = await supabase.functions.invoke("fetch-youtube-captions", {
-      body: { videoId }
-    });
+    // Added try/catch for better error reporting
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-youtube-captions", {
+        body: { videoId }
+      });
 
-    if (error) {
-      console.error("Supabase function error:", error);
-      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("Response from captions edge function:", data);
+      
+      if (data && data.transcription) {
+        return data.transcription;
+      } else if (data && data.error) {
+        throw new Error(`Edge function error: ${data.error}`);
+      }
+      
+      throw new Error("No caption data received");
+    } catch (innerError) {
+      console.error("Detailed error in function invocation:", innerError);
+      throw innerError;
     }
-    
-    console.log("Response from captions edge function:", data);
-    
-    if (data && data.transcription) {
-      return data.transcription;
-    } else if (data && data.error) {
-      throw new Error(`Edge function error: ${data.error}`);
-    }
-    
-    throw new Error("No caption data received");
   } catch (error) {
     console.error("Error fetching YouTube captions:", error);
     if (error instanceof Error) {
@@ -91,24 +105,31 @@ export const fetchYoutubeApiCaptions = async (videoId: string) => {
   try {
     console.log(`Calling YouTube API captions function for video ID: ${videoId}`);
     
-    const { data, error } = await supabase.functions.invoke("get-youtube-api-captions", {
-      body: { videoId } // Send as a proper object, not stringified
-    });
+    // Added try/catch for better error reporting
+    try {
+      const { data, error } = await supabase.functions.invoke("get-youtube-api-captions", {
+        body: { videoId } // Send as a proper object, not stringified
+      });
 
-    if (error) {
-      console.error("Supabase function error:", error);
-      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("Response from YouTube API captions function:", data);
+      
+      if (data && data.captions) {
+        return data;
+      } else if (data && data.error) {
+        throw new Error(`Edge function error: ${data.error}`);
+      }
+      
+      throw new Error("No caption data received from YouTube API");
+    } catch (innerError) {
+      console.error("Detailed error in function invocation:", innerError);
+      throw innerError;
     }
-    
-    console.log("Response from YouTube API captions function:", data);
-    
-    if (data && data.captions) {
-      return data;
-    } else if (data && data.error) {
-      throw new Error(`Edge function error: ${data.error}`);
-    }
-    
-    throw new Error("No caption data received from YouTube API");
   } catch (error) {
     console.error("Error fetching YouTube API captions:", error);
     if (error instanceof Error) {
@@ -127,24 +148,31 @@ export const fetchGeminiTranscription = async (videoId: string): Promise<string>
   try {
     console.log(`Calling Gemini transcription function for video ID: ${videoId}`);
     
-    const { data, error } = await supabase.functions.invoke("gemini-youtube-transcription", {
-      body: { videoId }
-    });
+    // Added try/catch for better error reporting
+    try {
+      const { data, error } = await supabase.functions.invoke("gemini-youtube-transcription", {
+        body: { videoId }
+      });
 
-    if (error) {
-      console.error("Supabase function error:", error);
-      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("Response from Gemini transcription function:", data);
+      
+      if (data && data.transcription) {
+        return data.transcription;
+      } else if (data && data.error) {
+        throw new Error(`Edge function error: ${data.error}`);
+      }
+      
+      throw new Error("No transcription data received from Gemini");
+    } catch (innerError) {
+      console.error("Detailed error in function invocation:", innerError);
+      throw innerError;
     }
-    
-    console.log("Response from Gemini transcription function:", data);
-    
-    if (data && data.transcription) {
-      return data.transcription;
-    } else if (data && data.error) {
-      throw new Error(`Edge function error: ${data.error}`);
-    }
-    
-    throw new Error("No transcription data received from Gemini");
   } catch (error) {
     console.error("Error fetching Gemini transcription:", error);
     if (error instanceof Error) {
@@ -163,25 +191,31 @@ export const analyzeTranscription = async (transcription: string): Promise<Forma
   try {
     console.log(`Analyzing transcription (${transcription.length} characters)`);
     
-    const { data, error } = await supabase.functions.invoke("analyze-historical-text", {
-      body: JSON.stringify({ text: transcription })
-    });
+    // Added try/catch for better error reporting
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-historical-text", {
+        body: JSON.stringify({ text: transcription })
+      });
 
-    if (error) {
-      console.error("Supabase function error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
-      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("Analysis response:", data);
+      
+      if (data && data.entities && data.entities.length > 0) {
+        return data.entities;
+      } else if (data && data.error) {
+        throw new Error(`Edge function error: ${data.error}`);
+      }
+      
+      return [];
+    } catch (innerError) {
+      console.error("Detailed error in function invocation:", innerError);
+      throw innerError;
     }
-    
-    console.log("Analysis response:", data);
-    
-    if (data && data.entities && data.entities.length > 0) {
-      return data.entities;
-    } else if (data && data.error) {
-      throw new Error(`Edge function error: ${data.error}`);
-    }
-    
-    return [];
   } catch (error) {
     console.error("Error analyzing transcription:", error);
     if (error instanceof Error) {
