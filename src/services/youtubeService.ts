@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { FormattedHistoricalEntity } from "@/types/supabase";
 
@@ -114,6 +115,42 @@ export const fetchYoutubeApiCaptions = async (videoId: string) => {
       throw new Error(`Error fetching YouTube API captions: ${error.message}`);
     }
     throw new Error("Unknown error while fetching YouTube API captions");
+  }
+};
+
+/**
+ * Fetches transcription using the Gemini AI
+ * @param videoId YouTube video ID
+ * @returns Transcription text
+ */
+export const fetchGeminiTranscription = async (videoId: string): Promise<string> => {
+  try {
+    console.log(`Calling Gemini transcription function for video ID: ${videoId}`);
+    
+    const { data, error } = await supabase.functions.invoke("gemini-youtube-transcription", {
+      body: { videoId }
+    });
+
+    if (error) {
+      console.error("Supabase function error:", error);
+      throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+    }
+    
+    console.log("Response from Gemini transcription function:", data);
+    
+    if (data && data.transcription) {
+      return data.transcription;
+    } else if (data && data.error) {
+      throw new Error(`Edge function error: ${data.error}`);
+    }
+    
+    throw new Error("No transcription data received from Gemini");
+  } catch (error) {
+    console.error("Error fetching Gemini transcription:", error);
+    if (error instanceof Error) {
+      throw new Error(`Error fetching Gemini transcription: ${error.message}`);
+    }
+    throw new Error("Unknown error while fetching Gemini transcription");
   }
 };
 
