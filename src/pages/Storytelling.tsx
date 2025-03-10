@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BookOpen, Globe, Clock, Map, ScrollText, Search, Sparkles, PenTool, History } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import StorylineVisualization from "@/components/StorylineVisualization";
 
 const Storytelling = () => {
   const [storyContext, setStoryContext] = useState("");
@@ -71,6 +71,46 @@ Through seasons of plenty and hardship, the resilience of the human spirit preva
         description: "Your historical narrative has been created successfully.",
       });
     }, 3000);
+  };
+
+  // Sample storyline data structure
+  const sampleStoryline = {
+    title: "Historical Narrative Timeline",
+    subtitle: "Exploring key historical figures and their connections",
+    nodes: [
+      {
+        id: "1",
+        name: "Historical Figure 1",
+        period: "1800-1850",
+        description: "Key political leader and reformer",
+        column: "left",
+        connections: ["2", "4"]
+      },
+      {
+        id: "2",
+        name: "Historical Figure 2",
+        period: "1820-1870",
+        description: "Military commander and strategist",
+        column: "center",
+        connections: ["3"]
+      },
+      {
+        id: "3",
+        name: "Historical Figure 3",
+        period: "1840-1890",
+        description: "Cultural revolutionary",
+        column: "right",
+        connections: ["4"]
+      },
+      {
+        id: "4",
+        name: "Historical Figure 4",
+        period: "1860-1910",
+        description: "Economic reformer",
+        column: "center",
+        connections: []
+      }
+    ]
   };
 
   return (
@@ -234,47 +274,56 @@ Through seasons of plenty and hardship, the resilience of the human spirit preva
           
           <TabsContent value="view">
             {generatedStory ? (
-              <Card className="border border-galaxy-nova/30 bg-black/30 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ScrollText className="h-5 w-5 text-galaxy-nova" />
-                    {storyTitle || "Historical Narrative"}
-                  </CardTitle>
-                  <CardDescription>
-                    An immersive journey through {storyPeriod === "ancient" ? "Ancient" : 
-                                                storyPeriod === "medieval" ? "Medieval" : 
-                                                storyPeriod === "renaissance" ? "Renaissance" : 
-                                                storyPeriod === "earlyModern" ? "Early Modern" : "Modern"} history
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose prose-sm max-w-none prose-invert">
-                    {generatedStory.split('\n\n').map((paragraph, index) => {
-                      if (paragraph.startsWith('# ')) {
-                        return <h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-foreground animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>{paragraph.substring(2)}</h1>;
-                      } else if (paragraph.startsWith('## ')) {
-                        return <h2 key={index} className="text-xl font-semibold mt-5 mb-3 text-foreground/90 animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>{paragraph.substring(3)}</h2>;
-                      } else {
-                        return <p key={index} className="my-3 text-foreground/80 leading-relaxed animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>{paragraph}</p>;
-                      }
-                    })}
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col sm:flex-row gap-3">
-                  <Button variant="default" className="w-full sm:w-auto bg-galaxy-nova hover:bg-galaxy-nova/90">
-                    <Map className="mr-2 h-4 w-4" />
-                    View on Map
-                  </Button>
-                  <Button variant="outline" className="w-full sm:w-auto border-galaxy-nova/20">
-                    <History className="mr-2 h-4 w-4" />
-                    Create Timeline
-                  </Button>
-                  <Button variant="outline" className="w-full sm:w-auto border-galaxy-nova/20">
-                    <PenTool className="mr-2 h-4 w-4" />
-                    Edit Narrative
-                  </Button>
-                </CardFooter>
-              </Card>
+              <div className="space-y-8">
+                <Card className="border border-galaxy-nova/30 bg-black/30 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ScrollText className="h-5 w-5 text-galaxy-nova" />
+                      {storyTitle || "Historical Narrative"}
+                    </CardTitle>
+                    <CardDescription>
+                      An immersive journey through {storyPeriod === "ancient" ? "Ancient" : 
+                                                  storyPeriod === "medieval" ? "Medieval" : 
+                                                  storyPeriod === "renaissance" ? "Renaissance" : 
+                                                  storyPeriod === "earlyModern" ? "Early Modern" : "Modern"} history
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-sm max-w-none prose-invert">
+                      {generatedStory.split('\n\n').map((paragraph, index) => {
+                        if (paragraph.startsWith('# ')) {
+                          return <h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-foreground animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>{paragraph.substring(2)}</h1>;
+                        } else if (paragraph.startsWith('## ')) {
+                          return <h2 key={index} className="text-xl font-semibold mt-5 mb-3 text-foreground/90 animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>{paragraph.substring(3)}</h2>;
+                        } else {
+                          return <p key={index} className="my-3 text-foreground/80 leading-relaxed animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>{paragraph}</p>;
+                        }
+                      })}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex flex-col sm:flex-row gap-3">
+                    <Button variant="default" className="w-full sm:w-auto bg-galaxy-nova hover:bg-galaxy-nova/90">
+                      <Map className="mr-2 h-4 w-4" />
+                      View on Map
+                    </Button>
+                    <Button variant="outline" className="w-full sm:w-auto border-galaxy-nova/20">
+                      <History className="mr-2 h-4 w-4" />
+                      Create Timeline
+                    </Button>
+                    <Button variant="outline" className="w-full sm:w-auto border-galaxy-nova/20">
+                      <PenTool className="mr-2 h-4 w-4" />
+                      Edit Narrative
+                    </Button>
+                  </CardFooter>
+                </Card>
+                
+                {/* Add the new visualization */}
+                <StorylineVisualization 
+                  nodes={sampleStoryline.nodes as any} 
+                  title={sampleStoryline.title}
+                  subtitle={sampleStoryline.subtitle}
+                />
+              </div>
             ) : (
               <Card className="border border-galaxy-nova/30 bg-black/30 backdrop-blur-sm text-center p-10">
                 <CardContent className="flex flex-col items-center justify-center min-h-[300px]">
