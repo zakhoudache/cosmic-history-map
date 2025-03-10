@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Loader } from "lucide-react";
@@ -601,14 +600,64 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   
   // Get Mapbox style URL based on map type
   const getMapboxStyleForType = (type: string): string => {
+    // Base historical style modifications
+    const historicalStyle = {
+      version: 8,
+      name: 'Historical',
+      sources: {
+        'mapbox-streets': {
+          type: 'vector',
+          url: 'mapbox://mapbox.mapbox-streets-v8'
+        }
+      },
+      layers: [
+        {
+          id: 'background',
+          type: 'background',
+          paint: {
+            'background-color': '#f8f4e8'  // Aged paper color
+          }
+        },
+        {
+          id: 'water',
+          type: 'fill',
+          source: 'mapbox-streets',
+          'source-layer': 'water',
+          paint: {
+            'fill-color': '#c9ddec'  // Soft blue for water
+          }
+        },
+        {
+          id: 'land',
+          type: 'fill',
+          source: 'mapbox-streets',
+          'source-layer': 'land',
+          paint: {
+            'fill-color': '#eee4c7'  // Vintage paper color
+          }
+        }
+      ]
+    };
+
     switch (type) {
-      case 'historical': return 'mapbox://styles/mapbox/satellite-streets-v12';
-      case 'thematic': return 'mapbox://styles/mapbox/light-v11';
-      case 'outline': return 'mapbox://styles/mapbox/streets-v12';
-      case 'relief': return 'mapbox://styles/mapbox/outdoors-v12';
-      case 'interactive': return 'mapbox://styles/mapbox/dark-v11';
-      case 'concept': return 'mapbox://styles/mapbox/dark-v11';
-      default: return 'mapbox://styles/mapbox/light-v11';
+      case 'historical':
+        return {
+          ...historicalStyle,
+          sprite: 'mapbox://sprites/mapbox/satellite-streets-v12',
+          glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+        };
+      case 'thematic':
+        return 'mapbox://styles/mapbox/light-v11';
+      case 'outline':
+        return 'mapbox://styles/mapbox/streets-v12';
+      case 'relief':
+        return 'mapbox://styles/mapbox/outdoors-v12';
+      case 'interactive':
+        return 'mapbox://styles/mapbox/dark-v11';
+      case 'concept':
+        return 'mapbox://styles/mapbox/dark-v11';
+      default:
+        return 'mapbox://styles/mapbox/light-v11';
     }
   };
   
@@ -688,54 +737,36 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       </div>
     );
   };
-  
-  return (
-    <Card className="overflow-hidden border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10 backdrop-blur-sm bg-muted w-full h-full relative">
-      {isLoading ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-2">
-            <Loader className="w-8 h-8 animate-spin text-galaxy-nova" />
-            <p className="text-sm text-foreground/70">Loading {mapTitle}...</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div 
-            ref={mapContainerRef} 
-            className="w-full h-full min-h-[400px] relative"
-            style={{ background: getMapBackgroundForType(mapType || 'historical') }}
-          >
-            {/* Mapbox will render here */}
-          </div>
-          
-          {renderMapLegend()}
-          
-          <div className="absolute top-4 right-4 space-x-2 z-10">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-background/80 backdrop-blur-sm border-galaxy-nova/30"
-              onClick={handleExportMap}
-            >
-              Export
-            </Button>
-          </div>
-          
-          <div className="absolute top-4 left-4 p-3 bg-background/80 backdrop-blur-sm border border-galaxy-nova/30 rounded-md z-10">
-            <h3 className="text-sm font-medium">{mapData?.title || mapTitle}</h3>
-            {(mapData?.subtitle || mapSubtitle) && (
-              <p className="text-xs text-foreground/70">{mapData?.subtitle || mapSubtitle}</p>
-            )}
-            {mapData?.metadata?.timeperiod && (
-              <p className="text-xs mt-1 text-foreground/60">
-                {mapData.metadata.timeperiod.start} - {mapData.metadata.timeperiod.end}
-              </p>
-            )}
-          </div>
-        </>
-      )}
-    </Card>
-  );
-};
 
-export default MapDisplay;
+  const mapContainer = useRef(null);
+
+  // Initialize mapbox map when component mounts
+  useEffect(() => {
+    if (!mapContainer.current || !mapData) return;
+    
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    
+    // Calculate bounds from regions
+    const bounds = calculateBounds(mapData.regions);
+    
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: getMapboxStyleForType(mapType),
+      bounds: bounds,
+      fitBoundsOptions: { padding: 50 },
+      attributionControl: false
+    });
+
+    // Add navigation controls with historical styling
+    const nav = new mapboxgl.NavigationControl({
+      showCompass: true,
+      visualizePitch: true
+    });
+    map.addControl(nav, 'top-right');
+
+    // Add a subtle sepia filter to the entire map
+    map.on('style.load', () => {
+      map.setFilter('satellite', ['brightness', 0.9]);
+      map.setPaintProperty('satellite', 'raster-opacity', 0.8);
+      
+      // Add historical texture overlay
