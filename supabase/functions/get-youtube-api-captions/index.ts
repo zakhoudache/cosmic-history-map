@@ -40,7 +40,11 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Fetching captions for video ID: ${videoId}`);
     const response = await fetch(`${API_URL}?videoId=${videoId}&key=${API_KEY}&part=snippet`);
-    if (!response.ok) throw new Error(`YouTube API error: ${response.statusText}`);
+    
+    if (!response.ok) {
+      const errorBody = await response.text(); // Get the response body for more details
+      throw new Error(`YouTube API error: ${response.statusText} - ${errorBody}`);
+    }
 
     const data = await response.json();
     if (!data.items || data.items.length === 0) {
