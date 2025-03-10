@@ -9,6 +9,7 @@ import { FormattedHistoricalEntity } from "@/types/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TextInputProps {
   onSubmit: (text: string, analysisResult: FormattedHistoricalEntity[]) => void;

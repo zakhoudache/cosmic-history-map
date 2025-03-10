@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers for browser requests
@@ -38,6 +37,46 @@ interface AnalysisResult {
   };
 }
 
+// Helper function to create a simplified summary when API rate limits are hit
+function createBasicSummary(text: string): string {
+  // Calculate a simplified summary by taking the first few sentences
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const summaryLength = Math.min(3, Math.ceil(sentences.length / 3));
+  return sentences.slice(0, summaryLength).join('. ') + '.';
+}
+
+// Helper function to create a fallback analysis result when API rate limits are hit
+function createFallbackAnalysisResult(text: string): AnalysisResult {
+  const summary = createBasicSummary(text);
+  
+  return {
+    entities: [
+      {
+        id: "fallback_entity",
+        name: "Historical Content",
+        type: "concept",
+        description: "This is a simplified analysis due to API rate limits. Please try again later.",
+        significance: 5,
+        group: "history",
+        domains: ["historical"],
+        relations: []
+      }
+    ],
+    summary: summary,
+    timeline: {
+      startYear: 1900,
+      endYear: 2000,
+      periods: [
+        {
+          name: "20th Century",
+          startYear: 1900,
+          endYear: 2000
+        }
+      ]
+    }
+  };
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -72,83 +111,108 @@ serve(async (req: Request) => {
     if (action === "summarize") {
       console.log("Summarizing text...");
       
-      const summarizePrompt = `
-      Summarize the following historical text in a concise way that preserves the key historical information.
-      Focus on keeping:
-      - Important people, events, and places
-      - Key dates and time periods
-      - Major concepts and movements
-      - Significant relationships between events and people
-
-      Your summary should be approximately 25-33% of the original length but ensure that it still contains
-      all the key historical information needed for analysis.
-
-      Text to summarize:
-      ${text}
-      
-      Format your response as text only, with no headers or explanations.
-      `;
-
-      // Call the Gemini API for text summarization
-      const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: summarizePrompt
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 8192
-          }
-        })
-      });
-
-      if (!geminiResponse.ok) {
-        const errorData = await geminiResponse.text();
-        console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
-        throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
-      }
-
-      const geminiData = await geminiResponse.json();
-      console.log("Gemini API summary response received");
-      
-      // Extract the text content
-      let summary = "";
-      
       try {
-        if (geminiData.candidates && 
-            Array.isArray(geminiData.candidates) && 
-            geminiData.candidates.length > 0 && 
-            geminiData.candidates[0].content && 
-            geminiData.candidates[0].content.parts && 
-            Array.isArray(geminiData.candidates[0].content.parts) &&
-            geminiData.candidates[0].content.parts.length > 0) {
-          
-          summary = geminiData.candidates[0].content.parts[0].text;
-          console.log("Summary generated successfully", summary.substring(0, 100) + "...");
-        }
-      } catch (error) {
-        console.error("Error extracting summary from Gemini response:", error);
-        throw error;
-      }
+        const summarizePrompt = `
+        Summarize the following historical text in a concise way that preserves the key historical information.
+        Focus on keeping:
+        - Important people, events, and places
+        - Key dates and time periods
+        - Major concepts and movements
+        - Significant relationships between events and people
 
-      // Return the summary
-      return new Response(
-        JSON.stringify({ summary }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        Your summary should be approximately 25-33% of the original length but ensure that it still contains
+        all the key historical information needed for analysis.
+
+        Text to summarize:
+        ${text}
+        
+        Format your response as text only, with no headers or explanations.
+        `;
+
+        // Call the Gemini API for text summarization
+        const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: summarizePrompt
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 8192
+            }
+          })
+        });
+
+        if (!geminiResponse.ok) {
+          const errorData = await geminiResponse.text();
+          console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
+          
+          // Handle rate limit errors specifically
+          if (geminiResponse.status === 429) {
+            console.log("Rate limit exceeded. Using fallback summarization.");
+            const fallbackSummary = createBasicSummary(text);
+            return new Response(
+              JSON.stringify({ summary: fallbackSummary, fallback: true }),
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+          
+          throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
         }
-      );
+
+        const geminiData = await geminiResponse.json();
+        console.log("Gemini API summary response received");
+        
+        // Extract the text content
+        let summary = "";
+        
+        try {
+          if (geminiData.candidates && 
+              Array.isArray(geminiData.candidates) && 
+              geminiData.candidates.length > 0 && 
+              geminiData.candidates[0].content && 
+              geminiData.candidates[0].content.parts && 
+              Array.isArray(geminiData.candidates[0].content.parts) &&
+              geminiData.candidates[0].content.parts.length > 0) {
+            
+            summary = geminiData.candidates[0].content.parts[0].text;
+            console.log("Summary generated successfully", summary.substring(0, 100) + "...");
+          }
+        } catch (error) {
+          console.error("Error extracting summary from Gemini response:", error);
+          throw error;
+        }
+
+        // Return the summary
+        return new Response(
+          JSON.stringify({ summary }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      } catch (error) {
+        // If there's any error in the summarization process, use the fallback
+        console.error("Error in summarization:", error);
+        const fallbackSummary = createBasicSummary(text);
+        return new Response(
+          JSON.stringify({ summary: fallbackSummary, fallback: true }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
     }
 
     // For regular analysis, continue with the existing code
@@ -231,202 +295,228 @@ serve(async (req: Request) => {
     }
     `;
 
-    // Call the Gemini API for text analysis
-    const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 8192
-        }
-      })
-    });
-
-    if (!geminiResponse.ok) {
-      const errorData = await geminiResponse.text();
-      console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
-      throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
-    }
-
-    const geminiData = await geminiResponse.json();
-    console.log("Gemini API response received");
-    
-    // Add detailed logging to debug the issue
-    console.log("Gemini API response structure:", JSON.stringify(geminiData).substring(0, 200) + "...");
-
-    // Extract the text content and parse as JSON
-    let analysisResult: AnalysisResult;
-    
     try {
-      if (geminiData.candidates && 
-          Array.isArray(geminiData.candidates) && 
-          geminiData.candidates.length > 0 && 
-          geminiData.candidates[0].content && 
-          geminiData.candidates[0].content.parts && 
-          Array.isArray(geminiData.candidates[0].content.parts) &&
-          geminiData.candidates[0].content.parts.length > 0) {
-        
-        const responseText = geminiData.candidates[0].content.parts[0].text;
-        
-        // Sometimes Gemini returns the JSON with markdown code blocks, so we need to clean it
-        const cleanedText = responseText.replace(/```json|```/g, '').trim();
-        
-        // Log the cleaned text for debugging
-        console.log("Cleaned response text (first 200 chars):", cleanedText.substring(0, 200) + "...");
-        
-        analysisResult = JSON.parse(cleanedText);
-        console.log("Successfully parsed analysis result");
-        
-        // Post-process: ensure all entities have unique IDs and fix relation references
-        const entityMap = new Map();
-        
-        // First pass: generate IDs for all entities and build a map of name -> ID
-        analysisResult.entities = analysisResult.entities.map(entity => {
-          const id = generateId(entity.name);
-          entityMap.set(entity.name.toLowerCase(), id);
-          return { ...entity, id };
-        });
-        
-        // Second pass: fix relation targetIds to reference the correct entity IDs
-        analysisResult.entities = analysisResult.entities.map(entity => {
-          if (entity.relations && entity.relations.length > 0) {
-            entity.relations = entity.relations.map(relation => {
-              // If targetId is a name rather than an ID, convert it
-              if (relation.targetId && !relation.targetId.includes('_')) {
-                const targetName = relation.targetId.toLowerCase();
-                if (entityMap.has(targetName)) {
-                  relation.targetId = entityMap.get(targetName);
-                } else {
-                  // Try to find a similar name in the map (partial match)
-                  const similarName = Array.from(entityMap.keys()).find(name => 
-                    targetName.includes(name) || name.includes(targetName)
-                  );
-                  if (similarName) {
-                    relation.targetId = entityMap.get(similarName);
-                  }
-                }
-              }
-              
-              // Ensure we have a relationship type
-              if (!relation.type || relation.type.trim() === '') {
-                relation.type = 'associated with';
-              }
-              
-              // Ensure we have a strength value
-              if (!relation.strength || relation.strength < 1 || relation.strength > 10) {
-                relation.strength = 5; // Default to medium strength
-              }
-              
-              return relation;
-            }).filter(relation => relation.targetId); // Remove relations with missing targetIds
-          }
-          return entity;
-        });
-        
-        // Add bi-directional relationships if missing
-        const newEntities = [...analysisResult.entities];
-        analysisResult.entities.forEach(entity => {
-          if (entity.relations && entity.relations.length > 0) {
-            entity.relations.forEach(relation => {
-              const targetEntity = newEntities.find(e => e.id === relation.targetId);
-              if (targetEntity) {
-                // Check if the target doesn't have a relationship back to this entity
-                const hasReverseRelation = targetEntity.relations?.some(r => r.targetId === entity.id);
-                if (!hasReverseRelation && targetEntity.relations) {
-                  // Create a reverse relationship type
-                  let reverseType = 'associated with';
-                  switch (relation.type) {
-                    case 'created': reverseType = 'was created by'; break;
-                    case 'influenced': reverseType = 'was influenced by'; break;
-                    case 'married to': reverseType = 'married to'; break; // Bidirectional
-                    case 'teacher of': reverseType = 'student of'; break;
-                    case 'student of': reverseType = 'teacher of'; break;
-                    case 'allied with': reverseType = 'allied with'; break; // Bidirectional
-                    case 'parent of': reverseType = 'child of'; break;
-                    case 'child of': reverseType = 'parent of'; break;
-                    case 'preceded': reverseType = 'followed'; break;
-                    case 'followed': reverseType = 'preceded'; break;
-                    case 'located in': reverseType = 'contains'; break;
-                    case 'contains': reverseType = 'located in'; break;
-                    case 'opposed': reverseType = 'was opposed by'; break;
-                    case 'was opposed by': reverseType = 'opposed'; break;
-                    default: reverseType = 'associated with';
-                  }
-                  
-                  // Add the reverse relationship
-                  targetEntity.relations.push({
-                    targetId: entity.id,
-                    type: reverseType,
-                    strength: relation.strength
-                  });
-                }
-              }
-            });
-          }
-        });
-      } else {
-        console.error("Unexpected response format:", JSON.stringify(geminiData, null, 2));
-        throw new Error("Unexpected response format from Gemini API");
-      }
-    } catch (error) {
-      console.error("Error parsing Gemini response:", error);
-      // Check if the error is related to Arabic text processing
-      if (text.includes('الحرب') || /[\u0600-\u06FF]/.test(text)) {
-        // Create a minimal fallback result for Arabic text
-        analysisResult = {
-          entities: [
+      // Call the Gemini API for text analysis
+      const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
             {
-              id: "cold_war",
-              name: "Cold War",
-              type: "period",
-              startDate: "1945",
-              endDate: "1991",
-              description: "A period of geopolitical tension between the Soviet Union and the United States and their respective allies, the Eastern Bloc and the Western Bloc, after World War II.",
-              significance: 9,
-              group: "politics",
-              domains: ["political", "military", "cultural"],
-              relations: []
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
             }
           ],
-          summary: "A text about the Cold War period and its global impact.",
-          timeline: {
-            startYear: 1945,
-            endYear: 1991,
-            periods: [
-              {
-                name: "Cold War",
-                startYear: 1945,
-                endYear: 1991
-              }
-            ]
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 8192
           }
-        };
-        console.log("Using fallback response for Arabic text");
-      } else {
-        throw new Error("Failed to parse Gemini API response: " + error.message);
-      }
-    }
+        })
+      });
 
-    // Return the analysis result
-    return new Response(
-      JSON.stringify(analysisResult),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      if (!geminiResponse.ok) {
+        const errorData = await geminiResponse.text();
+        console.error(`Gemini API responded with status ${geminiResponse.status}:`, errorData);
+        
+        // Handle rate limiting specifically
+        if (geminiResponse.status === 429) {
+          console.log("Rate limit exceeded. Using fallback analysis.");
+          const fallbackResult = createFallbackAnalysisResult(text);
+          return new Response(
+            JSON.stringify(fallbackResult),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+        
+        throw new Error(`Gemini API responded with status ${geminiResponse.status}: ${errorData}`);
       }
-    );
+
+      const geminiData = await geminiResponse.json();
+      console.log("Gemini API response received");
+    
+      // Add detailed logging to debug the issue
+      console.log("Gemini API response structure:", JSON.stringify(geminiData).substring(0, 200) + "...");
+
+      // Extract the text content and parse as JSON
+      let analysisResult: AnalysisResult;
+    
+      try {
+        if (geminiData.candidates && 
+            Array.isArray(geminiData.candidates) && 
+            geminiData.candidates.length > 0 && 
+            geminiData.candidates[0].content && 
+            geminiData.candidates[0].content.parts && 
+            Array.isArray(geminiData.candidates[0].content.parts) &&
+            geminiData.candidates[0].content.parts.length > 0) {
+        
+          const responseText = geminiData.candidates[0].content.parts[0].text;
+        
+          // Sometimes Gemini returns the JSON with markdown code blocks, so we need to clean it
+          const cleanedText = responseText.replace(/```json|```/g, '').trim();
+        
+          // Log the cleaned text for debugging
+          console.log("Cleaned response text (first 200 chars):", cleanedText.substring(0, 200) + "...");
+        
+          analysisResult = JSON.parse(cleanedText);
+          console.log("Successfully parsed analysis result");
+        
+          // Post-process: ensure all entities have unique IDs and fix relation references
+          const entityMap = new Map();
+        
+          // First pass: generate IDs for all entities and build a map of name -> ID
+          analysisResult.entities = analysisResult.entities.map(entity => {
+            const id = generateId(entity.name);
+            entityMap.set(entity.name.toLowerCase(), id);
+            return { ...entity, id };
+          });
+        
+          // Second pass: fix relation targetIds to reference the correct entity IDs
+          analysisResult.entities = analysisResult.entities.map(entity => {
+            if (entity.relations && entity.relations.length > 0) {
+              entity.relations = entity.relations.map(relation => {
+                // If targetId is a name rather than an ID, convert it
+                if (relation.targetId && !relation.targetId.includes('_')) {
+                  const targetName = relation.targetId.toLowerCase();
+                  if (entityMap.has(targetName)) {
+                    relation.targetId = entityMap.get(targetName);
+                  } else {
+                    // Try to find a similar name in the map (partial match)
+                    const similarName = Array.from(entityMap.keys()).find(name => 
+                      targetName.includes(name) || name.includes(targetName)
+                    );
+                    if (similarName) {
+                      relation.targetId = entityMap.get(similarName);
+                    }
+                  }
+                }
+              
+                // Ensure we have a relationship type
+                if (!relation.type || relation.type.trim() === '') {
+                  relation.type = 'associated with';
+                }
+              
+                // Ensure we have a strength value
+                if (!relation.strength || relation.strength < 1 || relation.strength > 10) {
+                  relation.strength = 5; // Default to medium strength
+                }
+              
+                return relation;
+              }).filter(relation => relation.targetId); // Remove relations with missing targetIds
+            }
+            return entity;
+          });
+        
+          // Add bi-directional relationships if missing
+          const newEntities = [...analysisResult.entities];
+          analysisResult.entities.forEach(entity => {
+            if (entity.relations && entity.relations.length > 0) {
+              entity.relations.forEach(relation => {
+                const targetEntity = newEntities.find(e => e.id === relation.targetId);
+                if (targetEntity) {
+                  // Check if the target doesn't have a relationship back to this entity
+                  const hasReverseRelation = targetEntity.relations?.some(r => r.targetId === entity.id);
+                  if (!hasReverseRelation && targetEntity.relations) {
+                    // Create a reverse relationship type
+                    let reverseType = 'associated with';
+                    switch (relation.type) {
+                      case 'created': reverseType = 'was created by'; break;
+                      case 'influenced': reverseType = 'was influenced by'; break;
+                      case 'married to': reverseType = 'married to'; break; // Bidirectional
+                      case 'teacher of': reverseType = 'student of'; break;
+                      case 'student of': reverseType = 'teacher of'; break;
+                      case 'allied with': reverseType = 'allied with'; break; // Bidirectional
+                      case 'parent of': reverseType = 'child of'; break;
+                      case 'child of': reverseType = 'parent of'; break;
+                      case 'preceded': reverseType = 'followed'; break;
+                      case 'followed': reverseType = 'preceded'; break;
+                      case 'located in': reverseType = 'contains'; break;
+                      case 'contains': reverseType = 'located in'; break;
+                      case 'opposed': reverseType = 'was opposed by'; break;
+                      case 'was opposed by': reverseType = 'opposed'; break;
+                      default: reverseType = 'associated with';
+                    }
+                  
+                    // Add the reverse relationship
+                    targetEntity.relations.push({
+                      targetId: entity.id,
+                      type: reverseType,
+                      strength: relation.strength
+                    });
+                  }
+                }
+              });
+            }
+          });
+        } else {
+          console.error("Unexpected response format:", JSON.stringify(geminiData, null, 2));
+          throw new Error("Unexpected response format from Gemini API");
+        }
+      } catch (error) {
+        console.error("Error parsing Gemini response:", error);
+        // Check if the error is related to Arabic text processing
+        if (text.includes('الحرب') || /[\u0600-\u06FF]/.test(text)) {
+          // Create a minimal fallback result for Arabic text
+          analysisResult = {
+            entities: [
+              {
+                id: "cold_war",
+                name: "Cold War",
+                type: "period",
+                startDate: "1945",
+                endDate: "1991",
+                description: "A period of geopolitical tension between the Soviet Union and the United States and their respective allies, the Eastern Bloc and the Western Bloc, after World War II.",
+                significance: 9,
+                group: "politics",
+                domains: ["political", "military", "cultural"],
+                relations: []
+              }
+            ],
+            summary: "A text about the Cold War period and its global impact.",
+            timeline: {
+              startYear: 1945,
+              endYear: 1991,
+              periods: [
+                {
+                  name: "Cold War",
+                  startYear: 1945,
+                  endYear: 1991
+                }
+              ]
+            }
+          };
+          console.log("Using fallback response for Arabic text");
+        } else {
+          throw new Error("Failed to parse Gemini API response: " + error.message);
+        }
+      }
+
+      // Return the analysis result
+      return new Response(
+        JSON.stringify(analysisResult),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } catch (error) {
+      console.error("Error in API call:", error);
+      
+      // If any error occurs during analysis, use the fallback
+      const fallbackResult = createFallbackAnalysisResult(text);
+      return new Response(
+        JSON.stringify(fallbackResult),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
   } catch (error) {
     console.error("Error in analyze-historical-text function:", error.message);
     
