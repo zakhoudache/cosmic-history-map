@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -21,8 +20,11 @@ const Visualize = () => {
   const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story">("graph");
   const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
   const { user } = useAuth();
-  const cosmicVisualizationRef = useRef<SVGSVGElement>(null);
-  const timelineRef = useRef<SVGSVGElement>(null);
+  
+  // Use refs for the visualization containers
+  const cosmicVisualizationRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const storyRef = useRef<HTMLDivElement>(null);
 
   const handleTextSubmit = (text: string, analyzedEntities: FormattedHistoricalEntity[]) => {
     setInputText(text);
@@ -52,40 +54,38 @@ const Visualize = () => {
       return;
     }
     
-    let svgElement = null;
+    let containerElement = null;
     let title = "";
     let description = "";
     
-    // Choose the appropriate SVG element and titles based on visualization type
+    // Choose the appropriate container element and titles based on visualization type
     switch (visualizationType) {
       case "graph":
-        // Find the SVG element in the CosmicVisualization component
-        svgElement = document.querySelector(".visualization-container")?.closest("svg");
+        containerElement = cosmicVisualizationRef.current;
         title = "Cosmic Connections Network Analysis";
         description = `Network visualization of historical entities and their relationships based on the input text: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
         break;
         
       case "timeline":
-        // Find the SVG element in the Timeline component
-        svgElement = document.getElementById("timeline-visualization");
+        containerElement = timelineRef.current;
         title = "Historical Timeline Analysis";
         description = `Chronological visualization of historical entities based on the input text: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
         break;
         
       case "story":
-        // Story view (no SVG)
+        containerElement = storyRef.current;
         title = "Historical Narrative Analysis";
         description = `Storytelling analysis presenting historical connections in narrative form based on the input text: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
         break;
     }
     
-    // Generate PDF with the appropriate visualization and content
+    // Generate PDF with the appropriate visualization container
     exportToPDF({
       entities,
       title,
       description,
       visualizationType,
-      svgElement: svgElement as SVGSVGElement,
+      containerElement,
     });
   };
 
@@ -93,7 +93,6 @@ const Visualize = () => {
 
   return (
     <MainLayout>
-      {/* Cosmic Background Effects */}
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(91,33,182,0.15),rgba(0,0,0,0)_70%)]"></div>
       <div className="fixed inset-0 -z-10 bg-background"></div>
       <div className="fixed inset-0 -z-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIi8+PC9nPjwvc3ZnPg==')] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)]"></div>
@@ -110,9 +109,7 @@ const Visualize = () => {
         </div>
 
         <Card className="backdrop-blur-lg bg-black/30 border border-galaxy-nova/30 shadow-xl shadow-galaxy-nova/10 overflow-hidden p-6 mb-8">
-          {/* Glowing Orb Top Right */}
           <div className="absolute top-0 right-0 -m-10 w-40 h-40 bg-galaxy-nova/20 rounded-full blur-2xl pointer-events-none"></div>
-          {/* Glowing Orb Bottom Left */}
           <div className="absolute bottom-0 left-0 -m-10 w-40 h-40 bg-galaxy-blue-giant/20 rounded-full blur-2xl pointer-events-none"></div>
           
           <TextInput 
@@ -135,9 +132,7 @@ const Visualize = () => {
           )}
           
           <Card className="backdrop-blur-lg bg-black/30 border border-galaxy-nova/30 shadow-xl shadow-galaxy-nova/10 overflow-hidden relative min-h-[700px]">
-            {/* Glowing Orb Top Right */}
             <div className="absolute top-0 right-0 -m-10 w-40 h-40 bg-galaxy-nova/10 rounded-full blur-2xl pointer-events-none"></div>
-            {/* Glowing Orb Bottom Left */}
             <div className="absolute bottom-0 left-0 -m-10 w-40 h-40 bg-galaxy-blue-giant/10 rounded-full blur-2xl pointer-events-none"></div>
             
             {loading ? (
@@ -154,7 +149,7 @@ const Visualize = () => {
             ) : (
               <div className="p-2">
                 {visualizationType === "graph" && (
-                  <div className="relative h-full">
+                  <div ref={cosmicVisualizationRef} className="relative h-full">
                     <CosmicVisualization 
                       entities={entities}
                       visualizationType={visualizationType}
@@ -172,7 +167,7 @@ const Visualize = () => {
                   </div>
                 )}
                 {visualizationType === "timeline" && (
-                  <div className="relative h-full">
+                  <div ref={timelineRef} className="relative h-full">
                     <Timeline 
                       entities={entities}
                       onEntitySelect={handleEntitySelect}
@@ -180,13 +175,14 @@ const Visualize = () => {
                   </div>
                 )}
                 {visualizationType === "story" && (
-                  <StorytellingSection 
-                    entities={entities}
-                    text={inputText}
-                  />
+                  <div ref={storyRef} className="relative h-full">
+                    <StorytellingSection 
+                      entities={entities}
+                      text={inputText}
+                    />
+                  </div>
                 )}
                 
-                {/* Show details card in timeline view too */}
                 {visualizationType === "timeline" && selectedEntity && (
                   <div className="fixed bottom-4 right-4 w-72 z-50">
                     <ElementCard 
