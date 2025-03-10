@@ -32,6 +32,11 @@ const TextInput: React.FC<TextInputProps> = ({
   const [summarizing, setSummarizing] = useState<boolean>(false);
   const { user } = useAuth();
   
+  // Function to check if text contains Arabic characters
+  const containsArabic = (str: string): boolean => {
+    return /[\u0600-\u06FF]/.test(str);
+  };
+  
   const handleSubmit = async () => {
     const textToAnalyze = inputMethod === "standard" ? text : longText;
     
@@ -39,6 +44,9 @@ const TextInput: React.FC<TextInputProps> = ({
       toast.error("Please enter some historical text to analyze.");
       return;
     }
+    
+    // Check for Arabic text
+    const hasArabic = containsArabic(textToAnalyze);
     
     try {
       setLoading(true);
@@ -60,8 +68,15 @@ const TextInput: React.FC<TextInputProps> = ({
       toast.success(`Analysis complete! Found ${analysisResult.length} historical entities.`);
     } catch (error) {
       console.error("Error analyzing text:", error);
-      setError("Failed to analyze text. Please try again with different content or shorter text.");
-      toast.error("Analysis failed. Please try again later.");
+      
+      // Provide a more specific error message for Arabic text
+      if (hasArabic) {
+        setError("Arabic text analysis is currently experiencing issues. Please try using English text instead.");
+        toast.error("Arabic text is currently not fully supported. Please try using English text.");
+      } else {
+        setError("Failed to analyze text. Please try again with different content or shorter text.");
+        toast.error("Analysis failed. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }
@@ -72,6 +87,9 @@ const TextInput: React.FC<TextInputProps> = ({
       toast.error("Please enter text to summarize first.");
       return;
     }
+    
+    // Check for Arabic text
+    const hasArabic = containsArabic(longText);
     
     try {
       setSummarizing(true);
@@ -95,7 +113,13 @@ const TextInput: React.FC<TextInputProps> = ({
       }
     } catch (error) {
       console.error("Error summarizing text:", error);
-      toast.error("Failed to summarize text. Please try again with different content.");
+      
+      // Provide a more specific error message for Arabic text
+      if (hasArabic) {
+        toast.error("Summarization of Arabic text is currently not supported. Please try using English text.");
+      } else {
+        toast.error("Failed to summarize text. Please try again with different content.");
+      }
     } finally {
       setSummarizing(false);
     }
@@ -157,9 +181,12 @@ const TextInput: React.FC<TextInputProps> = ({
           <div>
             <p className="font-medium mb-1">Analysis Error</p>
             <p className="text-sm">{error}</p>
-            <p className="text-sm mt-1">
-              Try using shorter text, different content, or check if the text contains unsupported languages.
-            </p>
+            {containsArabic(inputMethod === "standard" ? text : longText) && (
+              <p className="text-sm mt-1 font-medium">
+                Arabic text detection: Currently, our system has limited support for Arabic text analysis. 
+                Please try using English text for more reliable results.
+              </p>
+            )}
           </div>
         </div>
       )}

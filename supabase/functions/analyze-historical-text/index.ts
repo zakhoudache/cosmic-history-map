@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers for browser requests
@@ -37,6 +38,11 @@ interface AnalysisResult {
   };
 }
 
+// Helper function to check if text contains Arabic characters
+function containsArabic(text: string): boolean {
+  return /[\u0600-\u06FF]/.test(text);
+}
+
 // Helper function to create a simplified summary when API rate limits are hit
 function createBasicSummary(text: string): string {
   // Calculate a simplified summary by taking the first few sentences
@@ -48,6 +54,36 @@ function createBasicSummary(text: string): string {
 // Helper function to create a fallback analysis result when API rate limits are hit
 function createFallbackAnalysisResult(text: string): AnalysisResult {
   const summary = createBasicSummary(text);
+  
+  // For Arabic text, provide a more specific fallback
+  if (containsArabic(text)) {
+    return {
+      entities: [
+        {
+          id: "arabic_content",
+          name: "Arabic Historical Content",
+          type: "concept",
+          description: "This is a simplified analysis of Arabic text. Our system currently has limited support for Arabic language processing.",
+          significance: 5,
+          group: "history",
+          domains: ["historical", "arabic"],
+          relations: []
+        }
+      ],
+      summary: "Arabic text analysis is currently limited. Please try English text for more detailed results.",
+      timeline: {
+        startYear: 1800,
+        endYear: 2000,
+        periods: [
+          {
+            name: "Modern Period",
+            startYear: 1800,
+            endYear: 2000
+          }
+        ]
+      }
+    };
+  }
   
   return {
     entities: [
@@ -100,11 +136,40 @@ serve(async (req: Request) => {
 
     console.log(`Request action: ${action}`);
     console.log(`Processing text: ${text.substring(0, 100)}...`);
+    console.log(`Contains Arabic: ${containsArabic(text)}`);
 
     // Retrieve the Gemini API key from environment variable
     const apiKey = Deno.env.get('GEMINI_API_KEY');
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set in environment variables");
+    }
+
+    // Special handling for Arabic text - provide early fallback response
+    if (containsArabic(text)) {
+      console.log("Arabic text detected, using specialized handling");
+      
+      if (action === "summarize") {
+        // Provide a basic summary for Arabic text without calling Gemini
+        const basicSummary = createBasicSummary(text);
+        return new Response(
+          JSON.stringify({ 
+            summary: basicSummary, 
+            message: "Arabic text summarization is limited. Using basic extraction." 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      } else {
+        // Provide a fallback analysis for Arabic text without calling Gemini
+        const fallbackResult = createFallbackAnalysisResult(text);
+        return new Response(
+          JSON.stringify(fallbackResult),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
     }
 
     // If the action is to summarize, use a different prompt
@@ -461,41 +526,8 @@ serve(async (req: Request) => {
         }
       } catch (error) {
         console.error("Error parsing Gemini response:", error);
-        // Check if the error is related to Arabic text processing
-        if (text.includes('الحرب') || /[\u0600-\u06FF]/.test(text)) {
-          // Create a minimal fallback result for Arabic text
-          analysisResult = {
-            entities: [
-              {
-                id: "cold_war",
-                name: "Cold War",
-                type: "period",
-                startDate: "1945",
-                endDate: "1991",
-                description: "A period of geopolitical tension between the Soviet Union and the United States and their respective allies, the Eastern Bloc and the Western Bloc, after World War II.",
-                significance: 9,
-                group: "politics",
-                domains: ["political", "military", "cultural"],
-                relations: []
-              }
-            ],
-            summary: "A text about the Cold War period and its global impact.",
-            timeline: {
-              startYear: 1945,
-              endYear: 1991,
-              periods: [
-                {
-                  name: "Cold War",
-                  startYear: 1945,
-                  endYear: 1991
-                }
-              ]
-            }
-          };
-          console.log("Using fallback response for Arabic text");
-        } else {
-          throw new Error("Failed to parse Gemini API response: " + error.message);
-        }
+        // Use the fallback for any parsing errors
+        analysisResult = createFallbackAnalysisResult(text);
       }
 
       // Return the analysis result
