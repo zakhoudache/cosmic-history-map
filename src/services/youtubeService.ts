@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { FormattedHistoricalEntity } from "@/types/supabase";
 
@@ -16,12 +15,11 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
     console.log("Functions API available:", !!supabase.functions);
     
     const { data, error } = await supabase.functions.invoke("get-youtube-transcription", {
-      body: JSON.stringify({ videoId })
+      body: { videoId }
     });
 
     if (error) {
       console.error("Supabase function error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
       throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
     }
     
@@ -57,12 +55,11 @@ export const fetchYoutubeCaptions = async (videoId: string): Promise<string> => 
     console.log("Functions API available:", !!supabase.functions);
     
     const { data, error } = await supabase.functions.invoke("fetch-youtube-captions", {
-      body: JSON.stringify({ videoId })
+      body: { videoId }
     });
 
     if (error) {
       console.error("Supabase function error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
       throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
     }
     
@@ -94,18 +91,17 @@ export const fetchYoutubeApiCaptions = async (videoId: string) => {
     console.log(`Calling YouTube API captions function for video ID: ${videoId}`);
     
     const { data, error } = await supabase.functions.invoke("get-youtube-api-captions", {
-      body: JSON.stringify({ videoId })
+      body: { videoId } // Send as a proper object, not stringified
     });
 
     if (error) {
       console.error("Supabase function error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
       throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
     }
     
     console.log("Response from YouTube API captions function:", data);
     
-    if (data && data.captionTracks) {
+    if (data && data.captions) {
       return data;
     } else if (data && data.error) {
       throw new Error(`Edge function error: ${data.error}`);

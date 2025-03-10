@@ -1,20 +1,25 @@
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const API_KEY = Deno.env.get("YOUTUBE_API_KEY"); // Secure API key
 const API_URL = "https://www.googleapis.com/youtube/v3/captions";
 const cache = new Map(); // Simple in-memory cache
 
+// CORS headers for browser compatibility
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-Deno.serve(async (req: Request) => {
+// Main handler function
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders, status: 204 });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204 
+    });
   }
   
   if (req.method !== "POST") {
@@ -67,7 +72,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Extract caption information
-    const captions = data.items.map((item: any) => ({
+    const captions = data.items.map((item) => ({
       id: item.id,
       name: item.snippet.name || "Unknown",
       language: item.snippet.language,

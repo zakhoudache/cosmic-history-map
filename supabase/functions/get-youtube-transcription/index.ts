@@ -1,7 +1,15 @@
-import { serve } from "https://deno.land/std@0.140.0/http/server.ts";
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const API_KEY = Deno.env.get("YOUTUBE_API_KEY"); // Secure API key
 const cache = new Map<string, any>(); // In-memory cache
+
+// CORS headers for browser compatibility
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 // Function to fetch captions from YouTube API
 async function fetchCaptions(videoId: string) {
@@ -50,32 +58,40 @@ async function fetchTranscript(captionId: string) {
 }
 
 // Main API handler
-async function handler(req: Request): Promise<Response> {
+serve(async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
+      headers: corsHeaders,
+      status: 204,
     });
   }
 
   if (req.method !== "POST") {
-    return new Response("❌ Method Not Allowed", { status: 405 });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { 
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
 
   try {
-    const { videoId } = await req.json();
-    if (!videoId) return new Response("❌ Missing videoId", { status: 400 });
+    const body = await req.json();
+    const { videoId } = body;
+    
+    if (!videoId) {
+      return new Response(JSON.stringify({ error: "Missing videoId" }), { 
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
 
     console.log("📥 Fetching captions for video:", videoId);
     const captionData = await fetchCaptions(videoId);
 
     if (!captionData.items?.length) {
-      return new Response(JSON.stringify({ message: "❌ No captions available" }), {
+      return new Response(JSON.stringify({ error: "No captions available" }), {
         status: 404,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -87,19 +103,21 @@ async function handler(req: Request): Promise<Response> {
     }));
 
     // If a valid caption exists, fetch transcript
-    let transcript = "";
+    let transcription = "";
     if (captions.length > 0) {
       console.log("📥 Fetching transcript for:", captions[0].id);
-      transcript = await fetchTranscript(captions[0].id);
+      transcription = await fetchTranscript(captions[0].id);
     }
 
-    return new Response(JSON.stringify({ captions, transcript }), {
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    return new Response(JSON.stringify({ captions, transcription }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200
     });
   } catch (error) {
     console.error("❌ Error processing request:", error);
-    return new Response(`❌ Internal Server Error: ${error.message}`, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
-}
-
-serve(handler);
+});
