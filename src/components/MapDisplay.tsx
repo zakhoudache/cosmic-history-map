@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Loader } from "lucide-react";
@@ -6,6 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { MapStyle } from './MapStyleEditor';
 
 // Mapbox public token - replace with your own or use environment variables
 // You should create an account at mapbox.com to get your own token
@@ -65,6 +67,7 @@ interface MapDisplayProps {
   sourceId?: string;
   sourceType?: string;
   onMapGenerated?: (mapId: string) => void;
+  currentStyle?: MapStyle;
 }
 
 const MapDisplay: React.FC<MapDisplayProps> = ({ 
@@ -74,7 +77,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   regionData,
   sourceId,
   sourceType,
-  onMapGenerated
+  onMapGenerated,
+  currentStyle
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<mapboxgl.Map | null>(null);
@@ -250,7 +254,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     
     // Initialize map if it doesn't exist
     if (!mapInstance.current) {
-      const mapStyle = getMapboxStyleForType(mapType);
+      const mapStyle = currentStyle?.basemapStyle || getMapboxStyleForType(mapType);
       const center = mapData.settings?.center || [0, 20];
       const zoom = mapData.settings?.zoom || 2;
       
@@ -271,6 +275,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       
       // Wait for map to load before adding data
       mapInstance.current.on('load', () => {
+        applyCustomMapStyle(mapInstance.current!, currentStyle);
         addMapData(mapInstance.current!, mapData);
         
         // Fit map to bounds if provided
@@ -286,13 +291,12 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       const map = mapInstance.current;
       
       // Update map style if needed
-      const currentStyle = map.getStyle().name;
-      const newStyle = getMapboxStyleForType(mapType);
-      if (currentStyle !== newStyle) {
-        map.setStyle(newStyle);
+      if (currentStyle?.basemapStyle) {
+        map.setStyle(currentStyle.basemapStyle);
         
         // Re-add data after style change
         map.once('style.load', () => {
+          applyCustomMapStyle(map, currentStyle);
           addMapData(map, mapData);
           
           // Fit map to bounds if provided
@@ -326,6 +330,89 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     }
     
   }, [isLoading, mapData, mapType]);
+  
+  // Update map style when currentStyle changes
+  useEffect(() => {
+    if (!mapInstance.current || !currentStyle) return;
+    
+    const map = mapInstance.current;
+    
+    // Update the map style
+    if (map.isStyleLoaded()) {
+      applyCustomMapStyle(map, currentStyle);
+    } else {
+      map.once('style.load', () => {
+        applyCustomMapStyle(map, currentStyle);
+      });
+    }
+  }, [currentStyle]);
+  
+  // Apply custom map style
+  const applyCustomMapStyle = (map: mapboxgl.Map, style?: MapStyle) => {
+    if (!style || !map.isStyleLoaded()) return;
+    
+    try {
+      // Apply filters using CSS
+      const mapContainer = mapContainerRef.current;
+      if (mapContainer) {
+        // Apply filter
+        mapContainer.style.filter = style.filter;
+        
+        // Apply font family to container
+        mapContainer.style.fontFamily = style.fontFamily;
+      }
+      
+      // Modify the map style layers
+      if (map.getLayer('background')) {
+        map.setPaintProperty('background', 'background-color', style.background);
+      }
+      
+      if (map.getLayer('water')) {
+        map.setPaintProperty('water', 'fill-color', style.water);
+      }
+      
+      if (map.getLayer('land')) {
+        map.setPaintProperty('land', 'fill-color', style.land);
+      }
+      
+      // Update text colors
+      const textLayers = map.getStyle().layers.filter(layer => 
+        layer.id.includes('label') || layer.id.includes('text')
+      );
+      
+      textLayers.forEach(layer => {
+        if (layer.type === 'symbol' && map.getLayer(layer.id)) {
+          map.setPaintProperty(layer.id, 'text-color', style.text);
+        }
+      });
+      
+      // Update border styles if applicable
+      const lineLayers = map.getStyle().layers.filter(layer => 
+        layer.type === 'line' && (layer.id.includes('border') || layer.id.includes('boundary'))
+      );
+      
+      lineLayers.forEach(layer => {
+        if (map.getLayer(layer.id)) {
+          map.setPaintProperty(layer.id, 'line-color', style.borderColor);
+          map.setPaintProperty(layer.id, 'line-width', style.borderWidth);
+        }
+      });
+      
+      // If we have custom region-points, update their styling as well
+      if (map.getLayer('region-points')) {
+        map.setPaintProperty('region-points', 'circle-stroke-width', style.borderWidth);
+      }
+      
+      // Style the region labels
+      if (map.getLayer('region-labels')) {
+        map.setPaintProperty('region-labels', 'text-color', style.text);
+        map.setLayoutProperty('region-labels', 'text-font', [style.fontFamily.split(',')[0].replace(/'/g, '')]);
+      }
+      
+    } catch (error) {
+      console.error("Error applying custom map style:", error);
+    }
+  };
   
   // Function to add map data to the Mapbox instance
   const addMapData = (map: mapboxgl.Map, mapData: MapData) => {
@@ -600,52 +687,9 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   
   // Get Mapbox style URL based on map type
   const getMapboxStyleForType = (type: string): string => {
-    // Base historical style modifications
-    const historicalStyle = {
-      version: 8,
-      name: 'Historical',
-      sources: {
-        'mapbox-streets': {
-          type: 'vector',
-          url: 'mapbox://mapbox.mapbox-streets-v8'
-        }
-      },
-      layers: [
-        {
-          id: 'background',
-          type: 'background',
-          paint: {
-            'background-color': '#f8f4e8'  // Aged paper color
-          }
-        },
-        {
-          id: 'water',
-          type: 'fill',
-          source: 'mapbox-streets',
-          'source-layer': 'water',
-          paint: {
-            'fill-color': '#c9ddec'  // Soft blue for water
-          }
-        },
-        {
-          id: 'land',
-          type: 'fill',
-          source: 'mapbox-streets',
-          'source-layer': 'land',
-          paint: {
-            'fill-color': '#eee4c7'  // Vintage paper color
-          }
-        }
-      ]
-    };
-
     switch (type) {
       case 'historical':
-        return {
-          ...historicalStyle,
-          sprite: 'mapbox://sprites/mapbox/satellite-streets-v12',
-          glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
-        };
+        return 'mapbox://styles/mapbox/light-v11';
       case 'thematic':
         return 'mapbox://styles/mapbox/light-v11';
       case 'outline':
@@ -738,35 +782,34 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     );
   };
 
-  const mapContainer = useRef(null);
+  // Render map or loading state
+  return (
+    <div className="relative w-full h-full">
+      {isLoading ? (
+        <div 
+          className="w-full h-full rounded-xl overflow-hidden flex items-center justify-center"
+          style={{ background: getMapBackgroundForType(mapType) }}
+        >
+          <Loader className="w-8 h-8 text-white animate-spin opacity-70" />
+        </div>
+      ) : (
+        <div className="w-full h-full rounded-xl overflow-hidden relative">
+          <div ref={mapContainerRef} className="absolute inset-0" />
+          {renderMapLegend()}
+          <div className="absolute top-4 right-4 z-10">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-background/50 backdrop-blur-sm border-galaxy-nova/30 hover:bg-background/70 hover:border-galaxy-nova/50"
+              onClick={handleExportMap}
+            >
+              Export Map
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-  // Initialize mapbox map when component mounts
-  useEffect(() => {
-    if (!mapContainer.current || !mapData) return;
-    
-    mapboxgl.accessToken = MAPBOX_TOKEN;
-    
-    // Calculate bounds from regions
-    const bounds = calculateBounds(mapData.regions);
-    
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: getMapboxStyleForType(mapType),
-      bounds: bounds,
-      fitBoundsOptions: { padding: 50 },
-      attributionControl: false
-    });
-
-    // Add navigation controls with historical styling
-    const nav = new mapboxgl.NavigationControl({
-      showCompass: true,
-      visualizePitch: true
-    });
-    map.addControl(nav, 'top-right');
-
-    // Add a subtle sepia filter to the entire map
-    map.on('style.load', () => {
-      map.setFilter('satellite', ['brightness', 0.9]);
-      map.setPaintProperty('satellite', 'raster-opacity', 0.8);
-      
-      // Add historical texture overlay
+export default MapDisplay;

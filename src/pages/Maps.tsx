@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Separator } from "@/components/ui/separator";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import VisualizationControls from "@/components/VisualizationControls";
 import MapDisplay from "@/components/MapDisplay";
+import MapStyleEditor, { MapStyle } from "@/components/MapStyleEditor";
 import { toast } from "@/hooks/use-toast";
 import { 
   Globe, 
@@ -18,7 +20,8 @@ import {
   BookOpen,
   Map as MapIcon,
   Info,
-  Download
+  Download,
+  Palette
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,10 +31,17 @@ const Maps = () => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [selectedMapExample, setSelectedMapExample] = useState<string | null>(null);
   const [generatedContent, setGeneratedContent] = useState<any>(null);
+  const [showStyleEditor, setShowStyleEditor] = useState(false);
+  const [currentMapStyle, setCurrentMapStyle] = useState<MapStyle | undefined>(undefined);
 
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+  };
+  
+  // Handle map style change
+  const handleStyleChange = (style: MapStyle) => {
+    setCurrentMapStyle(style);
   };
   
   // Fetch generated content from Supabase
@@ -192,6 +202,17 @@ const Maps = () => {
               isFullscreen={isFullscreen}
               onExport={() => toast({ title: "Success", description: "Map exported as SVG" })}
               onExportPDF={() => toast({ title: "Success", description: "Map exported as PDF" })}
+              additionalControls={
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-1.5 bg-black/30 text-foreground/90 border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5"
+                  onClick={() => setShowStyleEditor(!showStyleEditor)}
+                >
+                  <Palette className="w-4 h-4 text-galaxy-nova" />
+                  {showStyleEditor ? "Hide Map Style" : "Edit Map Style"}
+                </Button>
+              }
             />
             
             {/* Map Content Area */}
@@ -222,13 +243,14 @@ const Maps = () => {
                   <TabsContent key={type.id} value={type.id} className="mt-6 h-full">
                     <div className="grid md:grid-cols-7 gap-6 h-full">
                       {/* Map Display Area */}
-                      <div className="md:col-span-5 rounded-xl overflow-hidden relative min-h-[400px]">
+                      <div className={`${showStyleEditor ? 'md:col-span-4' : 'md:col-span-5'} rounded-xl overflow-hidden relative min-h-[400px]`}>
                         {isMapLoaded ? (
                           <MapDisplay 
                             mapType={currentView}
                             mapTitle={selectedMapExample || type.title}
                             mapSubtitle={type.description}
                             regionData={generatedContent?.entities}
+                            currentStyle={currentMapStyle}
                           />
                         ) : (
                           <div className="rounded-xl border border-galaxy-nova/20 bg-black/30 backdrop-blur-sm flex items-center justify-center relative overflow-hidden min-h-[400px] h-full">
@@ -254,8 +276,18 @@ const Maps = () => {
                         )}
                       </div>
                       
-                      {/* Info Panel */}
-                      <div className="md:col-span-2 space-y-4">
+                      {/* Style Editor (when enabled) */}
+                      {showStyleEditor && (
+                        <div className="md:col-span-3 space-y-4">
+                          <MapStyleEditor 
+                            onStyleChange={handleStyleChange}
+                            currentMapType={currentView}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Info Panel (smaller when style editor is shown) */}
+                      <div className={`${showStyleEditor ? 'md:col-span-3' : 'md:col-span-2'} space-y-4`}>
                         <Card className="border border-galaxy-nova/30 bg-black/30 backdrop-blur-sm shadow-md shadow-galaxy-nova/10">
                           <CardHeader className="pb-2">
                             <CardTitle className="flex items-center gap-2 text-foreground">
