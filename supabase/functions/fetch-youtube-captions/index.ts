@@ -1,4 +1,3 @@
-
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
@@ -96,25 +95,25 @@ Deno.serve(async (req: Request) => {
         const captionTracks = JSON.parse(captionsMatch[1]);
         console.log(`Found ${captionTracks.length} caption tracks`);
         
-        // First try to find English captions
-        let englishTrack = captionTracks.find((track: any) => 
-          track.languageCode === 'en' && track.kind !== 'asr'
+        // First try to find Arabic captions
+        let arabicTrack = captionTracks.find((track: any) => 
+          track.languageCode === 'ar' && track.kind !== 'asr'
         );
         
-        // If no manual English captions, look for auto-generated ones
-        if (!englishTrack) {
-          englishTrack = captionTracks.find((track: any) => 
-            track.languageCode === 'en'
+        // If no manual Arabic captions, look for auto-generated ones
+        if (!arabicTrack) {
+          arabicTrack = captionTracks.find((track: any) => 
+            track.languageCode === 'ar'
           );
         }
         
-        // If still no English captions, just take the first available track
-        if (!englishTrack && captionTracks.length > 0) {
-          englishTrack = captionTracks[0];
+        // If still no Arabic captions, just take the first available track
+        if (!arabicTrack && captionTracks.length > 0) {
+          arabicTrack = captionTracks[0];
         }
         
-        if (englishTrack && englishTrack.baseUrl) {
-          captionsUrl = englishTrack.baseUrl;
+        if (arabicTrack && arabicTrack.baseUrl) {
+          captionsUrl = arabicTrack.baseUrl;
         }
       } catch (error) {
         console.error('Error parsing caption tracks:', error);
