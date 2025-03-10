@@ -35,9 +35,9 @@ const Maps = () => {
       title: "Historical Maps",
       description: "Visualize how territories, borders, and civilizations have changed over time.",
       icon: Globe,
-      color: "from-amber-400 to-orange-600",
-      bgColor: "bg-amber-100/20",
-      borderColor: "border-amber-400/30",
+      color: "from-galaxy-star via-galaxy-nova to-galaxy-blue-giant",
+      bgColor: "bg-black/30",
+      borderColor: "border-galaxy-nova/30",
       details: "Historical maps show the geographical features, political boundaries, and cultural landscapes of the past. They help students visualize how territories have expanded and contracted, where ancient civilizations flourished, and how geography influenced historical events.",
       examples: [
         { name: "Roman Empire (117 CE)", description: "Map showing the Roman Empire at its maximum extent under Emperor Trajan." },
@@ -50,9 +50,9 @@ const Maps = () => {
       title: "Thematic Maps",
       description: "Illustrate specific themes or subjects across geographical areas.",
       icon: Landmark,
-      color: "from-sky-400 to-blue-600",
-      bgColor: "bg-sky-100/20",
-      borderColor: "border-sky-400/30",
+      color: "from-aurora-blue to-galaxy-blue-giant",
+      bgColor: "bg-black/30",
+      borderColor: "border-galaxy-nova/30",
       details: "Thematic maps focus on displaying specific data patterns across geographical areas. They can show population density, climate patterns, economic activity, resource distribution, or cultural diffusion. These maps help students understand complex concepts through visual spatial representation.",
       examples: [
         { name: "World Population Density", description: "Heat map showing population concentration across continents." },
@@ -65,9 +65,9 @@ const Maps = () => {
       title: "Outline Maps",
       description: "Blank or partially labeled maps for practice and assessment.",
       icon: FileText,
-      color: "from-emerald-400 to-green-600",
-      bgColor: "bg-emerald-100/20",
-      borderColor: "border-emerald-400/30",
+      color: "from-aurora-green to-galaxy-blue-giant",
+      bgColor: "bg-black/30",
+      borderColor: "border-galaxy-nova/30",
       details: "These blank or partially labeled maps allow students to practice identifying geographical features, political borders, and important locations. They're essential for active learning and self-assessment in geography education.",
       examples: [
         { name: "World Countries Outline", description: "Blank map with country borders for labeling exercises." },
@@ -80,9 +80,9 @@ const Maps = () => {
       title: "Relief Maps",
       description: "Three-dimensional representations of terrain and elevation.",
       icon: Mountain,
-      color: "from-stone-400 to-stone-600",
-      bgColor: "bg-stone-100/20",
-      borderColor: "border-stone-400/30",
+      color: "from-galaxy-star to-galaxy-nova",
+      bgColor: "bg-black/30",
+      borderColor: "border-galaxy-nova/30",
       details: "Relief maps provide tactile, three-dimensional representations of terrain and elevation. They help students understand how landforms like mountains, valleys, and plateaus affect human settlement, agriculture, and historical development.",
       examples: [
         { name: "Himalayan Mountain Range", description: "3D relief map showing the world's highest mountains." },
@@ -95,9 +95,9 @@ const Maps = () => {
       title: "Interactive Maps",
       description: "Digital maps with layers of information and interactive features.",
       icon: Navigation,
-      color: "from-violet-400 to-purple-600",
-      bgColor: "bg-violet-100/20",
-      borderColor: "border-violet-400/30",
+      color: "from-aurora-purple to-galaxy-nova",
+      bgColor: "bg-black/30",
+      borderColor: "border-galaxy-nova/30",
       details: "Digital interactive maps allow students to explore multiple layers of geographic information. Students can toggle between different data sets, zoom in on specific regions, and observe how different factors interact across space and time.",
       examples: [
         { name: "Historical Battles Explorer", description: "Interactive timeline with battle locations throughout history." },
@@ -110,9 +110,9 @@ const Maps = () => {
       title: "Concept Maps",
       description: "Visual representations of relationships between concepts.",
       icon: Network,
-      color: "from-rose-400 to-pink-600",
-      bgColor: "bg-rose-100/20",
-      borderColor: "border-rose-400/30",
+      color: "from-aurora-pink to-galaxy-nova",
+      bgColor: "bg-black/30",
+      borderColor: "border-galaxy-nova/30",
       details: "Concept maps help organize and connect ideas in geography and history. They visualize how different historical events are connected, how geographical features influence societies, and how complex systems interact.",
       examples: [
         { name: "Causes of World War I", description: "Concept map showing interrelated factors leading to global conflict." },
@@ -127,17 +127,17 @@ const Maps = () => {
       <div className="container max-w-7xl py-10">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-amber-400 via-orange-500 to-rose-600 bg-clip-text text-transparent mb-4">Educational Maps</h1>
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-galaxy-star via-galaxy-nova to-galaxy-blue-giant bg-clip-text text-transparent mb-4">Educational Maps</h1>
           <p className="text-xl text-foreground/80 max-w-3xl mx-auto">
             Explore different types of maps essential for understanding history and geography.
           </p>
         </div>
         
-        <Separator className="mb-10 bg-gradient-to-r from-amber-400/20 via-orange-500/20 to-rose-600/20 h-0.5 rounded-full" />
+        <Separator className="mb-10 bg-gradient-to-r from-galaxy-nova/20 via-galaxy-blue-giant/20 to-aurora-purple/20 h-0.5 rounded-full" />
         
         {/* Map Explorer */}
         <div className={`${isFullscreen ? 'fixed inset-0 z-50 p-4 bg-background' : 'relative'}`}>
-          <div className={`${isFullscreen ? 'h-full' : 'min-h-[600px]'} relative overflow-hidden rounded-xl backdrop-blur-sm border border-amber-500/30 shadow-lg shadow-amber-500/10 bg-gradient-to-b from-background to-background/70`}>
+          <div className={`${isFullscreen ? 'h-full' : 'min-h-[600px]'} relative overflow-hidden rounded-xl backdrop-blur-sm border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10 bg-gradient-to-b from-background to-background/70`}>
             {/* Visualization Controls */}
             <VisualizationControls 
               visualizationType="graph"
@@ -154,12 +154,12 @@ const Maps = () => {
                 onValueChange={(value) => setCurrentView(value as any)} 
                 className="h-full"
               >
-                <TabsList className="grid grid-cols-3 lg:grid-cols-6 gap-2 bg-transparent h-auto p-1 rounded-xl border border-amber-500/20">
+                <TabsList className="grid grid-cols-3 lg:grid-cols-6 gap-2 bg-black/30 backdrop-blur-sm h-auto p-1 rounded-xl border border-galaxy-nova/20">
                   {mapTypes.map((type) => (
                     <TabsTrigger 
                       key={type.id} 
                       value={type.id}
-                      className={`flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:${type.bgColor} data-[state=active]:backdrop-blur-md data-[state=active]:${type.borderColor} data-[state=active]:shadow-md hover:bg-foreground/5 transition-all duration-300`}
+                      className="flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:bg-galaxy-nova/20 data-[state=active]:backdrop-blur-md data-[state=active]:text-foreground data-[state=active]:border-galaxy-nova/30 border border-transparent"
                     >
                       <type.icon className={`w-5 h-5 bg-gradient-to-r ${type.color} bg-clip-text text-transparent`} />
                       <span className="text-xs font-medium text-foreground/90">{type.title}</span>
@@ -171,12 +171,12 @@ const Maps = () => {
                   <TabsContent key={type.id} value={type.id} className="mt-6 h-full">
                     <div className="grid md:grid-cols-7 gap-6 h-full">
                       {/* Map Placeholder */}
-                      <div className="md:col-span-5 rounded-xl border border-amber-500/20 bg-gradient-to-br from-background/80 to-background/40 backdrop-blur-sm flex items-center justify-center relative overflow-hidden min-h-[400px]">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,175,89,0.08)_0,_transparent_70%)]"></div>
+                      <div className="md:col-span-5 rounded-xl border border-galaxy-nova/20 bg-black/30 backdrop-blur-sm flex items-center justify-center relative overflow-hidden min-h-[400px]">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(142,101,218,0.08)_0,_transparent_70%)]"></div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-10">
                           <type.icon className="w-32 h-32" />
                         </div>
-                        <Button variant="default" className="relative z-10 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 transition-all duration-300">
+                        <Button className="relative z-10 nebula-button">
                           <MapIcon className="mr-2 h-4 w-4" />
                           Load {type.title} 
                         </Button>
@@ -184,7 +184,7 @@ const Maps = () => {
                       
                       {/* Info Panel */}
                       <div className="md:col-span-2 space-y-4">
-                        <Card className="border border-amber-500/30 bg-gradient-to-br from-background/90 to-background/60 backdrop-blur-sm shadow-md shadow-amber-500/10">
+                        <Card className="border border-galaxy-nova/30 bg-black/30 backdrop-blur-sm shadow-md shadow-galaxy-nova/10">
                           <CardHeader className="pb-2">
                             <CardTitle className="flex items-center gap-2 text-foreground">
                               <type.icon className={`w-5 h-5 bg-gradient-to-r ${type.color} bg-clip-text text-transparent`} />
@@ -197,14 +197,14 @@ const Maps = () => {
                           </CardContent>
                         </Card>
                         
-                        <div className="bg-background/40 backdrop-blur-sm rounded-xl border border-amber-500/20 p-4">
+                        <div className="bg-black/30 backdrop-blur-sm rounded-xl border border-galaxy-nova/20 p-4">
                           <h3 className="text-sm font-medium mb-3 flex items-center gap-2 text-foreground/90">
-                            <BookOpen className="w-4 h-4 text-amber-500" />
+                            <BookOpen className="w-4 h-4 text-galaxy-nova" />
                             Examples
                           </h3>
                           <ul className="space-y-3">
                             {type.examples.map((example, index) => (
-                              <li key={index} className="text-sm p-2 rounded-lg hover:bg-foreground/5 transition-colors">
+                              <li key={index} className="text-sm p-2 rounded-lg hover:bg-galaxy-nova/10 transition-colors">
                                 <div className="font-medium text-foreground/90">{example.name}</div>
                                 <div className="text-foreground/60 text-xs mt-1">{example.description}</div>
                               </li>
@@ -213,16 +213,16 @@ const Maps = () => {
                         </div>
                         
                         <div className="flex flex-col gap-2">
-                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all">
-                            <Info className="mr-2 h-4 w-4 text-amber-500" />
+                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">
+                            <Info className="mr-2 h-4 w-4 text-galaxy-nova" />
                             Map Details
                           </Button>
-                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all">
-                            <Download className="mr-2 h-4 w-4 text-amber-500" />
+                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">
+                            <Download className="mr-2 h-4 w-4 text-galaxy-nova" />
                             Download
                           </Button>
-                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all">
-                            <History className="mr-2 h-4 w-4 text-amber-500" />
+                          <Button variant="outline" className="w-full justify-start text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">
+                            <History className="mr-2 h-4 w-4 text-galaxy-nova" />
                             Historical Context
                           </Button>
                         </div>
@@ -237,9 +237,9 @@ const Maps = () => {
         
         {/* Additional resources section */}
         <section className="mt-16">
-          <h2 className="text-2xl font-bold mb-6 text-foreground bg-gradient-to-r from-amber-400 to-orange-600 bg-clip-text text-transparent">Additional Resources</h2>
+          <h2 className="text-2xl font-bold mb-6 text-foreground bg-gradient-to-r from-galaxy-star via-galaxy-nova to-galaxy-blue-giant bg-clip-text text-transparent">Additional Resources</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="bg-gradient-to-br from-background/90 to-background/60 backdrop-blur-sm border border-amber-500/20 shadow-lg shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-500/30 transition-all duration-300">
+            <Card className="bg-black/30 backdrop-blur-sm border border-galaxy-nova/20 shadow-lg shadow-galaxy-nova/5 hover:shadow-xl hover:shadow-galaxy-nova/10 hover:border-galaxy-nova/30 transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-foreground/90">Teaching with Maps</CardTitle>
                 <CardDescription className="text-foreground/70">Educational strategies for map-based learning</CardDescription>
@@ -248,11 +248,11 @@ const Maps = () => {
                 <p className="text-foreground/70 text-sm leading-relaxed">Discover effective methods for incorporating different map types into your history and geography curriculum.</p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full text-foreground/80 hover:text-foreground border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all">Learn More</Button>
+                <Button variant="outline" className="w-full text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">Learn More</Button>
               </CardFooter>
             </Card>
             
-            <Card className="bg-gradient-to-br from-background/90 to-background/60 backdrop-blur-sm border border-amber-500/20 shadow-lg shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-500/30 transition-all duration-300">
+            <Card className="bg-black/30 backdrop-blur-sm border border-galaxy-nova/20 shadow-lg shadow-galaxy-nova/5 hover:shadow-xl hover:shadow-galaxy-nova/10 hover:border-galaxy-nova/30 transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-foreground/90">Map Creation Tools</CardTitle>
                 <CardDescription className="text-foreground/70">Resources for creating custom educational maps</CardDescription>
@@ -261,11 +261,11 @@ const Maps = () => {
                 <p className="text-foreground/70 text-sm leading-relaxed">Explore software and online tools that help educators and students create customized maps for specific learning objectives.</p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full text-foreground/80 hover:text-foreground border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all">View Tools</Button>
+                <Button variant="outline" className="w-full text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">View Tools</Button>
               </CardFooter>
             </Card>
             
-            <Card className="bg-gradient-to-br from-background/90 to-background/60 backdrop-blur-sm border border-amber-500/20 shadow-lg shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-500/30 transition-all duration-300">
+            <Card className="bg-black/30 backdrop-blur-sm border border-galaxy-nova/20 shadow-lg shadow-galaxy-nova/5 hover:shadow-xl hover:shadow-galaxy-nova/10 hover:border-galaxy-nova/30 transition-all duration-300">
               <CardHeader>
                 <CardTitle className="text-foreground/90">Map Analysis Workshop</CardTitle>
                 <CardDescription className="text-foreground/70">Learn to interpret and analyze historical maps</CardDescription>
@@ -274,7 +274,7 @@ const Maps = () => {
                 <p className="text-foreground/70 text-sm leading-relaxed">Develop critical thinking skills by learning how to analyze and interpret various types of historical and geographical maps.</p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full text-foreground/80 hover:text-foreground border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all">Join Workshop</Button>
+                <Button variant="outline" className="w-full text-foreground/80 hover:text-foreground border-galaxy-nova/20 hover:border-galaxy-nova/40 hover:bg-galaxy-nova/5 transition-all">Join Workshop</Button>
               </CardFooter>
             </Card>
           </div>
