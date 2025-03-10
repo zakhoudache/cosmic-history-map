@@ -9,7 +9,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Mapbox public token - replace with your own or use environment variables
 // You should create an account at mapbox.com to get your own token
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiZXhhbXBsZS11c2VyIiwiYSI6ImNrbHZxNXUxejA1aGIydm55YTUwbGNoNzQifQ.example-token';
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiemFjazk0MDAiLCJhIjoiY2tyaWRyb3d3Njg5OTJvbnhvanFldHlmMCJ9.2Sdj3kBXnQBvWf9mFndDww';
 
 interface MapRegion {
   id: string;
