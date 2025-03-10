@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers for browser requests
@@ -19,7 +18,7 @@ interface HistoricalEntity {
   group?: string;
   domains?: string[];
   relations?: Array<{
-    targetId: string;
+    targetId: string;  // Ensure we consistently use targetId, not target
     type: string;
     strength: number;
   }>;
@@ -187,8 +186,26 @@ serve(async (req: Request) => {
       );
     }
     
-    // Determine the map type if not explicitly provided
-    const determinedMapType = mapType || determineMapType(entities);
+    // Ensure consistent property naming for relationships
+    const normalizedEntities = entities.map(entity => {
+      if (entity.relations && Array.isArray(entity.relations)) {
+        // Convert any 'target' properties to 'targetId' for consistency
+        const normalizedRelations = entity.relations.map(relation => ({
+          ...relation,
+          targetId: relation.targetId || relation.target,  // Use targetId, fallback to target
+          // Remove the target property if it exists
+          ...(relation.target && { target: undefined })
+        }));
+        
+        return {
+          ...entity,
+          relations: normalizedRelations
+        };
+      }
+      return entity;
+    });
+    
+    const determinedMapType = mapType || determineMapType(normalizedEntities);
     
     // Process entities to create map-compatible data
     let regions: any[] = [];
@@ -199,7 +216,7 @@ serve(async (req: Request) => {
     let startYear: number | null = null;
     let endYear: number | null = null;
     
-    entities.forEach((entity, index) => {
+    normalizedEntities.forEach((entity, index) => {
       const entityStartYear = extractYear(entity.startDate);
       const entityEndYear = extractYear(entity.endDate) || entityStartYear;
       

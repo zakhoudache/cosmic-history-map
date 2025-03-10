@@ -1,4 +1,4 @@
-
+<lov-code>
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, prepareSimulationData } from '@/utils/mockData';
@@ -339,8 +339,8 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       if (entity.relations && Array.isArray(entity.relations)) {
         return entity.relations
           .map(relation => {
-            // Fix the property name from 'target' to 'targetId'
-            const targetId = relation.target || relation.targetId;
+            // Fix: Use targetId consistently (the property used in backend responses)
+            const targetId = relation.targetId;
             const target = visualizationData.find(e => e.id === targetId);
             if (target) {
               return { source: entity, target, type: relation.type || "default", strength: relation.strength || 1 };
@@ -683,161 +683,3 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   useEffect(() => {
     if (!svgRef.current || !isVisible || !hasData) return;
     
-    const simulation = createVisualization(svgRef.current, dimensions.width, dimensions.height);
-    
-    return () => {
-      if (simulation) simulation.stop();
-    };
-  }, [entities, dimensions, hasData, isVisible, onEntitySelect]);
-  
-  const handleExport = () => {
-    if (!svgRef.current) return;
-    
-    try {
-      // Clone the SVG to avoid modifying the original
-      const svgCopy = svgRef.current.cloneNode(true) as SVGSVGElement;
-      
-      // Set the SVG dimensions and viewBox
-      svgCopy.setAttribute('width', dimensions.width.toString());
-      svgCopy.setAttribute('height', dimensions.height.toString());
-      svgCopy.setAttribute('viewBox', `0 0 ${dimensions.width} ${dimensions.height}`);
-      
-      // Convert SVG to string
-      const svgData = new XMLSerializer().serializeToString(svgCopy);
-      
-      // Create a Blob and URL
-      const blob = new Blob([svgData], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create a temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'cosmic-visualization.svg';
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success("Visualization exported as SVG");
-    } catch (error) {
-      console.error('Error exporting visualization:', error);
-      toast.error("Failed to export visualization");
-    }
-  };
-  
-  const toggleFullScreen = () => {
-    setIsFullScreen(!isFullScreen);
-    
-    // Reset zoom when toggling fullscreen
-    setZoomLevel(1);
-    setZoomTransform(null);
-  };
-  
-  return (
-    <div ref={containerRef} className="relative w-full h-full flex flex-col">
-      <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
-        <Button
-          variant="starfield"
-          size="icon"
-          onClick={handleZoomIn}
-          title="Zoom In"
-          aria-label="Zoom In"
-        >
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="starfield"
-          size="icon"
-          onClick={handleZoomOut}
-          title="Zoom Out"
-          aria-label="Zoom Out"
-        >
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="starfield"
-          size="icon"
-          onClick={handleZoomReset}
-          title="Reset Zoom"
-          aria-label="Reset Zoom"
-        >
-          <Maximize className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="starfield"
-          size="icon"
-          onClick={toggleFullScreen}
-          title="Toggle Fullscreen"
-          aria-label="Toggle Fullscreen"
-        >
-          {isFullScreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-        </Button>
-        <Button
-          variant="starfield"
-          size="icon"
-          onClick={handleExport}
-          title="Export as SVG"
-          aria-label="Export as SVG"
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      {hasData ? (
-        <svg 
-          ref={svgRef} 
-          className="w-full h-full"
-          style={{ minHeight: "600px" }}
-        />
-      ) : (
-        <VisualizationPlaceholder />
-      )}
-      
-      <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
-        <DialogContent className="max-w-screen-xl w-[90vw] h-[90vh] max-h-screen flex flex-col p-0">
-          <DialogTitle className="p-4 border-b">Cosmic Visualization</DialogTitle>
-          <div ref={fullscreenContainerRef} className="flex-1 overflow-hidden bg-black">
-            <svg 
-              className="w-full h-full" 
-              style={{ minHeight: "600px" }}
-            />
-            
-            <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
-              <Button
-                variant="starfield"
-                size="icon"
-                onClick={handleZoomIn}
-                title="Zoom In"
-                aria-label="Zoom In"
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="starfield"
-                size="icon"
-                onClick={handleZoomOut}
-                title="Zoom Out"
-                aria-label="Zoom Out"
-              >
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="starfield"
-                size="icon"
-                onClick={handleZoomReset}
-                title="Reset Zoom"
-                aria-label="Reset Zoom"
-              >
-                <Maximize className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default CosmicVisualization;
