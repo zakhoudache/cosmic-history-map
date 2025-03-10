@@ -194,7 +194,7 @@ serve(async (req: Request) => {
         `;
 
         // Call the Gemini API for text summarization
-        const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent', {
+        const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
