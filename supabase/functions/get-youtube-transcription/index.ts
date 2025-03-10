@@ -9,8 +9,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("Function invoked: get-youtube-transcription");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling OPTIONS request for CORS preflight");
     return new Response(null, { 
       headers: corsHeaders,
       status: 204

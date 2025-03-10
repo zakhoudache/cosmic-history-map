@@ -14,6 +14,7 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
     // Add more detailed logging
     console.log("Supabase client initialized:", !!supabase);
     console.log("Functions API available:", !!supabase.functions);
+    console.log("Trying to invoke function with URL:", supabase.functions.url);
     
     const { data, error } = await supabase.functions.invoke("get-youtube-transcription", {
       body: { videoId }
