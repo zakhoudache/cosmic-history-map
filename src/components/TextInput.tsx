@@ -12,9 +12,15 @@ interface TextInputProps {
   onSubmit: (text: string, analysisResult: FormattedHistoricalEntity[]) => void;
   isLoading: boolean;
   onStartAnalysis?: () => void;
+  defaultMethod?: "text" | "youtube";
 }
 
-const TextInput: React.FC<TextInputProps> = ({ onSubmit, isLoading: externalLoading, onStartAnalysis }) => {
+const TextInput: React.FC<TextInputProps> = ({ 
+  onSubmit, 
+  isLoading: externalLoading, 
+  onStartAnalysis,
+  defaultMethod = "text" 
+}) => {
   const [text, setText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
