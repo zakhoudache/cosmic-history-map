@@ -12,6 +12,7 @@ import About from "./pages/About";
 import Auth from "./pages/Auth";
 import YouTubeAnalysis from "./pages/YouTubeAnalysis";
 import Maps from "./pages/Maps";
+import Storytelling from "./pages/Storytelling";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +30,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/youtube-analysis" element={<YouTubeAnalysis />} />
             <Route path="/maps" element={<Maps />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/storytelling" element={<Storytelling />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

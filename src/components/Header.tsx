@@ -4,8 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import AuthButtons from "./AuthButtons";
-import { Globe, BarChart2, Info, Youtube, Star, Sparkles } from "lucide-react";
-import { Button } from "./ui/button";
+import { Globe, BarChart2, Info, Youtube, MapPin, BookOpen } from "lucide-react";
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -43,6 +42,42 @@ const Header: React.FC = () => {
               </span>
               <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-galaxy-nova/0 via-galaxy-nova/50 to-galaxy-nova/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
               {location.pathname === "/visualize" && (
+                <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-galaxy-nova/0 via-galaxy-nova/50 to-galaxy-nova/0"></div>
+              )}
+            </Link>
+            <Link
+              to="/maps"
+              className={cn(
+                "transition-colors hover:text-galaxy-nova relative group py-1",
+                location.pathname === "/maps"
+                  ? "text-galaxy-nova"
+                  : "text-foreground/70"
+              )}
+            >
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" />
+                <span>Maps</span>
+              </span>
+              <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-galaxy-nova/0 via-galaxy-nova/50 to-galaxy-nova/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+              {location.pathname === "/maps" && (
+                <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-galaxy-nova/0 via-galaxy-nova/50 to-galaxy-nova/0"></div>
+              )}
+            </Link>
+            <Link
+              to="/storytelling"
+              className={cn(
+                "transition-colors hover:text-galaxy-nova relative group py-1",
+                location.pathname === "/storytelling"
+                  ? "text-galaxy-nova"
+                  : "text-foreground/70"
+              )}
+            >
+              <span className="flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4" />
+                <span>Storytelling</span>
+              </span>
+              <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-galaxy-nova/0 via-galaxy-nova/50 to-galaxy-nova/0 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+              {location.pathname === "/storytelling" && (
                 <div className="absolute -bottom-1 left-0 w-full h-px bg-gradient-to-r from-galaxy-nova/0 via-galaxy-nova/50 to-galaxy-nova/0"></div>
               )}
             </Link>
