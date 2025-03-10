@@ -1,4 +1,4 @@
-<lov-code>
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { HistoricalEntity, prepareSimulationData } from '@/utils/mockData';
@@ -683,3 +683,155 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   useEffect(() => {
     if (!svgRef.current || !isVisible || !hasData) return;
     
+    const simulation = createVisualization(svgRef.current, dimensions.width, dimensions.height);
+    
+    // Cleanup simulation on component unmount or data change
+    return () => {
+      if (simulation) simulation.stop();
+    };
+  }, [dimensions, entities, hasData, isVisible]);
+  
+  // Toggle fullscreen mode
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+  };
+  
+  // Download visualization as SVG
+  const downloadSVG = () => {
+    if (!svgRef.current) return;
+    
+    try {
+      // Clone the SVG element to avoid modifying the original
+      const svgClone = svgRef.current.cloneNode(true) as SVGElement;
+      
+      // Add any necessary attributes for a standalone SVG
+      svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      svgClone.setAttribute("version", "1.1");
+      
+      // Convert to string
+      const svgString = new XMLSerializer().serializeToString(svgClone);
+      
+      // Create a blob
+      const blob = new Blob([svgString], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "historical-visualization.svg";
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      
+      toast.success("Visualization downloaded as SVG");
+    } catch (error) {
+      console.error("Error downloading SVG:", error);
+      toast.error("Failed to download visualization");
+    }
+  };
+  
+  // No data state - show placeholder
+  if (!hasData && !isVisible) {
+    return <VisualizationPlaceholder />;
+  }
+  
+  return (
+    <>
+      <div className="relative w-full h-[600px] overflow-hidden bg-black/20 rounded-lg" ref={containerRef}>
+        {/* Zoom Controls */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleZoomIn}
+            className="bg-black/50 hover:bg-black/70 text-white"
+          >
+            <ZoomIn size={18} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleZoomOut}
+            className="bg-black/50 hover:bg-black/70 text-white"
+          >
+            <ZoomOut size={18} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleFullScreen}
+            className="bg-black/50 hover:bg-black/70 text-white"
+          >
+            {isFullScreen ? <Minimize size={18} /> : <Maximize size={18} />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={downloadSVG}
+            className="bg-black/50 hover:bg-black/70 text-white"
+          >
+            <Download size={18} />
+          </Button>
+        </div>
+        
+        {/* Main visualization SVG */}
+        <svg 
+          ref={svgRef} 
+          width="100%" 
+          height="100%" 
+          className="text-foreground"
+          style={{ opacity: isVisible ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}
+        />
+      </div>
+      
+      {/* Fullscreen Modal */}
+      <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
+        <DialogContent className="max-w-screen max-h-screen p-0 border-none bg-black w-[98vw] h-[98vh]">
+          <DialogTitle className="absolute top-2 left-4 z-10 text-white bg-black/30 px-3 py-1 rounded-md">
+            Cosmic Visualization
+          </DialogTitle>
+          <div className="w-full h-full relative" ref={fullscreenContainerRef}>
+            <svg 
+              width="100%" 
+              height="100%" 
+              className="text-foreground"
+            />
+            
+            {/* Fullscreen Controls */}
+            <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomIn}
+                className="bg-black/50 hover:bg-black/70 text-white"
+              >
+                <ZoomIn size={18} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomOut}
+                className="bg-black/50 hover:bg-black/70 text-white"
+              >
+                <ZoomOut size={18} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullScreen}
+                className="bg-black/50 hover:bg-black/70 text-white"
+              >
+                <Minimize size={18} />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+export default CosmicVisualization;
