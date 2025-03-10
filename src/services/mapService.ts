@@ -1,198 +1,185 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { FormattedHistoricalEntity } from "@/types/supabase";
+import { toast } from "sonner";
 
-// Define interfaces for map data
-export interface MapRegion {
-  id: string;
-  name: string;
-  description: string;
-  coordinates: [number, number];
-  significance: number;
-  color: string;
-  startYear?: number;
-  endYear?: number;
+// Interface for map data
+export interface MapData {
+  id?: string;
   type: string;
-}
-
-export interface MapContent {
-  mapType: string;
   title: string;
-  regions: MapRegion[];
-  settings: {
-    center: number[];
-    zoom: number;
-    style: string;
-  };
-  legend: {
-    title: string;
-    items: Array<{
-      label: string;
-      color: string;
-    }>;
-  };
-  metadata: {
-    generatedFrom: string;
-    timeperiod?: {
-      start: string;
-      end: string;
-    };
-  };
+  content: any;
 }
 
-// Service functions for map-related operations
-const mapService = {
-  /**
-   * Generate map data from historical entities
-   */
-  generateMapData: async (entities: any[], mapType?: string): Promise<MapContent> => {
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-map-data', {
-        body: { entities, mapType },
-      });
-      
-      if (error) {
-        console.error("Error generating map data:", error);
-        throw new Error(error.message);
+/**
+ * Generate a map from historical entities
+ */
+export const generateMapFromEntities = async (
+  entities: FormattedHistoricalEntity[],
+  mapType: string,
+  sourceType?: string,
+  sourceId?: string
+): Promise<MapData | null> => {
+  try {
+    console.log(`Generating ${mapType} map for ${entities.length} entities`);
+    
+    const { data, error } = await supabase.functions.invoke('generate-map-data', {
+      body: {
+        entities,
+        mapType,
+        sourceType,
+        sourceId,
+        storeMap: true
       }
-      
-      return data as MapContent;
-    } catch (error) {
-      console.error("Map generation failed:", error);
-      // Return fallback map data
-      return createFallbackMapData(mapType || "historical");
-    }
-  },
-  
-  /**
-   * Save generated map to Supabase
-   */
-  saveMap: async (mapContent: MapContent): Promise<{ id: string }> => {
-    try {
-      const { data, error } = await supabase
-        .from('maps')
-        .insert({
-          type: mapContent.mapType,
-          title: mapContent.title,
-          content: mapContent,
-          created_at: new Date().toISOString()
-        })
-        .select('id')
-        .single();
-      
-      if (error) {
-        console.error("Error saving map:", error);
-        throw new Error(error.message);
-      }
-      
-      return { id: data.id };
-    } catch (error) {
-      console.error("Map save failed:", error);
-      return { id: `temp-${Date.now()}` };
-    }
-  },
-  
-  /**
-   * Get a map by ID
-   */
-  getMapById: async (id: string): Promise<MapContent | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('maps')
-        .select('content')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching map:", error);
-        return null;
-      }
-      
-      return data.content as MapContent;
-    } catch (error) {
-      console.error("Map fetch failed:", error);
+    });
+    
+    if (error) {
+      console.error("Error generating map:", error);
+      toast.error("Failed to generate map. Please try again.");
       return null;
     }
-  },
-  
-  /**
-   * Get maps by type
-   */
-  getMapsByType: async (type: string): Promise<MapContent[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('maps')
-        .select('content')
-        .eq('type', type);
-      
-      if (error) {
-        console.error("Error fetching maps by type:", error);
-        return [];
-      }
-      
-      return data.map(item => item.content as MapContent);
-    } catch (error) {
-      console.error("Maps fetch failed:", error);
-      return [];
-    }
+    
+    console.log("Map generated successfully:", data);
+    return {
+      id: data.mapId,
+      type: mapType,
+      title: data.mapContent.title,
+      content: data.mapContent
+    };
+  } catch (error) {
+    console.error("Error in map generation:", error);
+    toast.error("Error generating map");
+    return null;
   }
 };
 
 /**
- * Create fallback map data when API calls fail
+ * Fetch maps from the database
  */
-function createFallbackMapData(mapType: string): MapContent {
-  // Sample regions for fallback map
-  const sampleRegions: MapRegion[] = [
-    {
-      id: "region1",
-      name: "Sample Region 1",
-      description: "This is a sample region for demonstration purposes.",
-      coordinates: [0, 20],
-      significance: 8,
-      color: "#8E76DB",
-      type: "place"
-    },
-    {
-      id: "region2",
-      name: "Sample Region 2",
-      description: "This is another sample region.",
-      coordinates: [30, 40],
-      significance: 6,
-      color: "#6A9CE2",
-      type: "place"
-    },
-    {
-      id: "region3",
-      name: "Sample Region 3",
-      description: "This is a third sample region.",
-      coordinates: [-30, 10],
-      significance: 7,
-      color: "#76CCB9",
-      type: "place"
+export const fetchMaps = async (limit: number = 10): Promise<MapData[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('maps')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    if (error) {
+      console.error("Error fetching maps:", error);
+      return [];
     }
-  ];
-  
-  // Return a simple fallback map
-  return {
-    mapType: mapType,
-    title: `${mapType.charAt(0).toUpperCase() + mapType.slice(1)} Map`,
-    regions: sampleRegions,
-    settings: {
-      center: [0, 20],
-      zoom: 2,
-      style: mapType === "historical" ? "satellite" : "light"
-    },
-    legend: {
-      title: "Sample Regions",
-      items: sampleRegions.map(region => ({
-        label: region.name,
-        color: region.color
-      }))
-    },
-    metadata: {
-      generatedFrom: "Fallback Generator"
-    }
-  };
-}
+    
+    return data;
+  } catch (error) {
+    console.error("Error in fetchMaps:", error);
+    return [];
+  }
+};
 
-export default mapService;
+/**
+ * Get maps related to a specific content ID
+ */
+export const getMapsForContent = async (contentId: string): Promise<MapData[]> => {
+  try {
+    // First get the map IDs linked to this content
+    const { data: links, error: linkError } = await supabase
+      .from('content_maps')
+      .select('map_id')
+      .eq('content_id', contentId);
+    
+    if (linkError || !links || links.length === 0) {
+      return [];
+    }
+    
+    // Then fetch the actual maps
+    const mapIds = links.map(link => link.map_id);
+    const { data: maps, error: mapsError } = await supabase
+      .from('maps')
+      .select('*')
+      .in('id', mapIds);
+    
+    if (mapsError) {
+      console.error("Error fetching content maps:", mapsError);
+      return [];
+    }
+    
+    return maps;
+  } catch (error) {
+    console.error("Error in getMapsForContent:", error);
+    return [];
+  }
+};
+
+/**
+ * Store a map in the database and link it to content
+ */
+export const storeMap = async (
+  mapData: Omit<MapData, 'id'>,
+  contentId?: string
+): Promise<string | null> => {
+  try {
+    // Insert the map
+    const { data: map, error: mapError } = await supabase
+      .from('maps')
+      .insert(mapData)
+      .select('id')
+      .single();
+    
+    if (mapError) {
+      console.error("Error storing map:", mapError);
+      return null;
+    }
+    
+    // If we have content ID, link the map to it
+    if (contentId) {
+      const { error: linkError } = await supabase
+        .from('content_maps')
+        .insert({
+          content_id: contentId,
+          map_id: map.id
+        });
+      
+      if (linkError) {
+        console.error("Error linking map to content:", linkError);
+      }
+    }
+    
+    return map.id;
+  } catch (error) {
+    console.error("Error in storeMap:", error);
+    return null;
+  }
+};
+
+/**
+ * Delete a map and its content links
+ */
+export const deleteMap = async (mapId: string): Promise<boolean> => {
+  try {
+    // First delete any links to this map
+    const { error: linkError } = await supabase
+      .from('content_maps')
+      .delete()
+      .eq('map_id', mapId);
+    
+    if (linkError) {
+      console.error("Error deleting map links:", linkError);
+    }
+    
+    // Then delete the map itself
+    const { error: mapError } = await supabase
+      .from('maps')
+      .delete()
+      .eq('id', mapId);
+    
+    if (mapError) {
+      console.error("Error deleting map:", mapError);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in deleteMap:", error);
+    return false;
+  }
+};

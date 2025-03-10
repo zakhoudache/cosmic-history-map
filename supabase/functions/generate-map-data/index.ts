@@ -48,6 +48,7 @@ interface MapContent {
       start: string;
       end: string;
     };
+    sourceId?: string;
   };
 }
 
@@ -69,7 +70,7 @@ function extractYear(dateString: string | undefined): number | null {
   return null;
 }
 
-// Calculate geographical coordinates from a historical entity (mock implementation)
+// Calculate geographical coordinates from a historical entity
 function calculateCoordinates(entity: HistoricalEntity): [number, number] {
   // In a real implementation, this would use a historical gazetteer or database
   // For demo purposes, we'll create deterministic but random-seeming coordinates
@@ -120,6 +121,51 @@ function determineMapType(entities: HistoricalEntity[]): string {
   return "thematic";
 }
 
+// Store generated map in Supabase
+async function storeMapInDatabase(
+  mapContent: MapContent, 
+  sourceType: string, 
+  sourceId: string, 
+  supabaseClient: any
+): Promise<string | null> {
+  try {
+    // Insert map data
+    const { data: mapData, error: mapError } = await supabaseClient
+      .from('maps')
+      .insert({
+        type: mapContent.mapType,
+        title: mapContent.title,
+        content: mapContent
+      })
+      .select('id')
+      .single();
+    
+    if (mapError) {
+      console.error("Error storing map:", mapError);
+      return null;
+    }
+    
+    // If we have source information, create content-map link
+    if (sourceId) {
+      const { error: linkError } = await supabaseClient
+        .from('content_maps')
+        .insert({
+          content_id: sourceId,
+          map_id: mapData.id
+        });
+      
+      if (linkError) {
+        console.error("Error linking map to content:", linkError);
+      }
+    }
+    
+    return mapData.id;
+  } catch (error) {
+    console.error("Database error:", error);
+    return null;
+  }
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -128,7 +174,7 @@ serve(async (req: Request) => {
 
   try {
     const requestData = await req.json();
-    const { entities, mapType } = requestData;
+    const { entities, mapType, sourceType, sourceId, storeMap } = requestData;
     
     // Validate input
     if (!entities || !Array.isArray(entities)) {
@@ -227,7 +273,8 @@ serve(async (req: Request) => {
         items: legendItems
       },
       metadata: {
-        generatedFrom: "Historical Analysis",
+        generatedFrom: sourceType || "Historical Analysis",
+        sourceId: sourceId,
         timeperiod: startYear && endYear ? {
           start: startYear.toString(),
           end: endYear.toString()
@@ -235,9 +282,21 @@ serve(async (req: Request) => {
       }
     };
 
+    // Store map in database if requested
+    let mapId = null;
+    if (storeMap && sourceId) {
+      // This is a placeholder - we would need to create a Supabase client here
+      // In a real implementation, we'd use the supabase-js SDK
+      console.log("Would store map with source ID:", sourceId);
+      // mapId = await storeMapInDatabase(mapContent, sourceType, sourceId, supabaseClient);
+    }
+
     // Return the generated map content
     return new Response(
-      JSON.stringify(mapContent),
+      JSON.stringify({ 
+        mapContent,
+        mapId
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }

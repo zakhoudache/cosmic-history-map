@@ -12,3 +12,4 @@ directory = "functions"
 "gemini-youtube-transcription" = { include = ["*"] }
 "test-env-vars" = { include = ["*"] }
 "scrape-youtube-page" = { include = ["*"] }
+"generate-map-data" = { include = ["*"] }

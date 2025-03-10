@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      content_maps: {
+        Row: {
+          content_id: string | null
+          created_at: string | null
+          id: string
+          map_id: string | null
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string | null
+          id?: string
+          map_id?: string | null
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string | null
+          id?: string
+          map_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_maps_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "generated_content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_maps_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "maps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entities: {
         Row: {
           created_at: string
@@ -30,6 +66,36 @@ export type Database = {
           relationships?: Json | null
           text?: string
           type?: string
+        }
+        Relationships: []
+      }
+      generated_content: {
+        Row: {
+          created_at: string | null
+          entities: Json | null
+          id: string
+          source_id: string | null
+          source_type: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entities?: Json | null
+          id?: string
+          source_id?: string | null
+          source_type?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entities?: Json | null
+          id?: string
+          source_id?: string | null
+          source_type?: string | null
+          title?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -216,6 +282,33 @@ export type Database = {
           user_id?: string
           x?: number | null
           y?: number | null
+        }
+        Relationships: []
+      }
+      maps: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          id?: string
+          title: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          title?: string
+          type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
