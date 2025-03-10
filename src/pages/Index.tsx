@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -118,8 +119,8 @@ const Index = () => {
       title: "Historical Maps",
       description: "Visualize how territories, borders, and civilizations have changed over time.",
       icon: Globe,
-      color: "from-amber-400 to-orange-600",
-      bgColor: "bg-amber-50",
+      color: "from-galaxy-nova to-galaxy-blue-giant",
+      bgColor: "bg-black/30",
       details: "Historical maps show the geographical features, political boundaries, and cultural landscapes of the past. They help students visualize how territories have expanded and contracted, where ancient civilizations flourished, and how geography influenced historical events."
     },
     {
@@ -127,8 +128,8 @@ const Index = () => {
       title: "Thematic Maps",
       description: "Illustrate specific themes or subjects across geographical areas.",
       icon: Landmark,
-      color: "from-sky-400 to-blue-600",
-      bgColor: "bg-sky-50",
+      color: "from-aurora-blue to-galaxy-blue-giant",
+      bgColor: "bg-black/30",
       details: "Thematic maps focus on displaying specific data patterns across geographical areas. They can show population density, climate patterns, economic activity, resource distribution, or cultural diffusion. These maps help students understand complex concepts through visual spatial representation."
     },
     {
@@ -136,8 +137,8 @@ const Index = () => {
       title: "Outline Maps",
       description: "Blank or partially labeled maps for practice and assessment.",
       icon: FileText,
-      color: "from-emerald-400 to-green-600",
-      bgColor: "bg-emerald-50",
+      color: "from-aurora-green to-galaxy-blue-giant",
+      bgColor: "bg-black/30",
       details: "These blank or partially labeled maps allow students to practice identifying geographical features, political borders, and important locations. They're essential for active learning and self-assessment in geography education."
     },
     {
@@ -145,8 +146,8 @@ const Index = () => {
       title: "Relief Maps",
       description: "Three-dimensional representations of terrain and elevation.",
       icon: Mountain,
-      color: "from-stone-400 to-stone-600",
-      bgColor: "bg-stone-50",
+      color: "from-galaxy-star to-galaxy-nova",
+      bgColor: "bg-black/30",
       details: "Relief maps provide tactile, three-dimensional representations of terrain and elevation. They help students understand how landforms like mountains, valleys, and plateaus affect human settlement, agriculture, and historical development."
     },
     {
@@ -154,8 +155,8 @@ const Index = () => {
       title: "Interactive Maps",
       description: "Digital maps with layers of information and interactive features.",
       icon: Navigation,
-      color: "from-violet-400 to-purple-600",
-      bgColor: "bg-violet-50",
+      color: "from-aurora-purple to-galaxy-nova",
+      bgColor: "bg-black/30",
       details: "Digital interactive maps allow students to explore multiple layers of geographic information. Students can toggle between different data sets, zoom in on specific regions, and observe how different factors interact across space and time."
     },
     {
@@ -163,8 +164,8 @@ const Index = () => {
       title: "Concept Maps",
       description: "Visual representations of relationships between concepts.",
       icon: Network,
-      color: "from-rose-400 to-pink-600",
-      bgColor: "bg-rose-50",
+      color: "from-aurora-pink to-galaxy-nova",
+      bgColor: "bg-black/30",
       details: "Concept maps help organize and connect ideas in geography and history. They visualize how different historical events are connected, how geographical features influence societies, and how complex systems interact."
     }
   ];
@@ -173,10 +174,14 @@ const Index = () => {
 
   return (
     <MainLayout>
-      {/* Hero section */}
+      {/* Hero section with cosmic theme styling */}
       <section className="relative min-h-[calc(100vh-5rem)] flex flex-col justify-center py-16">
-        {/* Subtle galaxy background effect for hero section */}
-        <div className="absolute inset-0 bg-galaxy-gradient opacity-20 animate-galaxy-spin pointer-events-none"></div>
+        {/* Cosmic Background Effects */}
+        <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(91,33,182,0.15),rgba(0,0,0,0)_70%)]"></div>
+        <div className="fixed inset-0 -z-10 bg-background"></div>
+        <div className="fixed inset-0 -z-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIi8+PC9nPjwvc3ZnPg==')] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)]"></div>
+        
+        {/* Star field effect */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[...Array(50)].map((_, i) => (
             <div
@@ -191,27 +196,36 @@ const Index = () => {
           ))}
         </div>
         
+        {/* Glowing Orbs for cosmic effect */}
+        <div className="absolute top-20 right-20 w-64 h-64 bg-galaxy-nova/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-20 left-20 w-64 h-64 bg-galaxy-blue-giant/10 rounded-full blur-3xl pointer-events-none"></div>
+        
         <div className="max-w-3xl mx-auto text-center relative z-10 px-4">
-          <div className="inline-block px-3 py-1 rounded-full bg-secondary/80 border border-galaxy-nova/30 text-xs font-medium mb-4 animate-fade-in opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
+          <div className="inline-block px-3 py-1 rounded-full bg-black/30 backdrop-blur-sm border border-galaxy-nova/30 text-xs font-medium mb-4 animate-fade-in opacity-0" style={{ animationDelay: "200ms", animationFillMode: "forwards" }}>
             Historical Data Visualization
           </div>
           
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-6 animate-fade-in opacity-0" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-galaxy-star via-galaxy-nova to-galaxy-blue-giant bg-clip-text text-transparent mb-6 animate-fade-in opacity-0" style={{ animationDelay: "400ms", animationFillMode: "forwards" }}>
             Discover the cosmos of human history
           </h1>
           
-          <p className="text-muted-foreground text-lg mb-12 max-w-2xl mx-auto animate-fade-in opacity-0" style={{ animationDelay: "600ms", animationFillMode: "forwards" }}>
+          <p className="text-foreground/70 text-lg mb-12 max-w-2xl mx-auto animate-fade-in opacity-0" style={{ animationDelay: "600ms", animationFillMode: "forwards" }}>
             Enter any historical text and watch as ChronoMind transforms it into a beautiful interactive visualization revealing connections across time and space.
           </p>
           
-          <div className="cosmic-gradient mb-8 border border-galaxy-nova/30 shadow-lg shadow-galaxy-core/10 p-6 rounded-lg backdrop-blur-sm animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
+          <div className="backdrop-blur-lg bg-black/30 border border-galaxy-nova/30 shadow-xl shadow-galaxy-nova/10 p-6 rounded-lg mb-8 animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
+            {/* Glowing Orb Top Right */}
+            <div className="absolute top-0 right-0 -m-10 w-40 h-40 bg-galaxy-nova/20 rounded-full blur-2xl pointer-events-none"></div>
+            {/* Glowing Orb Bottom Left */}
+            <div className="absolute bottom-0 left-0 -m-10 w-40 h-40 bg-galaxy-blue-giant/20 rounded-full blur-2xl pointer-events-none"></div>
+            
             <TextInput onSubmit={handleTextSubmit} isLoading={isLoading} />
           </div>
         </div>
         
         {/* Scroll indicator */}
         {showScrollIndicator && (
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center text-muted-foreground animate-fade-in opacity-0" style={{ animationDelay: "1200ms", animationFillMode: "forwards" }}>
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center text-foreground/50 animate-fade-in opacity-0" style={{ animationDelay: "1200ms", animationFillMode: "forwards" }}>
             <span className="text-xs mb-2">Scroll to explore</span>
             <ChevronDown className="h-5 w-5 animate-bounce" />
           </div>
@@ -220,18 +234,18 @@ const Index = () => {
       
       {/* Visualization section */}
       {hasVisualization && (
-        <section className="py-16 visualization-section glass border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 backdrop-blur-sm mb-10" id="visualization">
+        <section className="py-16 visualization-section backdrop-blur-lg bg-black/30 border border-galaxy-nova/30 rounded-lg shadow-xl shadow-galaxy-nova/10 mb-10" id="visualization">
           <Separator className="mb-16" />
           
           <div className="mb-12 text-center animate-on-scroll">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Cosmic Visualization</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-galaxy-nova to-galaxy-blue-giant bg-clip-text text-transparent mb-4">Cosmic Visualization</h2>
+            <p className="text-foreground/70 text-lg max-w-2xl mx-auto">
               Explore historical entities and their relationships in an interactive cosmic map.
             </p>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
-            <div className="lg:col-span-2 animate-on-scroll border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+            <div className="lg:col-span-2 animate-on-scroll border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-nova/10 overflow-hidden">
               <CosmicVisualization 
                 onEntitySelect={handleEntitySelect} 
                 entities={historicalEntities}
@@ -245,12 +259,12 @@ const Index = () => {
                   onClose={handleCloseEntityCard} 
                 />
               ) : (
-                <div className="glass rounded-lg p-6 h-full flex flex-col justify-center items-center text-center border border-galaxy-nova/30 shadow-lg shadow-galaxy-core/10">
-                  <div className="h-12 w-12 rounded-full cosmic-gradient flex items-center justify-center mb-4">
+                <div className="backdrop-blur-lg bg-black/30 rounded-lg p-6 h-full flex flex-col justify-center items-center text-center border border-galaxy-nova/30 shadow-lg shadow-galaxy-nova/10">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-r from-galaxy-nova to-galaxy-blue-giant flex items-center justify-center mb-4">
                     <div className="h-5 w-5 rounded-full bg-background"></div>
                   </div>
-                  <h3 className="text-lg font-medium mb-2">Select an Element</h3>
-                  <p className="text-muted-foreground text-sm">
+                  <h3 className="text-lg font-medium mb-2 text-foreground">Select an Element</h3>
+                  <p className="text-foreground/70 text-sm">
                     Click on any element in the visualization to view detailed information.
                   </p>
                 </div>
@@ -260,7 +274,7 @@ const Index = () => {
           
           <div className="mb-16 animate-on-scroll">
             <h3 className="text-xl font-medium text-galaxy-nova mb-4">Timeline View</h3>
-            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-nova/10 overflow-hidden">
               <Timeline 
                 onEntitySelect={handleEntitySelect} 
                 entities={historicalEntities}
@@ -271,7 +285,7 @@ const Index = () => {
           
           <div className="animate-on-scroll">
             <h3 className="text-xl font-medium text-galaxy-nova mb-4">Knowledge Graph</h3>
-            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-core/10 overflow-hidden">
+            <div className="border border-galaxy-nova/30 rounded-lg shadow-lg shadow-galaxy-nova/10 overflow-hidden">
               <KnowledgeGraph 
                 onEntitySelect={handleEntitySelect} 
                 entities={historicalEntities}
@@ -286,20 +300,20 @@ const Index = () => {
         <Separator className="mb-16" />
         
         <div className="mb-12 text-center animate-on-scroll">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Educational Maps</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-galaxy-nova to-galaxy-blue-giant bg-clip-text text-transparent mb-4">Educational Maps</h2>
+          <p className="text-foreground/70 text-lg max-w-2xl mx-auto">
             Explore different types of maps essential for understanding history and geography.
           </p>
         </div>
         
         <div className="mb-10">
           <Tabs defaultValue={selectedMapType} onValueChange={setSelectedMapType} className="w-full">
-            <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-2 bg-transparent h-auto">
+            <TabsList className="grid grid-cols-3 md:grid-cols-6 gap-2 bg-black/30 backdrop-blur-sm h-auto border border-galaxy-nova/20 p-1 rounded-lg">
               {mapTypes.map((mapType) => (
                 <TabsTrigger
                   key={mapType.id}
                   value={mapType.id}
-                  className={`flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:${mapType.bgColor} border data-[state=active]:border-galaxy-nova/30`}
+                  className="flex flex-col items-center gap-2 p-3 h-auto data-[state=active]:bg-galaxy-nova/20 data-[state=active]:backdrop-blur-md data-[state=active]:text-foreground data-[state=active]:border-galaxy-nova/30 border border-transparent"
                 >
                   <mapType.icon className={`w-5 h-5 bg-gradient-to-r ${mapType.color} bg-clip-text text-transparent`} />
                   <span className="text-xs font-medium">{mapType.title}</span>
@@ -309,22 +323,22 @@ const Index = () => {
             
             {mapTypes.map((mapType) => (
               <TabsContent key={mapType.id} value={mapType.id} className="mt-6">
-                <Card className="border border-galaxy-nova/30 cosmic-gradient shadow-lg shadow-galaxy-core/10 overflow-hidden">
+                <Card className="border border-galaxy-nova/30 backdrop-blur-lg bg-black/30 shadow-xl shadow-galaxy-nova/10 overflow-hidden">
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full ${mapType.bgColor}`}>
+                      <div className={`p-2 rounded-full ${mapType.bgColor} border border-galaxy-nova/30`}>
                         <mapType.icon className={`w-6 h-6 bg-gradient-to-r ${mapType.color} bg-clip-text text-transparent`} />
                       </div>
                       <div>
-                        <CardTitle>{mapType.title}</CardTitle>
-                        <CardDescription>{mapType.description}</CardDescription>
+                        <CardTitle className="text-foreground">{mapType.title}</CardTitle>
+                        <CardDescription className="text-foreground/70">{mapType.description}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid md:grid-cols-2 gap-6 items-center">
                       <div className="space-y-4">
-                        <p className="text-muted-foreground">{mapType.details}</p>
+                        <p className="text-foreground/70">{mapType.details}</p>
                         <Button variant="galaxy" size="sm">
                           Explore {mapType.title}
                           <SendHorizonal className="w-4 h-4" />
@@ -336,7 +350,7 @@ const Index = () => {
                             <mapType.icon className={`w-16 h-16 opacity-20`} />
                           </div>
                           <div className="absolute bottom-4 right-4">
-                            <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur-sm">
+                            <Button variant="outline" size="sm" className="bg-background/80 backdrop-blur-sm border-galaxy-nova/30 text-foreground hover:text-galaxy-nova">
                               <FileText className="w-4 h-4 mr-1" />
                               Preview
                             </Button>
@@ -354,7 +368,7 @@ const Index = () => {
         <div className="text-center">
           <Link 
             to="/maps" 
-            className="bg-gradient-to-r from-galaxy-spiral to-galaxy-core hover:from-galaxy-core hover:to-galaxy-nova text-white shadow-md shadow-galaxy-core/20 hover:shadow-lg hover:shadow-galaxy-nova/30 hover:-translate-y-0.5 transition-all duration-300 inline-block px-8 py-3 rounded-lg font-medium border border-galaxy-nova/30 relative overflow-hidden group"
+            className="bg-gradient-to-r from-galaxy-nova to-galaxy-blue-giant hover:from-galaxy-blue-giant hover:to-galaxy-nova text-white shadow-md shadow-galaxy-nova/20 hover:shadow-lg hover:shadow-galaxy-blue-giant/30 hover:-translate-y-0.5 transition-all duration-300 inline-block px-8 py-3 rounded-lg font-medium border border-galaxy-nova/30 relative overflow-hidden group"
           >
             Explore All Map Types
             <Map className="ml-2 h-4 w-4 inline transition-transform group-hover:translate-x-1" />
@@ -367,8 +381,8 @@ const Index = () => {
         <Separator className="mb-16" />
         
         <div className="mb-12 text-center animate-on-scroll">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-cosmic-light to-galaxy-nova bg-clip-text text-transparent mb-4">Features</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-galaxy-star via-galaxy-nova to-galaxy-blue-giant bg-clip-text text-transparent mb-4">Features</h2>
+          <p className="text-foreground/70 text-lg max-w-2xl mx-auto">
             Discover the power of ChronoMind's historical data visualization capabilities.
           </p>
         </div>
@@ -416,7 +430,7 @@ const Index = () => {
         <div className="text-center">
           <Link 
             to="/visualize" 
-            className="bg-gradient-to-r from-galaxy-spiral to-galaxy-core hover:from-galaxy-core hover:to-galaxy-nova text-white shadow-md shadow-galaxy-core/20 hover:shadow-lg hover:shadow-galaxy-nova/30 hover:-translate-y-0.5 transition-all duration-300 inline-block px-8 py-3 rounded-lg font-medium border border-galaxy-nova/30 relative overflow-hidden group"
+            className="bg-gradient-to-r from-galaxy-nova to-galaxy-blue-giant hover:from-galaxy-blue-giant hover:to-galaxy-nova text-white shadow-md shadow-galaxy-nova/20 hover:shadow-lg hover:shadow-galaxy-blue-giant/30 hover:-translate-y-0.5 transition-all duration-300 inline-block px-8 py-3 rounded-lg font-medium border border-galaxy-nova/30 relative overflow-hidden group"
           >
             Try Full Visualization Experience
             <SendHorizonal className="ml-2 h-4 w-4 inline transition-transform group-hover:translate-x-1" />
