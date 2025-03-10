@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -170,8 +171,7 @@ export default {
         'nebula-shift': 'nebula-shift 120s infinite alternate',
         'galaxy-spin': 'galaxy-spin 180s linear infinite',
         'star-pulse': 'star-pulse 4s ease-in-out infinite',
-        'cosmic-glow': 'cosmic-glow
-3s ease-in-out infinite',
+        'cosmic-glow': 'cosmic-glow 3s ease-in-out infinite',
         'wormhole': 'wormhole 10s cubic-bezier(0.65, 0, 0.35, 1) infinite'
       },
       backgroundImage: {
