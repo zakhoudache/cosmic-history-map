@@ -1,4 +1,3 @@
-
 export interface HistoricalEntity {
   id: string;
   name: string;
@@ -67,6 +66,246 @@ export function getEntityConnections(entities: HistoricalEntity[], entity: Histo
   return [];
 }
 
+// Add Arabic historical mock data
+export const arabicHistoricalData: HistoricalEntity[] = [
+  // Cold War (الحرب الباردة) entities
+  {
+    id: "coldWar",
+    name: "الحرب الباردة",
+    type: "Period",
+    startDate: "1947",
+    endDate: "1991",
+    description: "فترة من التوتر السياسي والعسكري بين القوى الغربية بقيادة الولايات المتحدة والكتلة الشرقية بقيادة الاتحاد السوفيتي.",
+    significance: 9,
+    group: "Politics",
+    relations: [
+      { targetId: "sovietUnion", type: "conflicting" },
+      { targetId: "unitedStates", type: "conflicting" },
+      { targetId: "berlinWall", type: "causal" }
+    ]
+  },
+  {
+    id: "sovietUnion",
+    name: "الاتحاد السوفيتي",
+    type: "Place",
+    startDate: "1922",
+    endDate: "1991",
+    description: "دولة اشتراكية فيدرالية متعددة القوميات كانت موجودة في أوراسيا من عام 1922 إلى عام 1991.",
+    significance: 8,
+    group: "Politics",
+    location: "Northern Eurasia",
+    imageUrl: "https://images.unsplash.com/photo-1492321936769-b49830bc1d1e",
+    relations: [
+      { targetId: "coldWar", type: "conflicting" },
+      { targetId: "berlinWall", type: "causal" }
+    ]
+  },
+  {
+    id: "unitedStates",
+    name: "الولايات المتحدة الأمريكية",
+    type: "Place",
+    startDate: "1776",
+    description: "جمهورية دستورية فيدرالية تتكون من 50 ولاية ومقاطعة فيدرالية واحدة.",
+    significance: 8,
+    group: "Politics",
+    location: "North America",
+    imageUrl: "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07",
+    relations: [
+      { targetId: "coldWar", type: "conflicting" },
+      { targetId: "berlinWall", type: "causal" }
+    ]
+  },
+  {
+    id: "berlinWall",
+    name: "جدار برلين",
+    type: "Building",
+    startDate: "1961",
+    endDate: "1989",
+    description: "حاجز مادي وأيديولوجي بني بعد الحرب العالمية الثانية لفصل برلين الغربية عن برلين الشرقية وألمانيا الشرقية.",
+    significance: 7,
+    group: "Politics",
+    location: "Berlin, Germany",
+    imageUrl: "https://images.unsplash.com/photo-1433086966358-54859d0ed716",
+    relations: []
+  },
+
+  // Liberation Movements (حركات التحرر) entities
+  {
+    id: "liberationMovements",
+    name: "حركات التحرر الوطني",
+    type: "Process",
+    startDate: "1945",
+    endDate: "1975",
+    description: "سلسلة من الحركات السياسية والثورية التي سعت إلى تحرير البلدان من الاستعمار والسيطرة الأجنبية بعد الحرب العالمية الثانية.",
+    significance: 8,
+    group: "Politics",
+    relations: [
+      { targetId: "algerianRevolution", type: "evolutionary" },
+      { targetId: "nasserism", type: "correlative" }
+    ]
+  },
+  {
+    id: "nasserism",
+    name: "الناصرية",
+    type: "Concept",
+    startDate: "1952",
+    endDate: "1970",
+    description: "أيديولوجية سياسية عربية مستوحاة من سياسات الرئيس المصري جمال عبد الناصر، تدعو إلى القومية العربية والاشتراكية العربية.",
+    significance: 7,
+    group: "Politics",
+    relations: [
+      { targetId: "nasserGamal", type: "developed" }
+    ]
+  },
+  {
+    id: "nasserGamal",
+    name: "جمال عبد الناصر",
+    type: "Person",
+    startDate: "1918",
+    endDate: "1970",
+    description: "زعيم سياسي مصري والرئيس الثاني لمصر، ساهم في نشر أفكار القومية العربية والاشتراكية العربية.",
+    significance: 8,
+    group: "Politics",
+    location: "Egypt",
+    imageUrl: "https://images.unsplash.com/photo-1482938289607-e9573fc25ebb",
+    relations: [
+      { targetId: "suezCrisis", type: "causal" }
+    ]
+  },
+  {
+    id: "suezCrisis",
+    name: "أزمة السويس",
+    type: "Event",
+    startDate: "1956",
+    endDate: "1956",
+    description: "أزمة دولية عندما قامت مصر بتأميم قناة السويس، مما أدى إلى تدخل عسكري من بريطانيا وفرنسا وإسرائيل.",
+    significance: 7,
+    group: "Politics",
+    location: "Egypt",
+    relations: []
+  },
+
+  // World War II (الحرب العالمية الثانية) entities
+  {
+    id: "worldWar2",
+    name: "الحرب العالمية الثانية",
+    type: "Period",
+    startDate: "1939",
+    endDate: "1945",
+    description: "نزاع عالمي بدأ في 1 سبتمبر 1939 بغزو ألمانيا النازية لبولندا وانتهى في 2 سبتمبر 1945 باستسلام اليابان.",
+    significance: 10,
+    group: "War",
+    relations: [
+      { targetId: "hitler", type: "causal" },
+      { targetId: "holocaust", type: "causal" },
+      { targetId: "liberationMovements", type: "ledTo" }
+    ]
+  },
+  {
+    id: "hitler",
+    name: "أدولف هتلر",
+    type: "Person",
+    startDate: "1889",
+    endDate: "1945",
+    description: "سياسي ألماني كان زعيم الحزب النازي ومستشار ألمانيا من 1933 إلى 1945.",
+    significance: 9,
+    group: "Politics",
+    location: "Germany",
+    relations: [
+      { targetId: "naziParty", type: "ledTo" },
+      { targetId: "holocaust", type: "causal" }
+    ]
+  },
+  {
+    id: "naziParty",
+    name: "الحزب النازي",
+    type: "Concept",
+    startDate: "1920",
+    endDate: "1945",
+    description: "حزب سياسي ألماني متطرف تأسس بعد الحرب العالمية الأولى وقاد ألمانيا إلى الحرب العالمية الثانية.",
+    significance: 8,
+    group: "Politics",
+    relations: [
+      { targetId: "holocaust", type: "causal" }
+    ]
+  },
+  {
+    id: "holocaust",
+    name: "المحرقة",
+    type: "Event",
+    startDate: "1941",
+    endDate: "1945",
+    description: "الإبادة الجماعية للستة ملايين يهودي أوروبي التي نفذتها ألمانيا النازية وحلفاؤها.",
+    significance: 9,
+    group: "War",
+    relations: []
+  },
+
+  // Algerian Revolution (الثورة الجزائرية) entities
+  {
+    id: "algerianRevolution",
+    name: "الثورة الجزائرية",
+    type: "Event",
+    startDate: "1954",
+    endDate: "1962",
+    description: "حرب استقلال قادها جبهة التحرير الوطني الجزائرية ضد الاستعمار الفرنسي.",
+    significance: 8,
+    group: "Revolution",
+    location: "Algeria",
+    imageUrl: "https://images.unsplash.com/photo-1466442929976-97f336a657be",
+    relations: [
+      { targetId: "fln", type: "causal" },
+      { targetId: "deMarguerite", type: "conflicting" }
+    ]
+  },
+  {
+    id: "fln",
+    name: "جبهة التحرير الوطني",
+    type: "Concept",
+    startDate: "1954",
+    description: "حزب سياسي جزائري وحركة ثورية قادت الكفاح من أجل استقلال الجزائر من فرنسا.",
+    significance: 7,
+    group: "Politics",
+    relations: [
+      { targetId: "benBella", type: "causal" }
+    ]
+  },
+  {
+    id: "benBella",
+    name: "أحمد بن بلة",
+    type: "Person",
+    startDate: "1916",
+    endDate: "2012",
+    description: "ثوري جزائري وأول رئيس للجزائر المستقلة من 1963 إلى 1965.",
+    significance: 7,
+    group: "Politics",
+    location: "Algeria",
+    relations: []
+  },
+  {
+    id: "deMarguerite",
+    name: "دو مارغريت",
+    type: "Person",
+    startDate: "1899",
+    endDate: "1986",
+    description: "جنرال فرنسي كان مسؤولاً عن قمع الثورة الجزائرية وكان متهماً بممارسة التعذيب.",
+    significance: 6,
+    group: "Military",
+    location: "France",
+    relations: []
+  }
+];
+
+// Add connections field to entities for ElementCard component
+arabicHistoricalData.forEach(entity => {
+  if (entity.relations) {
+    entity.connections = entity.relations.map(relation => relation.targetId || '');
+  } else {
+    entity.connections = [];
+  }
+});
+
+// Add the original mock data
 export const mockHistoricalData: HistoricalEntity[] = [
   {
     id: "renaissance",

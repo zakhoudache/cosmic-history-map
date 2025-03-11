@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -13,8 +14,8 @@ import { Card } from "@/components/ui/card";
 import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Database } from "lucide-react";
-import { mockHistoricalData, prepareSimulationData } from "@/utils/mockData";
+import { Database, BookText, Globe } from "lucide-react";
+import { mockHistoricalData, arabicHistoricalData, prepareSimulationData } from "@/utils/mockData";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
@@ -23,6 +24,7 @@ const Visualize = () => {
   const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story">("graph");
   const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
   const [useMockData, setUseMockData] = useState<boolean>(false);
+  const [useArabicData, setUseArabicData] = useState<boolean>(false);
   const { user } = useAuth();
   
   // Use refs for the visualization containers
@@ -54,7 +56,7 @@ const Visualize = () => {
 
   const toggleMockData = () => {
     if (!useMockData) {
-      // Convert mock data to the expected format
+      // Switch to the default mockdata
       const formattedMockData = mockHistoricalData.map(item => ({
         ...item,
         id: item.id,
@@ -65,19 +67,50 @@ const Visualize = () => {
         endDate: item.endDate || "",
         significance: item.significance || 5,
         relations: item.relations || [],
+        group: item.group || "Unknown",
+        // Add these properties to fix TypeScript errors
         location: item.location || "",
         imageUrl: item.imageUrl || "",
-        group: item.group || "Unknown"
       })) as FormattedHistoricalEntity[];
       
       setEntities(formattedMockData);
       setUseMockData(true);
+      setUseArabicData(false);
       setInputText("Mock historical data for visualization demonstration");
-      toast.success("Mock historical data loaded successfully");
+      toast.success("English mock historical data loaded successfully");
     } else {
-      // If already using mock data, toggle it off but keep the current entities
       setUseMockData(false);
       toast.info("Returned to user-provided data");
+    }
+  };
+
+  const toggleArabicData = () => {
+    if (!useArabicData) {
+      // Switch to the Arabic mockdata
+      const formattedArabicData = arabicHistoricalData.map(item => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        type: item.type || "Unknown",
+        description: item.description || "",
+        startDate: item.startDate || "",
+        endDate: item.endDate || "",
+        significance: item.significance || 5,
+        relations: item.relations || [],
+        group: item.group || "Unknown",
+        // Add these properties to fix TypeScript errors
+        location: item.location || "",
+        imageUrl: item.imageUrl || "",
+      })) as FormattedHistoricalEntity[];
+      
+      setEntities(formattedArabicData);
+      setUseArabicData(true);
+      setUseMockData(false);
+      setInputText("بيانات تاريخية عربية للتمثيل البصري");
+      toast.success("تم تحميل البيانات التاريخية العربية بنجاح");
+    } else {
+      setUseArabicData(false);
+      toast.info("العودة إلى البيانات المقدمة من المستخدم");
     }
   };
 
@@ -152,7 +185,7 @@ const Visualize = () => {
               onStartAnalysis={handleAnalysisStart}
             />
             
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -160,7 +193,17 @@ const Visualize = () => {
                 className={`border border-galaxy-nova/30 ${useMockData ? 'bg-galaxy-nova/20 text-galaxy-nova' : 'bg-black/30'}`}
               >
                 <Database className="w-4 h-4 mr-2" />
-                {useMockData ? 'Using Mock Data' : 'Use Mock Data'}
+                {useMockData ? 'Using English Data' : 'Use English Data'}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleArabicData}
+                className={`border border-galaxy-nova/30 ${useArabicData ? 'bg-galaxy-nova/20 text-galaxy-nova' : 'bg-black/30'}`}
+              >
+                <BookText className="w-4 h-4 mr-2" />
+                {useArabicData ? 'استخدام البيانات العربية' : 'استخدام البيانات العربية'}
               </Button>
             </div>
           </div>
@@ -248,3 +291,4 @@ const Visualize = () => {
 };
 
 export default Visualize;
+
