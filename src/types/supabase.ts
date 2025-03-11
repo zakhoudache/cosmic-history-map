@@ -36,6 +36,8 @@ export interface HistoricalEntity {
   significance: number;
   group_name?: string | null;
   domains?: string[];
+  location?: string | null;
+  imageUrl?: string | null;
   created_at: string;
   updated_at: string;
   user_id?: string | null;
@@ -62,6 +64,8 @@ export interface FormattedHistoricalEntity {
   description?: string;
   significance?: number;
   group?: string;
+  location?: string;
+  imageUrl?: string;
   relations?: {
     target?: string;
     targetId?: string;

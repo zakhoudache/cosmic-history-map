@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { HistoricalEntity, HistoricalRelation, FormattedHistoricalEntity, RelationType } from "@/types/supabase";
 import { toast } from "sonner";
@@ -60,6 +59,8 @@ export const formatHistoricalData = (
       description: entity.description || undefined,
       significance: entity.significance,
       group: entity.group_name || undefined,
+      location: entity.location || undefined,
+      imageUrl: entity.imageUrl || undefined,
       relations: entityRelations,
       connections
     };
@@ -146,6 +147,8 @@ const formatAnalyzedEntitiesWithoutStoring = (analyzedEntities: any[]): Formatte
         description: entity.description,
         significance: entity.significance || 5,
         group: entity.group,
+        location: entity.location,
+        imageUrl: entity.imageUrl,
         relations,
         connections
       };
@@ -180,6 +183,8 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
       significance: entity.significance,
       group_name: entity.group,
       domains: entity.domains || [],
+      location: entity.location || undefined,
+      imageUrl: entity.imageUrl || undefined,
       user_id: userId // Set the user_id to comply with RLS policies
     }));
 
@@ -248,6 +253,8 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
       description: entity.description,
       significance: entity.significance,
       group: entity.group_name,
+      location: entity.location,
+      imageUrl: entity.imageUrl,
       // Map relations using the new IDs
       relations: (analyzedEntities[index].relations || []).map((relation: any) => ({
         targetId: idMapping[relation.targetId],

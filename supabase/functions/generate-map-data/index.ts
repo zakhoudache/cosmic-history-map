@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // CORS headers for browser requests
@@ -18,6 +17,8 @@ interface HistoricalEntity {
   significance: number;
   group?: string;
   domains?: string[];
+  location?: string;
+  imageUrl?: string;
   relations?: Array<{
     targetId: string;  // Ensure we consistently use targetId, not target
     type: string;
@@ -30,6 +31,7 @@ interface MapContent {
   mapType: string;
   title: string;
   regions: any[];
+  connections?: any[];
   settings: {
     center: number[];
     zoom: number;
@@ -210,6 +212,7 @@ serve(async (req: Request) => {
     
     // Process entities to create map-compatible data
     let regions: any[] = [];
+    let connections: any[] = []; // Add an array to store connections between entities
     let title = "Historical Map";
     let legendItems: Array<{label: string, color: string}> = [];
     
@@ -248,6 +251,25 @@ serve(async (req: Request) => {
         type: entity.type
       });
       
+      // Add connections between entities if relations exist
+      if (entity.relations && Array.isArray(entity.relations)) {
+        entity.relations.forEach(relation => {
+          // Find the target entity to get its coordinates
+          const targetEntity = normalizedEntities.find(e => e.id === relation.targetId);
+          if (targetEntity) {
+            const targetCoordinates = calculateCoordinates(targetEntity);
+            connections.push({
+              source: entity.id,
+              target: relation.targetId,
+              sourceCoordinates: coordinates,
+              targetCoordinates: targetCoordinates,
+              type: relation.type,
+              strength: relation.strength
+            });
+          }
+        });
+      }
+      
       // Add to legend if significant
       if (entity.significance >= 7) {
         legendItems.push({
@@ -285,6 +307,7 @@ serve(async (req: Request) => {
       mapType: determinedMapType,
       title: title,
       regions: regions,
+      connections: connections, // Add connections to the response
       settings: mapSettings,
       legend: {
         title: "Key Elements",
