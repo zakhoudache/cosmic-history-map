@@ -1,20 +1,32 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { HistoricalEntity } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
-import { X, User, CalendarDays, MapPin, LightbulbIcon, Sparkles } from 'lucide-react';
+import { X, User, CalendarDays, MapPin, LightbulbIcon, Sparkles, Edit, Plus, FilePlus, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface ElementCardProps {
   entity: HistoricalEntity;
   onClose: () => void;
+  onEdit?: (entity: HistoricalEntity) => void;
+  onAddRelated?: (parentEntity: HistoricalEntity) => void;
+  onExportPDF?: () => void;
 }
 
-const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
+const ElementCard: React.FC<ElementCardProps> = ({ 
+  entity, 
+  onClose,
+  onEdit,
+  onAddRelated,
+  onExportPDF
+}) => {
   const isVisible = useAnimateOnMount(100);
+  const [showActions, setShowActions] = useState(false);
   
   // Find related entities from connections or relations
   const connections = entity.connections || 
-    (entity.relations ? entity.relations.map(r => r.target || r.targetId) : []);
+    (entity.relations ? entity.relations.map(r => r.targetId || r.targetId) : []);
   
   // We'll use an empty array for related entities instead of trying to find them in mockHistoricalData
   // This makes the component more reusable with different data sources
@@ -79,12 +91,38 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
   };
   
   const typeStyles = getEntityTypeStyles();
+
+  const handleEditClick = () => {
+    if (onEdit) {
+      onEdit(entity);
+    } else {
+      toast.info("Edit functionality not available in this context");
+    }
+  };
+
+  const handleAddRelatedClick = () => {
+    if (onAddRelated) {
+      onAddRelated(entity);
+    } else {
+      toast.info("Add related entity functionality not available in this context");
+    }
+  };
+
+  const handleExportClick = () => {
+    if (onExportPDF) {
+      onExportPDF();
+    } else {
+      toast.info("Export functionality not available in this context");
+    }
+  };
   
   return (
     <div 
       className={`glass rounded-lg overflow-hidden transition-all duration-300 transform ${
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
     >
       <div className="relative">
         {/* Close button */}
@@ -187,6 +225,45 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
                 }}
               ></div>
             </div>
+          </div>
+
+          {/* Action buttons for editing, adding related entities, and exporting */}
+          <div className={`mt-4 flex justify-end space-x-2 transition-opacity duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}>
+            {onEdit && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-8 px-2 text-xs" 
+                onClick={handleEditClick}
+              >
+                <Edit className="h-3.5 w-3.5 mr-1" />
+                Edit
+              </Button>
+            )}
+            
+            {onAddRelated && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-8 px-2 text-xs" 
+                onClick={handleAddRelatedClick}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add Related
+              </Button>
+            )}
+            
+            {onExportPDF && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-8 px-2 text-xs" 
+                onClick={handleExportClick}
+              >
+                <Download className="h-3.5 w-3.5 mr-1" />
+                Export
+              </Button>
+            )}
           </div>
         </div>
       </div>
