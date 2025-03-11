@@ -8,10 +8,11 @@ import { ZoomIn, ZoomOut, Maximize, Minimize, Download } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { FormattedHistoricalEntity } from '@/types/supabase';
 
 interface CosmicVisualizationProps {
-  entities?: HistoricalEntity[];
-  onEntitySelect?: (entity: HistoricalEntity) => void;
+  entities?: HistoricalEntity[] | FormattedHistoricalEntity[];
+  onEntitySelect?: (entity: HistoricalEntity | FormattedHistoricalEntity) => void;
   visualizationType?: "graph" | "timeline"; // Add this prop
 }
 
@@ -30,6 +31,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [zoomTransform, setZoomTransform] = useState<d3.ZoomTransform | null>(null);
+  const [hoveredEntity, setHoveredEntity] = useState<string | null>(null);
   
   // Initialize layout and resize handling
   useEffect(() => {
@@ -335,15 +337,21 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .force("y", d3.forceY(centerY).strength(0.05));
     
     // Extract entity connections
-    const getEntityConnections = (entity: HistoricalEntity) => {
+    const getEntityConnections = (entity: HistoricalEntity | FormattedHistoricalEntity) => {
       if (entity.relations && Array.isArray(entity.relations)) {
         return entity.relations
           .map(relation => {
             // Fix: Use targetId consistently (the property used in backend responses)
-            const targetId = relation.targetId;
+            const targetId = relation.targetId || relation.target;
             const target = visualizationData.find(e => e.id === targetId);
             if (target) {
-              return { source: entity, target, type: relation.type || "default", strength: relation.strength || 1 };
+              return { 
+                source: entity, 
+                target, 
+                type: relation.type || "default", 
+                strength: relation.strength || 1,
+                id: `${entity.id}-${targetId}`
+              };
             }
             return null;
           })
@@ -357,7 +365,11 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .flatMap(entity => getEntityConnections(entity))
       .filter(link => link !== null);
     
-    // Create entity links group
+    // Create a group for link highlights
+    const linkHighlightGroup = container.append("g")
+      .attr("class", "link-highlights");
+    
+    // Create entity links group for regular links
     const linkGroup = container.append("g")
       .attr("class", "links");
     
@@ -396,10 +408,24 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           }
         });
       
+      // Create highlight path (invisible by default, shown on hover)
+      linkHighlightGroup.append("path")
+        .attr("class", "link-highlight")
+        .attr("id", `highlight-${linkId}`)
+        .attr("data-source", link.source.id)
+        .attr("data-target", link.target.id)
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", (link.strength * 4) || 4)
+        .attr("fill", "none")
+        .attr("opacity", 0)
+        .attr("stroke-dasharray", "5,3");
+      
       // Create the main path
       const path = linkGroup.append("path")
         .attr("class", "link-path")
         .attr("id", linkId)
+        .attr("data-source", link.source.id)
+        .attr("data-target", link.target.id)
         .attr("stroke", `url(#${linkId})`)
         .attr("stroke-width", link.strength * 1.5 || 1.5)
         .attr("fill", "none")
@@ -409,6 +435,9 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         .delay(i * 50)
         .duration(1000)
         .attr("opacity", 0.6);
+      
+      // Set the link type as a data attribute
+      path.attr("data-type", link.type);
       
       // Create animated particles flowing along the path
       const flowCount = Math.max(1, Math.round((link.strength || 1) * 2));
@@ -420,6 +449,8 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
           .attr("fill", "white")
           .attr("opacity", 0.8)
           .attr("filter", `url(#cosmic-glow-${isFullScreen ? 'fullscreen' : 'main'})`)
+          .attr("data-source", link.source.id)
+          .attr("data-target", link.target.id)
           .append("animateMotion")
           .attr("dur", `${6 - Math.min(4, (link.strength || 1))}s`)
           .attr("repeatCount", "indefinite")
@@ -436,7 +467,51 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .enter()
       .append("g")
       .attr("class", "node")
+      .attr("id", d => `node-${d.id}`)
       .style("cursor", "pointer")
+      .on("mouseover", (event, d) => {
+        setHoveredEntity(d.id);
+        
+        // Highlight all connected links
+        linkHighlightGroup.selectAll(".link-highlight")
+          .filter(function() {
+            const sourceId = d3.select(this).attr("data-source");
+            const targetId = d3.select(this).attr("data-target");
+            return sourceId === d.id || targetId === d.id;
+          })
+          .transition()
+          .duration(200)
+          .attr("opacity", 0.8);
+          
+        // Highlight connected nodes
+        nodeGroups.filter(node => {
+          return allLinks.some(link => 
+            (link.source.id === d.id && link.target.id === node.id) || 
+            (link.target.id === d.id && link.source.id === node.id)
+          );
+        })
+        .select(".entity-aura")
+        .transition()
+        .duration(200)
+        .attr("opacity", 1)
+        .attr("r", node => (node.significance || 5) * 6 + 25);
+      })
+      .on("mouseout", (event, d) => {
+        setHoveredEntity(null);
+        
+        // Reset link highlights
+        linkHighlightGroup.selectAll(".link-highlight")
+          .transition()
+          .duration(200)
+          .attr("opacity", 0);
+          
+        // Reset node highlights
+        nodeGroups.select(".entity-aura")
+          .transition()
+          .duration(200)
+          .attr("opacity", 0.8)
+          .attr("r", d => (d.significance || 5) * 6 + 15);
+      })
       .on("click", (event, d) => {
         if (onEntitySelect && !isFullScreen) {
           onEntitySelect(d);
@@ -626,6 +701,50 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
       .duration(1000)
       .attr("opacity", 0.7);
     
+    // Add legend for connection types
+    const connectionTypes = [
+      { type: "default", label: "Connection", color: "rgba(200, 200, 200, 0.8)" },
+      { type: "causal", label: "Causal", color: "rgba(255, 100, 100, 0.8)" },
+      { type: "correlative", label: "Correlative", color: "rgba(100, 100, 255, 0.8)" },
+      { type: "conflicting", label: "Conflicting", color: "rgba(255, 200, 0, 0.8)" },
+      { type: "evolutionary", label: "Evolutionary", color: "rgba(100, 255, 100, 0.8)" }
+    ];
+    
+    const legend = container.append("g")
+      .attr("class", "connection-legend")
+      .attr("transform", `translate(20, ${height - 20 - connectionTypes.length * 20})`);
+    
+    // Add legend title
+    legend.append("text")
+      .attr("x", 0)
+      .attr("y", -10)
+      .attr("fill", "white")
+      .attr("font-size", 12)
+      .text("Connection Types");
+    
+    // Add legend items
+    connectionTypes.forEach((type, i) => {
+      const legendItem = legend.append("g")
+        .attr("transform", `translate(0, ${i * 20})`);
+      
+      legendItem.append("line")
+        .attr("x1", 0)
+        .attr("y1", 0)
+        .attr("x2", 30)
+        .attr("y2", 0)
+        .attr("stroke", type.color)
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", type.type === "correlative" ? "5,3" : 
+                                  type.type === "conflicting" ? "2,2" : null);
+      
+      legendItem.append("text")
+        .attr("x", 40)
+        .attr("y", 4)
+        .attr("fill", "white")
+        .attr("font-size", 10)
+        .text(type.label);
+    });
+    
     // Update positions on each simulation tick
     simulation.on("tick", () => {
       // Update links
@@ -642,16 +761,43 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
         const dy = targetY - sourceY;
         const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
         
-        // Create curved SVG path
-        const path = `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+        // Create curved SVG path with different styles based on link type
+        let path;
+        
+        // Adjust path based on link type
+        switch(link.type) {
+          case "correlative":
+            path = `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+            break;
+          case "conflicting":
+            path = `M${sourceX},${sourceY}A${dr * 0.8},${dr * 0.8} 0 0,1 ${targetX},${targetY}`;
+            break;
+          case "causal":
+            path = `M${sourceX},${sourceY}A${dr * 1.2},${dr * 1.2} 0 0,1 ${targetX},${targetY}`;
+            break;
+          case "evolutionary":
+            path = `M${sourceX},${sourceY}A${dr * 1.4},${dr * 1.4} 0 0,1 ${targetX},${targetY}`;
+            break;
+          default:
+            path = `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+        }
         
         // Update link path
         linkGroup.select(`#link-${link.source.id}-${link.target.id}-${isFullScreen ? 'fullscreen' : 'main'}`)
+          .attr("d", path)
+          .attr("stroke-dasharray", link.type === "correlative" ? "5,3" : 
+                                    link.type === "conflicting" ? "2,2" : null);
+        
+        // Update highlight path
+        linkHighlightGroup.select(`#highlight-${link.source.id}-${link.target.id}-${isFullScreen ? 'fullscreen' : 'main'}`)
           .attr("d", path);
           
         // Update animated particles path
         linkGroup.selectAll(`.link-particle`)
-          .filter((d, j) => j === i)
+          .filter(function() {
+            return d3.select(this).attr("data-source") === link.source.id && 
+                   d3.select(this).attr("data-target") === link.target.id;
+          })
           .selectAll("animateMotion")
           .attr("path", path);
       });
@@ -689,7 +835,7 @@ const CosmicVisualization: React.FC<CosmicVisualizationProps> = ({
     return () => {
       if (simulation) simulation.stop();
     };
-  }, [dimensions, entities, hasData, isVisible]);
+  }, [dimensions, entities, hasData, isVisible, hoveredEntity]);
   
   // Toggle fullscreen mode
   const toggleFullScreen = () => {
