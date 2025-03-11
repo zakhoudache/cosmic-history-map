@@ -15,7 +15,7 @@ import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Database, BookText, Globe } from "lucide-react";
-import { mockHistoricalData, arabicHistoricalData, prepareSimulationData } from "@/utils/mockData";
+import { mockHistoricalData, arabicHistoricalData, arabicHistoricalSubjects, prepareSimulationData } from "@/utils/mockData";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
@@ -25,6 +25,7 @@ const Visualize = () => {
   const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
   const [useMockData, setUseMockData] = useState<boolean>(false);
   const [useArabicData, setUseArabicData] = useState<boolean>(false);
+  const [showArabicSubjects, setShowArabicSubjects] = useState<boolean>(false);
   const { user } = useAuth();
   
   // Use refs for the visualization containers
@@ -68,7 +69,6 @@ const Visualize = () => {
         significance: item.significance || 5,
         relations: item.relations || [],
         group: item.group || "Unknown",
-        // Add these properties to fix TypeScript errors
         location: item.location || "",
         imageUrl: item.imageUrl || "",
       })) as FormattedHistoricalEntity[];
@@ -76,6 +76,7 @@ const Visualize = () => {
       setEntities(formattedMockData);
       setUseMockData(true);
       setUseArabicData(false);
+      setShowArabicSubjects(false);
       setInputText("Mock historical data for visualization demonstration");
       toast.success("English mock historical data loaded successfully");
     } else {
@@ -86,30 +87,32 @@ const Visualize = () => {
 
   const toggleArabicData = () => {
     if (!useArabicData) {
-      // Switch to the Arabic mockdata
-      const formattedArabicData = arabicHistoricalData.map(item => ({
-        ...item,
-        id: item.id,
-        name: item.name,
-        type: item.type || "Unknown",
-        description: item.description || "",
-        startDate: item.startDate || "",
-        endDate: item.endDate || "",
-        significance: item.significance || 5,
-        relations: item.relations || [],
-        group: item.group || "Unknown",
-        // Add these properties to fix TypeScript errors
-        location: item.location || "",
-        imageUrl: item.imageUrl || "",
-      })) as FormattedHistoricalEntity[];
-      
-      setEntities(formattedArabicData);
+      setEntities(arabicHistoricalData);
       setUseArabicData(true);
       setUseMockData(false);
+      setShowArabicSubjects(false);
       setInputText("بيانات تاريخية عربية للتمثيل البصري");
       toast.success("تم تحميل البيانات التاريخية العربية بنجاح");
     } else {
       setUseArabicData(false);
+      toast.info("العودة إلى البيانات المقدمة من المستخدم");
+    }
+  };
+
+  const toggleArabicSubjects = () => {
+    if (!showArabicSubjects) {
+      // Just show the subjects as text
+      setShowArabicSubjects(true);
+      setUseArabicData(false);
+      setUseMockData(false);
+      setEntities([]);
+      setInputText(arabicHistoricalSubjects.map(subject => 
+        `${subject.title}:\n${subject.originalText.substring(0, 200)}...`
+      ).join('\n\n'));
+      toast.success("تم تحميل المواضيع التاريخية العربية بنجاح");
+    } else {
+      setShowArabicSubjects(false);
+      setInputText("");
       toast.info("العودة إلى البيانات المقدمة من المستخدم");
     }
   };
@@ -185,7 +188,7 @@ const Visualize = () => {
               onStartAnalysis={handleAnalysisStart}
             />
             
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -204,6 +207,16 @@ const Visualize = () => {
               >
                 <BookText className="w-4 h-4 mr-2" />
                 {useArabicData ? 'استخدام البيانات العربية' : 'استخدام البيانات العربية'}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleArabicSubjects}
+                className={`border border-galaxy-nova/30 ${showArabicSubjects ? 'bg-galaxy-nova/20 text-galaxy-nova' : 'bg-black/30'}`}
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                {showArabicSubjects ? 'عرض المواضيع العربية' : 'عرض المواضيع العربية'}
               </Button>
             </div>
           </div>
@@ -234,7 +247,19 @@ const Visualize = () => {
               </div>
             ) : showPlaceholder ? (
               <div className="p-6">
-                <VisualizationPlaceholder />
+                {showArabicSubjects ? (
+                  <div className="p-6 max-h-[600px] overflow-y-auto">
+                    <h2 className="text-2xl font-bold text-center mb-6">المواضيع التاريخية العربية</h2>
+                    {arabicHistoricalSubjects.map((subject) => (
+                      <div key={subject.id} className="mb-8 border border-galaxy-nova/20 rounded-lg p-4">
+                        <h3 className="text-xl font-bold mb-2 text-galaxy-nova">{subject.title}</h3>
+                        <p className="text-sm whitespace-pre-line" dir="rtl">{subject.originalText}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <VisualizationPlaceholder />
+                )}
               </div>
             ) : (
               <div className="p-2">
@@ -291,4 +316,3 @@ const Visualize = () => {
 };
 
 export default Visualize;
-

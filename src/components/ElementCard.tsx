@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HistoricalEntity, mockHistoricalData } from '@/utils/mockData';
+import { HistoricalEntity } from '@/utils/mockData';
 import { useAnimateOnMount } from '@/utils/animations';
 import { X, User, CalendarDays, MapPin, LightbulbIcon, Sparkles } from 'lucide-react';
 
@@ -14,11 +14,11 @@ const ElementCard: React.FC<ElementCardProps> = ({ entity, onClose }) => {
   
   // Find related entities from connections or relations
   const connections = entity.connections || 
-    (entity.relations ? entity.relations.map(r => r.target) : []);
+    (entity.relations ? entity.relations.map(r => r.target || r.targetId) : []);
   
-  const relatedEntities = mockHistoricalData.filter(
-    e => connections.includes(e.id) && e.id !== entity.id
-  );
+  // We'll use an empty array for related entities instead of trying to find them in mockHistoricalData
+  // This makes the component more reusable with different data sources
+  const relatedEntities: HistoricalEntity[] = [];
   
   // Format dates
   const formatDate = (dateStr: string | Date | undefined) => {
