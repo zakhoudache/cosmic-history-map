@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
@@ -55,6 +54,29 @@ const Visualize = () => {
 
   const closeDetailsCard = () => {
     setSelectedEntity(null);
+  };
+
+  const handleUpdateEntities = (updatedEntities: FormattedHistoricalEntity[]) => {
+    setEntities(updatedEntities);
+  };
+
+  const handleDeleteEntity = (entityId: string) => {
+    // Remove the entity
+    const updatedEntities = entities.filter(entity => entity.id !== entityId);
+    
+    // Also remove all relations to this entity
+    const entitiesWithUpdatedRelations = updatedEntities.map(entity => {
+      if (entity.relations) {
+        return {
+          ...entity,
+          relations: entity.relations.filter(relation => relation.targetId !== entityId)
+        };
+      }
+      return entity;
+    });
+    
+    setEntities(entitiesWithUpdatedRelations);
+    toast.success("Entity deleted successfully");
   };
 
   const toggleMockData = () => {
@@ -308,7 +330,19 @@ const Visualize = () => {
                         <ElementCard 
                           entity={selectedEntity} 
                           onClose={closeDetailsCard} 
+                          onEdit={(updatedEntity) => {
+                            const updatedEntities = entities.map(e => 
+                              e.id === updatedEntity.id ? updatedEntity : e
+                            );
+                            setEntities(updatedEntities);
+                          }}
+                          onDelete={handleDeleteEntity}
+                          onAddRelated={(parentEntity) => {
+                            // This will be handled inside ElementCard with the new implementation
+                          }}
                           onExportPDF={handleExportPDF}
+                          allEntities={entities}
+                          onUpdateEntities={handleUpdateEntities}
                         />
                       </div>
                     )}
@@ -336,7 +370,19 @@ const Visualize = () => {
                     <ElementCard 
                       entity={selectedEntity} 
                       onClose={closeDetailsCard} 
+                      onEdit={(updatedEntity) => {
+                        const updatedEntities = entities.map(e => 
+                          e.id === updatedEntity.id ? updatedEntity : e
+                        );
+                        setEntities(updatedEntities);
+                      }}
+                      onDelete={handleDeleteEntity}
+                      onAddRelated={(parentEntity) => {
+                        // This will be handled inside ElementCard with the new implementation
+                      }}
                       onExportPDF={handleExportPDF}
+                      allEntities={entities}
+                      onUpdateEntities={handleUpdateEntities}
                     />
                   </div>
                 )}
