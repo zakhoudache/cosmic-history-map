@@ -6,6 +6,8 @@ import { MapStyle } from './MapStyleEditor';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Info } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { mockHistoricalData } from '@/utils/mockData';
+import { toast } from "@/hooks/use-toast";
 
 // Initialize with a default token, but we'll try to get it from Supabase
 mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
@@ -16,6 +18,7 @@ interface MapDisplayProps {
   mapSubtitle?: string;
   regionData?: any[];
   currentStyle?: MapStyle;
+  useMockData?: boolean;
 }
 
 const MapDisplay: React.FC<MapDisplayProps> = ({ 
@@ -23,13 +26,15 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   mapTitle = "Historical Map", 
   mapSubtitle = "Interactive visualization",
   regionData = [],
-  currentStyle
+  currentStyle,
+  useMockData = false
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [tokenError, setTokenError] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
+  const [mockDataLoaded, setMockDataLoaded] = useState(false);
 
   // Function to update the Mapbox token
   const updateMapboxToken = (token: string) => {
@@ -81,7 +86,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       // Catch any errors during initialization
       map.current.on('error', (e) => {
         console.error('Mapbox error:', e);
-        if (e.error && e.error.status === 401) {
+        // Fix the error by checking if e.error exists and has a status property
+        if (e.error && typeof e.error === 'object' && 'status' in e.error && e.error.status === 401) {
           setTokenError(true);
           map.current?.remove();
           map.current = null;
@@ -193,7 +199,48 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     }
   }, [mapType, mapLoaded]);
 
-  // Add sample data points for demonstration
+  // Function to load mock historical data onto the map
+  const loadMockHistoricalData = () => {
+    if (!map.current || !mapLoaded) return [];
+    
+    // Transform historical entities to map-compatible format
+    return mockHistoricalData.map(entity => {
+      // Generate deterministic coordinates based on entity name
+      const nameHash = entity.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const longitude = ((nameHash % 340) - 170) * 0.5; // Range from -85 to 85
+      const latitude = ((nameHash * 13) % 150 - 75) * 0.5; // Range from -37.5 to 37.5
+      
+      // Pick a color based on entity group
+      const groupColors: Record<string, string> = {
+        'Culture': '#8E76DB',
+        'Art': '#6A9CE2',
+        'Architecture': '#76CCB9',
+        'Literature': '#EB6784',
+        'Science': '#FFB572',
+        'Religion': '#A3A1FB',
+        'Exploration': '#5EC2CC',
+        'Technology': '#D5A5F8'
+      };
+      
+      const color = entity.group && groupColors[entity.group] ? 
+        groupColors[entity.group] : 
+        '#' + ((nameHash * 123456) % 16777215).toString(16).padStart(6, '0');
+      
+      return {
+        id: entity.id,
+        name: entity.name,
+        description: entity.description || '',
+        coordinates: [longitude, latitude] as [number, number],
+        significance: entity.significance || 5,
+        color: color,
+        startYear: entity.startDate ? parseInt(entity.startDate) : null,
+        endYear: entity.endDate ? parseInt(entity.endDate) : null,
+        type: entity.type
+      };
+    });
+  };
+
+  // Load and add map data points
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
@@ -203,49 +250,99 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       markers[0].remove();
     }
 
-    // Add sample data points
-    const samplePoints = [
-      { coordinates: [12.496366, 41.902782], name: "Rome" },
-      { coordinates: [2.352222, 48.856614], name: "Paris" },
-      { coordinates: [28.979530, 41.015137], name: "Istanbul" },
-      { coordinates: [31.233334, 30.033333], name: "Cairo" },
-      { coordinates: [116.407395, 39.904211], name: "Beijing" },
-      { coordinates: [-74.005941, 40.712784], name: "New York" },
-      { coordinates: [-43.172897, -22.906847], name: "Rio de Janeiro" },
-      { coordinates: [37.617300, 55.755826], name: "Moscow" }
-    ];
-
-    // Add markers
-    samplePoints.forEach(point => {
-      // Create a DOM element for the marker
-      const el = document.createElement('div');
-      el.className = 'marker';
-      el.style.width = '15px';
-      el.style.height = '15px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = currentStyle?.borderColor || '#8e7651';
-      el.style.border = `2px solid ${currentStyle?.borderColor || '#8e7651'}`;
-      el.style.opacity = '0.8';
-      el.style.cursor = 'pointer';
-
-      // Add markers to the map
-      new mapboxgl.Marker(el)
-        .setLngLat(point.coordinates as [number, number])
-        .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(point.name))
-        .addTo(map.current!);
-    });
-
-    // Add region data if available
-    if (regionData && regionData.length > 0) {
-      // Process and add region data...
-      console.log("Region data available:", regionData);
+    // Determine which data to use
+    let dataToShow = regionData;
+    
+    // If useMockData is enabled or no regionData is provided, use mock data
+    if (useMockData || (regionData.length === 0 && !mockDataLoaded)) {
+      dataToShow = loadMockHistoricalData();
+      if (useMockData && !mockDataLoaded) {
+        setMockDataLoaded(true);
+        toast({
+          title: "Mock Data Loaded",
+          description: "Using sample historical data for map visualization",
+        });
+      }
     }
-  }, [mapLoaded, mapType, currentStyle, regionData]);
+
+    // Add sample data points if no data is available
+    if (dataToShow.length === 0) {
+      const samplePoints = [
+        { coordinates: [12.496366, 41.902782], name: "Rome" },
+        { coordinates: [2.352222, 48.856614], name: "Paris" },
+        { coordinates: [28.979530, 41.015137], name: "Istanbul" },
+        { coordinates: [31.233334, 30.033333], name: "Cairo" },
+        { coordinates: [116.407395, 39.904211], name: "Beijing" },
+        { coordinates: [-74.005941, 40.712784], name: "New York" },
+        { coordinates: [-43.172897, -22.906847], name: "Rio de Janeiro" },
+        { coordinates: [37.617300, 55.755826], name: "Moscow" }
+      ];
+
+      // Add markers for sample points
+      samplePoints.forEach(point => {
+        // Create a DOM element for the marker
+        const el = document.createElement('div');
+        el.className = 'marker';
+        el.style.width = '15px';
+        el.style.height = '15px';
+        el.style.borderRadius = '50%';
+        el.style.backgroundColor = currentStyle?.borderColor || '#8e7651';
+        el.style.border = `2px solid ${currentStyle?.borderColor || '#8e7651'}`;
+        el.style.opacity = '0.8';
+        el.style.cursor = 'pointer';
+
+        // Add markers to the map
+        new mapboxgl.Marker(el)
+          .setLngLat(point.coordinates as [number, number])
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(point.name))
+          .addTo(map.current!);
+      });
+    } else {
+      // Add markers for actual data points
+      dataToShow.forEach(point => {
+        if (!point.coordinates || !Array.isArray(point.coordinates)) {
+          console.warn("Invalid coordinates for point:", point);
+          return;
+        }
+
+        // Create a DOM element for the marker
+        const el = document.createElement('div');
+        el.className = 'marker';
+        el.style.width = `${Math.min(point.significance || 5, 10) + 5}px`;
+        el.style.height = `${Math.min(point.significance || 5, 10) + 5}px`;
+        el.style.borderRadius = '50%';
+        el.style.backgroundColor = point.color || currentStyle?.borderColor || '#8e7651';
+        el.style.border = `2px solid ${currentStyle?.borderColor || '#8e7651'}`;
+        el.style.opacity = '0.8';
+        el.style.cursor = 'pointer';
+
+        // Create popup content with more detailed information
+        const popupContent = document.createElement('div');
+        popupContent.innerHTML = `
+          <h3 class="text-sm font-medium">${point.name}</h3>
+          ${point.type ? `<p class="text-xs text-foreground/70">${point.type}</p>` : ''}
+          ${point.startYear ? `<p class="text-xs">Period: ${point.startYear}${point.endYear ? ` - ${point.endYear}` : ''}</p>` : ''}
+          ${point.description ? `<p class="text-xs mt-1">${point.description.slice(0, 100)}${point.description.length > 100 ? '...' : ''}</p>` : ''}
+        `;
+
+        // Add markers to the map
+        new mapboxgl.Marker(el)
+          .setLngLat(point.coordinates as [number, number])
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setDOMContent(popupContent))
+          .addTo(map.current!);
+      });
+    }
+  }, [mapLoaded, mapType, currentStyle, regionData, useMockData]);
 
   // Handle token input submission
   const handleTokenSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateMapboxToken(tokenInput);
+  };
+
+  // Toggle mock data
+  const toggleMockData = () => {
+    setMockDataLoaded(!mockDataLoaded);
   };
 
   return (
@@ -309,6 +406,22 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
               <Skeleton className="h-4 w-[200px] mx-auto bg-galaxy-nova/10" />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Mock data toggle button */}
+      {mapLoaded && (
+        <div className="absolute bottom-4 left-4 z-10">
+          <button
+            onClick={toggleMockData}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+              mockDataLoaded 
+                ? 'bg-galaxy-nova text-white' 
+                : 'bg-black/60 backdrop-blur-sm border border-galaxy-nova/30 text-foreground/70'
+            }`}
+          >
+            {mockDataLoaded ? 'Using Mock Data' : 'Use Mock Data'}
+          </button>
         </div>
       )}
     </div>
