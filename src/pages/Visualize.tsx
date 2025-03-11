@@ -1,7 +1,6 @@
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import TextInput from "@/components/TextInput";
-import { FormattedHistoricalEntity } from "@/types/supabase";
 import VisualizationPlaceholder from "@/components/VisualizationPlaceholder";
 import CosmicVisualization from "@/components/CosmicVisualization";
 import Timeline from "@/components/Timeline";
@@ -13,16 +12,16 @@ import { Card } from "@/components/ui/card";
 import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Database, BookText, Globe, Play } from "lucide-react";
-import { mockHistoricalData, arabicHistoricalData, arabicHistoricalSubjects, prepareSimulationData } from "@/utils/mockData";
-import { generateEntitiesFromSubject } from "@/utils/subjectToEntities";
+import { Database, BookText, Globe, Play, ViewVertical, Download, CalendarDays } from "lucide-react";
+import { mockHistoricalData, arabicHistoricalData, arabicHistoricalSubjects, prepareSimulationData, generateEntitiesFromSubject, HistoricalEntity } from "@/utils/mockData";
+import HistoricalVerticalCards from "@/components/HistoricalVerticalCards";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
-  const [entities, setEntities] = useState<FormattedHistoricalEntity[]>([]);
+  const [entities, setEntities] = useState<HistoricalEntity[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story">("graph");
-  const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
+  const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story" | "cards">("graph");
+  const [selectedEntity, setSelectedEntity] = useState<HistoricalEntity | null>(null);
   const [useMockData, setUseMockData] = useState<boolean>(false);
   const [useArabicData, setUseArabicData] = useState<boolean>(false);
   const [showArabicSubjects, setShowArabicSubjects] = useState<boolean>(false);
@@ -33,8 +32,9 @@ const Visualize = () => {
   const cosmicVisualizationRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
 
-  const handleTextSubmit = (text: string, analyzedEntities: FormattedHistoricalEntity[]) => {
+  const handleTextSubmit = (text: string, analyzedEntities: HistoricalEntity[]) => {
     setInputText(text);
     setEntities(analyzedEntities);
     setLoading(false);
@@ -44,11 +44,11 @@ const Visualize = () => {
     setLoading(true);
   };
 
-  const handleVisTypeChange = (type: "graph" | "timeline" | "story") => {
+  const handleVisTypeChange = (type: "graph" | "timeline" | "story" | "cards") => {
     setVisualizationType(type);
   };
 
-  const handleEntitySelect = (entity: FormattedHistoricalEntity) => {
+  const handleEntitySelect = (entity: HistoricalEntity) => {
     setSelectedEntity(entity);
   };
 
@@ -56,7 +56,7 @@ const Visualize = () => {
     setSelectedEntity(null);
   };
 
-  const handleUpdateEntities = (updatedEntities: FormattedHistoricalEntity[]) => {
+  const handleUpdateEntities = (updatedEntities: HistoricalEntity[]) => {
     setEntities(updatedEntities);
   };
 
@@ -95,7 +95,7 @@ const Visualize = () => {
         group: item.group || "Unknown",
         location: item.location || "",
         imageUrl: item.imageUrl || "",
-      })) as FormattedHistoricalEntity[];
+      }));
       
       setEntities(formattedMockData);
       setUseMockData(true);
@@ -157,6 +157,9 @@ const Visualize = () => {
       setLoading(false);
       setInputText(`${subject.title}: ${subject.originalText.substring(0, 100)}...`);
       toast.success(`تم إنشاء التمثيل البصري لموضوع "${subject.title}" بنجاح`);
+      
+      // Automatically switch to cards view when an Arabic subject is selected
+      setVisualizationType("cards");
     }, 1000);
   };
 
@@ -189,6 +192,12 @@ const Visualize = () => {
         title = "Historical Narrative Analysis";
         description = `Storytelling analysis presenting historical connections in narrative form based on the input text: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
         break;
+        
+      case "cards":
+        containerElement = cardsRef.current;
+        title = "العناصر التاريخية المرتبطة بالموضوع";
+        description = `بطاقات تفصيلية للعناصر التاريخية المستخرجة من النص: ${inputText.substring(0, 150)}${inputText.length > 150 ? "..." : ""}`;
+        break;
     }
     
     // Generate PDF with the appropriate visualization container
@@ -202,6 +211,51 @@ const Visualize = () => {
   };
 
   const showPlaceholder = !inputText || entities.length === 0;
+
+  // Custom controls for the visualization type
+  const renderVisualizationTypeSelector = () => (
+    <div className="flex space-x-2">
+      <Button 
+        variant={visualizationType === "graph" ? "secondary" : "outline"} 
+        size="sm"
+        onClick={() => handleVisTypeChange("graph")}
+        className="flex items-center gap-1"
+      >
+        <Database className="h-4 w-4" />
+        Network
+      </Button>
+      
+      <Button 
+        variant={visualizationType === "timeline" ? "secondary" : "outline"} 
+        size="sm"
+        onClick={() => handleVisTypeChange("timeline")}
+        className="flex items-center gap-1"
+      >
+        <CalendarDays className="h-4 w-4" />
+        Timeline
+      </Button>
+      
+      <Button 
+        variant={visualizationType === "story" ? "secondary" : "outline"} 
+        size="sm"
+        onClick={() => handleVisTypeChange("story")}
+        className="flex items-center gap-1"
+      >
+        <BookText className="h-4 w-4" />
+        Story
+      </Button>
+      
+      <Button 
+        variant={visualizationType === "cards" ? "secondary" : "outline"} 
+        size="sm"
+        onClick={() => handleVisTypeChange("cards")}
+        className="flex items-center gap-1"
+      >
+        <ViewVertical className="h-4 w-4" />
+        Cards
+      </Button>
+    </div>
+  );
 
   return (
     <MainLayout>
@@ -268,12 +322,21 @@ const Visualize = () => {
         <div className="mt-8 relative">
           {!showPlaceholder && (
             <Card className="backdrop-blur-lg bg-black/20 border border-galaxy-nova/20 shadow-lg p-4 mb-4">
-              <VisualizationControls 
-                visualizationType={visualizationType} 
-                onVisTypeChange={handleVisTypeChange}
-                entityCount={entities.length}
-                onExportPDF={handleExportPDF}
-              />
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                {renderVisualizationTypeSelector()}
+                
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleExportPDF}
+                    className="border border-galaxy-nova/30 bg-black/30"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export PDF
+                  </Button>
+                </div>
+              </div>
             </Card>
           )}
           
@@ -364,8 +427,21 @@ const Visualize = () => {
                     />
                   </div>
                 )}
+                {visualizationType === "cards" && (
+                  <div ref={cardsRef} className="relative min-h-[700px] overflow-y-auto">
+                    <HistoricalVerticalCards
+                      entities={entities}
+                      onSelectEntity={handleEntitySelect}
+                      title={
+                        selectedSubject !== null 
+                          ? `العناصر التاريخية في ${arabicHistoricalSubjects[selectedSubject].title}` 
+                          : "العناصر التاريخية الرئيسية"
+                      }
+                    />
+                  </div>
+                )}
                 
-                {visualizationType === "timeline" && selectedEntity && (
+                {(visualizationType === "timeline" || visualizationType === "cards") && selectedEntity && (
                   <div className="fixed bottom-4 right-4 w-72 z-50">
                     <ElementCard 
                       entity={selectedEntity} 
