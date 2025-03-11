@@ -14,8 +14,9 @@ import { Card } from "@/components/ui/card";
 import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Database, BookText, Globe } from "lucide-react";
+import { Database, BookText, Globe, Play } from "lucide-react";
 import { mockHistoricalData, arabicHistoricalData, arabicHistoricalSubjects, prepareSimulationData } from "@/utils/mockData";
+import { generateEntitiesFromSubject } from "@/utils/subjectToEntities";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
@@ -26,6 +27,7 @@ const Visualize = () => {
   const [useMockData, setUseMockData] = useState<boolean>(false);
   const [useArabicData, setUseArabicData] = useState<boolean>(false);
   const [showArabicSubjects, setShowArabicSubjects] = useState<boolean>(false);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const { user } = useAuth();
   
   // Use refs for the visualization containers
@@ -77,6 +79,7 @@ const Visualize = () => {
       setUseMockData(true);
       setUseArabicData(false);
       setShowArabicSubjects(false);
+      setSelectedSubject(null);
       setInputText("Mock historical data for visualization demonstration");
       toast.success("English mock historical data loaded successfully");
     } else {
@@ -91,6 +94,7 @@ const Visualize = () => {
       setUseArabicData(true);
       setUseMockData(false);
       setShowArabicSubjects(false);
+      setSelectedSubject(null);
       setInputText("بيانات تاريخية عربية للتمثيل البصري");
       toast.success("تم تحميل البيانات التاريخية العربية بنجاح");
     } else {
@@ -106,6 +110,7 @@ const Visualize = () => {
       setUseArabicData(false);
       setUseMockData(false);
       setEntities([]);
+      setSelectedSubject(null);
       setInputText(arabicHistoricalSubjects.map(subject => 
         `${subject.title}:\n${subject.originalText.substring(0, 200)}...`
       ).join('\n\n'));
@@ -115,6 +120,22 @@ const Visualize = () => {
       setInputText("");
       toast.info("العودة إلى البيانات المقدمة من المستخدم");
     }
+  };
+
+  const handleSelectSubject = (index: number) => {
+    setSelectedSubject(index);
+    setLoading(true);
+    
+    // Simulate loading for a more natural feel
+    setTimeout(() => {
+      const subject = arabicHistoricalSubjects[index];
+      const generatedEntities = generateEntitiesFromSubject(subject);
+      
+      setEntities(generatedEntities);
+      setLoading(false);
+      setInputText(`${subject.title}: ${subject.originalText.substring(0, 100)}...`);
+      toast.success(`تم إنشاء التمثيل البصري لموضوع "${subject.title}" بنجاح`);
+    }, 1000);
   };
 
   const handleExportPDF = () => {
@@ -250,10 +271,21 @@ const Visualize = () => {
                 {showArabicSubjects ? (
                   <div className="p-6 max-h-[600px] overflow-y-auto">
                     <h2 className="text-2xl font-bold text-center mb-6">المواضيع التاريخية العربية</h2>
-                    {arabicHistoricalSubjects.map((subject) => (
+                    {arabicHistoricalSubjects.map((subject, index) => (
                       <div key={subject.id} className="mb-8 border border-galaxy-nova/20 rounded-lg p-4">
                         <h3 className="text-xl font-bold mb-2 text-galaxy-nova">{subject.title}</h3>
-                        <p className="text-sm whitespace-pre-line" dir="rtl">{subject.originalText}</p>
+                        <p className="text-sm whitespace-pre-line mb-4" dir="rtl">{subject.originalText}</p>
+                        <div className="flex justify-end">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleSelectSubject(index)}
+                            className="border border-galaxy-nova/30 bg-black/30 hover:bg-galaxy-nova/20"
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            إنشاء التمثيل البصري
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -276,6 +308,7 @@ const Visualize = () => {
                         <ElementCard 
                           entity={selectedEntity} 
                           onClose={closeDetailsCard} 
+                          onExportPDF={handleExportPDF}
                         />
                       </div>
                     )}
@@ -303,6 +336,7 @@ const Visualize = () => {
                     <ElementCard 
                       entity={selectedEntity} 
                       onClose={closeDetailsCard} 
+                      onExportPDF={handleExportPDF}
                     />
                   </div>
                 )}

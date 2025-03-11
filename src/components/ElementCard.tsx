@@ -25,8 +25,7 @@ const ElementCard: React.FC<ElementCardProps> = ({
   const [showActions, setShowActions] = useState(false);
   
   // Find related entities from connections or relations
-  const connections = entity.connections || 
-    (entity.relations ? entity.relations.map(r => r.targetId || r.targetId) : []);
+  const connections = entity.relations ? entity.relations.map(r => r.targetId) : [];
   
   // We'll use an empty array for related entities instead of trying to find them in mockHistoricalData
   // This makes the component more reusable with different data sources
