@@ -5,9 +5,10 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapStyle } from './MapStyleEditor';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Info } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
-// Temporary Mapbox token - in production this should come from environment variables
-mapboxgl.accessToken = 'pk.eyJ1IjoiZWR1bWFwcyIsImEiOiJjbHd4cjJodWIwMXcxMmxtbGVlNXRiOHd5In0.x-UbXjYgL-wRYx1P0D-pYQ';
+// Initialize with a default token, but we'll try to get it from Supabase
+mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA';
 
 interface MapDisplayProps {
   mapType: string;
@@ -27,6 +28,86 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [tokenError, setTokenError] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+
+  // Function to update the Mapbox token
+  const updateMapboxToken = (token: string) => {
+    if (token && token.trim() !== '') {
+      mapboxgl.accessToken = token;
+      // If we already tried to create a map and failed, try again
+      if (tokenError && mapContainer.current && !map.current) {
+        initializeMap();
+      }
+      setTokenError(false);
+      // Save token to localStorage for future use
+      localStorage.setItem('mapbox_token', token);
+    }
+  };
+
+  // Try to load token from localStorage on component mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem('mapbox_token');
+    if (savedToken) {
+      updateMapboxToken(savedToken);
+    }
+  }, []);
+
+  // Initialize map function
+  const initializeMap = () => {
+    if (map.current || !mapContainer.current) return;
+
+    try {
+      const initialStyle = currentStyle?.basemapStyle || 'mapbox://styles/mapbox/light-v11';
+      
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: initialStyle,
+        center: [10, 40], // Center on Europe/Mediterranean for historical maps
+        zoom: 2,
+        projection: 'globe',
+        pitch: 40,
+        bearing: 0,
+      });
+
+      // Add navigation controls
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Set the map as loaded
+      map.current.on('load', () => {
+        setMapLoaded(true);
+      });
+
+      // Catch any errors during initialization
+      map.current.on('error', (e) => {
+        console.error('Mapbox error:', e);
+        if (e.error && e.error.status === 401) {
+          setTokenError(true);
+          map.current?.remove();
+          map.current = null;
+        }
+      });
+
+      // Apply initial container styles if available
+      if (currentStyle && mapContainer.current) {
+        mapContainer.current.style.filter = currentStyle.filter;
+        mapContainer.current.style.fontFamily = currentStyle.fontFamily;
+      }
+    } catch (error) {
+      console.error("Error initializing map:", error);
+      setTokenError(true);
+    }
+  };
+
+  // Initialize map
+  useEffect(() => {
+    initializeMap();
+
+    return () => {
+      map.current?.remove();
+      map.current = null;
+    };
+  }, []);
 
   // Apply map style based on the currentStyle prop
   useEffect(() => {
@@ -69,42 +150,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       console.error("Error applying map style:", error);
     }
   }, [currentStyle, mapLoaded]);
-
-  // Initialize map
-  useEffect(() => {
-    if (map.current || !mapContainer.current) return;
-
-    const initialStyle = currentStyle?.basemapStyle || 'mapbox://styles/mapbox/light-v11';
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: initialStyle,
-      center: [10, 40], // Center on Europe/Mediterranean for historical maps
-      zoom: 2,
-      projection: 'globe',
-      pitch: 40,
-      bearing: 0,
-    });
-
-    // Add navigation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-
-    // Set the map as loaded
-    map.current.on('load', () => {
-      setMapLoaded(true);
-    });
-
-    // Apply initial container styles if available
-    if (currentStyle && mapContainer.current) {
-      mapContainer.current.style.filter = currentStyle.filter;
-      mapContainer.current.style.fontFamily = currentStyle.fontFamily;
-    }
-
-    return () => {
-      map.current?.remove();
-      map.current = null;
-    };
-  }, []);
 
   // Update map based on mapType
   useEffect(() => {
@@ -197,6 +242,12 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     }
   }, [mapLoaded, mapType, currentStyle, regionData]);
 
+  // Handle token input submission
+  const handleTokenSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMapboxToken(tokenInput);
+  };
+
   return (
     <div className="relative w-full h-full min-h-[400px] rounded-xl overflow-hidden border border-galaxy-nova/30">
       {/* Map title overlay */}
@@ -210,6 +261,34 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
         </div>
       </div>
       
+      {/* Token error message and input form */}
+      {tokenError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/90 backdrop-blur-sm z-30">
+          <div className="bg-black/60 backdrop-blur-sm p-6 rounded-lg border border-galaxy-nova/30 shadow-lg max-w-md w-full">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Mapbox Token Required</h3>
+            <p className="text-sm text-foreground/70 mb-4">
+              Please enter a valid Mapbox public token to display the map. You can get one by signing up at 
+              <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-galaxy-nova ml-1">mapbox.com</a>.
+            </p>
+            <form onSubmit={handleTokenSubmit} className="space-y-4">
+              <input
+                type="text"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                placeholder="Enter your Mapbox token"
+                className="w-full p-2 rounded bg-background border border-galaxy-nova/30 text-foreground/90"
+              />
+              <button 
+                type="submit"
+                className="w-full py-2 px-4 bg-galaxy-nova/80 hover:bg-galaxy-nova rounded text-white transition-colors"
+              >
+                Submit Token
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+      
       {/* Map container */}
       <div 
         ref={mapContainer} 
@@ -221,7 +300,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
       />
 
       {/* Loading state */}
-      {!mapLoaded && (
+      {!mapLoaded && !tokenError && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-20">
           <div className="space-y-4 text-center">
             <Skeleton className="h-[300px] w-[400px] rounded-lg bg-galaxy-nova/10" />
