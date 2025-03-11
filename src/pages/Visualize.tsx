@@ -12,6 +12,9 @@ import ElementCard from "@/components/ElementCard";
 import { Card } from "@/components/ui/card";
 import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Database } from "lucide-react";
+import { mockHistoricalData, prepareSimulationData } from "@/utils/mockData";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
@@ -19,6 +22,7 @@ const Visualize = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story">("graph");
   const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
+  const [useMockData, setUseMockData] = useState<boolean>(false);
   const { user } = useAuth();
   
   // Use refs for the visualization containers
@@ -46,6 +50,35 @@ const Visualize = () => {
 
   const closeDetailsCard = () => {
     setSelectedEntity(null);
+  };
+
+  const toggleMockData = () => {
+    if (!useMockData) {
+      // Convert mock data to the expected format
+      const formattedMockData = mockHistoricalData.map(item => ({
+        ...item,
+        id: item.id,
+        name: item.name,
+        type: item.type || "Unknown",
+        description: item.description || "",
+        startDate: item.startDate || "",
+        endDate: item.endDate || "",
+        significance: item.significance || 5,
+        relations: item.relations || [],
+        location: item.location || "",
+        imageUrl: item.imageUrl || "",
+        group: item.group || "Unknown"
+      })) as FormattedHistoricalEntity[];
+      
+      setEntities(formattedMockData);
+      setUseMockData(true);
+      setInputText("Mock historical data for visualization demonstration");
+      toast.success("Mock historical data loaded successfully");
+    } else {
+      // If already using mock data, toggle it off but keep the current entities
+      setUseMockData(false);
+      toast.info("Returned to user-provided data");
+    }
   };
 
   const handleExportPDF = () => {
@@ -112,11 +145,25 @@ const Visualize = () => {
           <div className="absolute top-0 right-0 -m-10 w-40 h-40 bg-galaxy-nova/20 rounded-full blur-2xl pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 -m-10 w-40 h-40 bg-galaxy-blue-giant/20 rounded-full blur-2xl pointer-events-none"></div>
           
-          <TextInput 
-            onSubmit={handleTextSubmit} 
-            isLoading={loading} 
-            onStartAnalysis={handleAnalysisStart}
-          />
+          <div className="flex flex-col space-y-4">
+            <TextInput 
+              onSubmit={handleTextSubmit} 
+              isLoading={loading} 
+              onStartAnalysis={handleAnalysisStart}
+            />
+            
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleMockData}
+                className={`border border-galaxy-nova/30 ${useMockData ? 'bg-galaxy-nova/20 text-galaxy-nova' : 'bg-black/30'}`}
+              >
+                <Database className="w-4 h-4 mr-2" />
+                {useMockData ? 'Using Mock Data' : 'Use Mock Data'}
+              </Button>
+            </div>
+          </div>
         </Card>
 
         <div className="mt-8 relative">

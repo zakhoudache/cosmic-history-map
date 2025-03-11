@@ -26,7 +26,8 @@ import {
   Navigation,
   FileText,
   Mountain,
-  Tent
+  Tent,
+  Database
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ const Index = () => {
     prepareSimulationData(mockHistoricalData)
   );
   const [timelineData, setTimelineData] = useState<any>(null);
+  const [useMockData, setUseMockData] = useState(false);
 
   // Initialize scroll animations
   useEffect(() => {
@@ -106,6 +108,38 @@ const Index = () => {
 
   const handleCloseEntityCard = () => {
     setSelectedEntity(null);
+  };
+
+  const toggleMockData = () => {
+    if (!useMockData) {
+      // Using the existing mockHistoricalData
+      setHistoricalEntities(prepareSimulationData(mockHistoricalData));
+      setHasVisualization(true);
+      setUseMockData(true);
+      
+      // Create basic timeline data
+      const timelineData = {
+        startYear: Math.min(...mockHistoricalData.filter(e => e.startDate).map(e => parseInt(e.startDate.split('-')[0]))),
+        endYear: Math.max(...mockHistoricalData.filter(e => e.endDate).map(e => parseInt(e.endDate.split('-')[0]))),
+        periods: []
+      };
+      setTimelineData(timelineData);
+      
+      toast.success("Mock historical data loaded successfully");
+      
+      // Scroll to visualization section
+      setTimeout(() => {
+        const visualizationSection = document.querySelector('.visualization-section');
+        if (visualizationSection) {
+          visualizationSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500);
+    } else {
+      // Toggle off mock data - this would typically clear the visualization
+      setUseMockData(false);
+      // In this case, since we want to keep the visualization, we'll just update the toast
+      toast.info("Returned to user-provided data");
+    }
   };
 
   const mapTypes = [
@@ -209,12 +243,25 @@ const Index = () => {
           </p>
           
           <div className="backdrop-blur-lg bg-black/30 border border-galaxy-nova/30 shadow-xl shadow-galaxy-nova/10 p-6 rounded-lg mb-8 animate-fade-in opacity-0" style={{ animationDelay: "800ms", animationFillMode: "forwards" }}>
-            {/* Glowing Orb Top Right */}
+            {/* Glowing Orbs */}
             <div className="absolute top-0 right-0 -m-10 w-40 h-40 bg-galaxy-nova/20 rounded-full blur-2xl pointer-events-none"></div>
-            {/* Glowing Orb Bottom Left */}
             <div className="absolute bottom-0 left-0 -m-10 w-40 h-40 bg-galaxy-blue-giant/20 rounded-full blur-2xl pointer-events-none"></div>
             
-            <TextInput onSubmit={handleTextSubmit} isLoading={isLoading} />
+            <div className="space-y-4">
+              <TextInput onSubmit={handleTextSubmit} isLoading={isLoading} />
+              
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleMockData}
+                  className={`border border-galaxy-nova/30 ${useMockData ? 'bg-galaxy-nova/20 text-galaxy-nova' : 'bg-black/30'}`}
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  {useMockData ? 'Using Mock Data' : 'Use Mock Data'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
         
