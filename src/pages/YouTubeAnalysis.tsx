@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Input } from "@/components/ui/input";
@@ -54,8 +55,8 @@ const YouTubeAnalysis = () => {
       setEntities([]);
       setVideoMetadata(null);
       setActiveTab("video");
-      // Set scraping as the default method
-      setTranscriptionMethod("scraping");
+      // Set supadata as the default method
+      setTranscriptionMethod("supadata");
       toast.success("YouTube video loaded successfully");
     } else {
       toast.error("Invalid YouTube URL");
@@ -692,8 +693,8 @@ const YouTubeAnalysis = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2 text-foreground">No Video Loaded</h3>
               <p className="text-foreground/70 text-center max-w-md">
-                Enter a YouTube URL above to start. The tool will scrape the video page,
-                extract the transcription, and analyze it to create a knowledge graph of concepts and relationships.
+                Enter a YouTube URL above to start. The tool will use Supadata API to fetch the transcription
+                and analyze it to create a knowledge graph of concepts and relationships.
               </p>
             </CardContent>
           </Card>

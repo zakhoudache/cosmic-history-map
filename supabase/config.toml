@@ -13,3 +13,4 @@ directory = "functions"
 "test-env-vars" = { include = ["*"] }
 "scrape-youtube-page" = { include = ["*"] }
 "generate-map-data" = { include = ["*"] }
+"supadata-youtube-transcription" = { include = ["*"] }

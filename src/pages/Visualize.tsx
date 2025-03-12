@@ -12,7 +12,21 @@ import { Card } from "@/components/ui/card";
 import { exportToPDF } from "@/utils/pdfExport";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Database, BookText, Globe, Play, ViewVertical, Download, CalendarDays } from "lucide-react";
+import { 
+  Download, 
+  Network,
+  Calendar, 
+  BookText, 
+  Copy, 
+  Share, 
+  LayoutList, 
+  MoveVertical, 
+  Eye, 
+  Layers, 
+  RefreshCw,
+  Camera,
+  RotateCw
+} from "lucide-react";
 import { mockHistoricalData, arabicHistoricalData, arabicHistoricalSubjects, prepareSimulationData, generateEntitiesFromSubject, HistoricalEntity } from "@/utils/mockData";
 import HistoricalVerticalCards from "@/components/HistoricalVerticalCards";
 
@@ -28,7 +42,6 @@ const Visualize = () => {
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const { user } = useAuth();
   
-  // Use refs for the visualization containers
   const cosmicVisualizationRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
@@ -61,10 +74,8 @@ const Visualize = () => {
   };
 
   const handleDeleteEntity = (entityId: string) => {
-    // Remove the entity
     const updatedEntities = entities.filter(entity => entity.id !== entityId);
     
-    // Also remove all relations to this entity
     const entitiesWithUpdatedRelations = updatedEntities.map(entity => {
       if (entity.relations) {
         return {
@@ -81,7 +92,6 @@ const Visualize = () => {
 
   const toggleMockData = () => {
     if (!useMockData) {
-      // Switch to the default mockdata
       const formattedMockData = mockHistoricalData.map(item => ({
         ...item,
         id: item.id,
@@ -127,7 +137,6 @@ const Visualize = () => {
 
   const toggleArabicSubjects = () => {
     if (!showArabicSubjects) {
-      // Just show the subjects as text
       setShowArabicSubjects(true);
       setUseArabicData(false);
       setUseMockData(false);
@@ -148,7 +157,6 @@ const Visualize = () => {
     setSelectedSubject(index);
     setLoading(true);
     
-    // Simulate loading for a more natural feel
     setTimeout(() => {
       const subject = arabicHistoricalSubjects[index];
       const generatedEntities = generateEntitiesFromSubject(subject);
@@ -158,7 +166,6 @@ const Visualize = () => {
       setInputText(`${subject.title}: ${subject.originalText.substring(0, 100)}...`);
       toast.success(`تم إنشاء التمثيل البصري لموضوع "${subject.title}" بنجاح`);
       
-      // Automatically switch to cards view when an Arabic subject is selected
       setVisualizationType("cards");
     }, 1000);
   };
@@ -173,7 +180,6 @@ const Visualize = () => {
     let title = "";
     let description = "";
     
-    // Choose the appropriate container element and titles based on visualization type
     switch (visualizationType) {
       case "graph":
         containerElement = cosmicVisualizationRef.current;
@@ -200,7 +206,6 @@ const Visualize = () => {
         break;
     }
     
-    // Generate PDF with the appropriate visualization container
     exportToPDF({
       entities,
       title,
@@ -212,7 +217,6 @@ const Visualize = () => {
 
   const showPlaceholder = !inputText || entities.length === 0;
 
-  // Custom controls for the visualization type
   const renderVisualizationTypeSelector = () => (
     <div className="flex space-x-2">
       <Button 
@@ -221,7 +225,7 @@ const Visualize = () => {
         onClick={() => handleVisTypeChange("graph")}
         className="flex items-center gap-1"
       >
-        <Database className="h-4 w-4" />
+        <Network className="h-4 w-4" />
         Network
       </Button>
       
@@ -231,7 +235,7 @@ const Visualize = () => {
         onClick={() => handleVisTypeChange("timeline")}
         className="flex items-center gap-1"
       >
-        <CalendarDays className="h-4 w-4" />
+        <Calendar className="h-4 w-4" />
         Timeline
       </Button>
       
@@ -251,7 +255,7 @@ const Visualize = () => {
         onClick={() => handleVisTypeChange("cards")}
         className="flex items-center gap-1"
       >
-        <ViewVertical className="h-4 w-4" />
+        <MoveVertical className="h-4 w-4" />
         Cards
       </Button>
     </div>
@@ -292,7 +296,7 @@ const Visualize = () => {
                 onClick={toggleMockData}
                 className={`border border-galaxy-nova/30 ${useMockData ? 'bg-galaxy-nova/20 text-galaxy-nova' : 'bg-black/30'}`}
               >
-                <Database className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 mr-2" />
                 {useMockData ? 'Using English Data' : 'Use English Data'}
               </Button>
               
@@ -401,7 +405,6 @@ const Visualize = () => {
                           }}
                           onDelete={handleDeleteEntity}
                           onAddRelated={(parentEntity) => {
-                            // This will be handled inside ElementCard with the new implementation
                           }}
                           onExportPDF={handleExportPDF}
                           allEntities={entities}
@@ -454,7 +457,6 @@ const Visualize = () => {
                       }}
                       onDelete={handleDeleteEntity}
                       onAddRelated={(parentEntity) => {
-                        // This will be handled inside ElementCard with the new implementation
                       }}
                       onExportPDF={handleExportPDF}
                       allEntities={entities}

@@ -1,397 +1,213 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as d3 from 'd3';
-import { HistoricalEntity, getEntityConnections, mockHistoricalData, SimulationNode } from '@/utils/mockData';
-import { useAnimateOnMount } from '@/utils/animations';
-import VisualizationPlaceholder from './VisualizationPlaceholder';
-import VisualizationControls from './VisualizationControls';
+
+import React, { useEffect, useRef, useState } from "react";
+import * as d3 from "d3";
+import { FormattedHistoricalEntity } from "@/types/supabase";
+import { SimulationNodeDatum } from 'd3';
 import { toast } from "sonner";
 
-interface KnowledgeGraphProps {
-  entities?: HistoricalEntity[];
-  onEntitySelect?: (entity: HistoricalEntity) => void;
+// Custom node type for the simulation
+interface CustomNode extends SimulationNodeDatum {
+  id: string;
+  name: string;
+  type: string;
+  color: string;
+  radius: number;
+  group?: string;
+  significance?: number;
+  startDate?: string;
+  endDate?: string;
+  category?: string;
 }
 
+// Custom link type for the simulation
+interface CustomLink {
+  source: string | CustomNode;
+  target: string | CustomNode;
+  type: string;
+  strength: number;
+}
+
+// Main component props
+interface KnowledgeGraphProps {
+  entities: FormattedHistoricalEntity[];
+  onEntitySelect?: (entity: FormattedHistoricalEntity) => void;
+  height?: number;
+  width?: number;
+  isInteractive?: boolean;
+}
+
+// Helper function to get a color based on entity type
+const getEntityColor = (type: string): string => {
+  const colors: Record<string, string> = {
+    "person": "#4299E1", // Blue
+    "event": "#F56565", // Red
+    "location": "#48BB78", // Green
+    "organization": "#9F7AEA", // Purple
+    "concept": "#ED8936", // Orange
+    "object": "#667EEA", // Indigo
+    "document": "#F687B3", // Pink
+    "time_period": "#D69E2E", // Yellow
+    "culture": "#805AD5", // Purple
+    "discovery": "#38B2AC", // Teal
+    "technology": "#34D399", // Emerald
+    "conflict": "#EF4444", // Red
+    "agreement": "#3B82F6", // Blue
+    "movement": "#EC4899", // Pink
+    "artifact": "#10B981", // Green
+    "work": "#8B5CF6", // Violet
+    "law": "#6366F1", // Indigo
+    "subject_area": "#F59E0B", // Amber
+    "dynasty": "#7C3AED", // Violet
+  };
+  
+  return colors[type.toLowerCase()] || "#A0AEC0"; // Default to gray
+};
+
+// Component definition
 const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ 
-  entities = [], 
-  onEntitySelect 
+  entities, 
+  onEntitySelect, 
+  height = 600, 
+  width = 800,
+  isInteractive = true,
 }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isVisible = useAnimateOnMount(500);
-  const [dimensions, setDimensions] = useState({ width: 500, height: 400 });
-  const hasData = entities && entities.length > 0;
+  const d3Container = useRef<HTMLDivElement>(null);
+  const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   
-  // Zoom and fullscreen state
-  const [scale, setScale] = useState<number>(1);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [originalHeight, setOriginalHeight] = useState<number>(400);
-  const MIN_SCALE = 0.5;
-  const MAX_SCALE = 3;
-  const SCALE_STEP = 0.2;
-  
-  // Simulation reference (to restart when zoom changes)
-  const simulationRef = useRef<any>(null);
-
-  // Initialize layout and resize handling
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (svgRef.current) {
-        const { width, height } = svgRef.current.parentElement?.getBoundingClientRect() || { width: 500, height: 400 };
-        setDimensions({ width, height });
-        
-        // Store original height when first initialized
-        if (!originalHeight || originalHeight === 400) {
-          setOriginalHeight(height);
-        }
+  // Process entities into nodes and links for the graph
+  const processGraphData = () => {
+    if (!entities || entities.length === 0) return { nodes: [], links: [] };
+    
+    const nodeMap = new Map<string, CustomNode>();
+    const links: CustomLink[] = [];
+    
+    // Create nodes from entities
+    entities.forEach(entity => {
+      nodeMap.set(entity.id, {
+        id: entity.id,
+        name: entity.name || "Unknown",
+        type: entity.type || "unknown",
+        color: getEntityColor(entity.type || "unknown"),
+        radius: entity.importance ? 5 + (entity.importance * 3) : 8,
+        startDate: entity.startDate,
+        endDate: entity.endDate,
+        category: entity.category,
+        significance: entity.significance,
+      });
+      
+      // Create links from entity relationships
+      if (entity.relations && entity.relations.length > 0) {
+        entity.relations.forEach(relation => {
+          // Only add links to entities that exist in our data
+          if (entities.some(e => e.id === relation.targetId)) {
+            links.push({
+              source: entity.id,
+              target: relation.targetId,
+              type: relation.type || "related",
+              strength: relation.strength || 1,
+            });
+          }
+        });
       }
-    };
-    
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    
-    return () => {
-      window.removeEventListener('resize', updateDimensions);
-    };
-  }, []);
-
-  // Effect for zoom
-  useEffect(() => {
-    if (!svgRef.current || !containerRef.current) return;
-    
-    const containerElem = containerRef.current;
-    
-    // Set the transform based on scale
-    if (containerElem) {
-      const svg = d3.select(svgRef.current).select('g');
-      svg.attr('transform', `scale(${scale})`);
-      
-      // Restart simulation with adjusted forces if it exists
-      if (simulationRef.current) {
-        simulationRef.current.alpha(0.3).restart();
-      }
-    }
-  }, [scale]);
-
-  // Escape key handler for fullscreen
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
-
-  // Zoom handlers
-  const handleZoomIn = () => {
-    setScale(prev => Math.min(prev + SCALE_STEP, MAX_SCALE));
-  };
-
-  const handleZoomOut = () => {
-    setScale(prev => Math.max(prev - SCALE_STEP, MIN_SCALE));
-  };
-
-  // Fullscreen toggle
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-    
-    // Reset scale when toggling fullscreen
-    if (!isFullscreen) {
-      // Wait for the fullscreen transition to complete
-      setTimeout(() => {
-        if (simulationRef.current) {
-          simulationRef.current.alpha(0.3).restart();
-        }
-      }, 300);
-    }
-  };
-
-  // Export as SVG
-  const handleExport = () => {
-    if (!svgRef.current) return;
-    
-    try {
-      // Clone the SVG to avoid modifying the displayed one
-      const svgClone = svgRef.current.cloneNode(true) as SVGSVGElement;
-      
-      // Set proper attributes for standalone SVG
-      svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      svgClone.setAttribute('width', dimensions.width.toString());
-      svgClone.setAttribute('height', dimensions.height.toString());
-      
-      // Convert to string
-      const svgData = new XMLSerializer().serializeToString(svgClone);
-      
-      // Create a Blob and URL
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const svgUrl = URL.createObjectURL(svgBlob);
-      
-      // Create a download link and trigger it
-      const downloadLink = document.createElement('a');
-      downloadLink.href = svgUrl;
-      downloadLink.download = 'knowledge-graph.svg';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      
-      toast.success("Knowledge graph exported as SVG");
-    } catch (error) {
-      console.error('Error exporting knowledge graph:', error);
-      toast.error("Failed to export knowledge graph");
-    }
-  };
-
-  // Only create and update visualization if we have data
-  useEffect(() => {
-    if (!svgRef.current || !isVisible || !hasData) return;
-    
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-    
-    // Set up the SVG
-    const { width, height } = dimensions;
-    
-    // Create a main group for all visualization elements (for zoom scaling)
-    const mainGroup = svg.append("g")
-      .attr("class", "main-group");
-    
-    // Create defs for patterns, filters, and custom shapes
-    const defs = svg.append("defs");
-    
-    // Add glow filter
-    const glowFilter = defs.append("filter")
-      .attr("id", "entity-glow")
-      .attr("x", "-50%")
-      .attr("y", "-50%")
-      .attr("width", "200%")
-      .attr("height", "200%");
-      
-    glowFilter.append("feGaussianBlur")
-      .attr("stdDeviation", "3")
-      .attr("result", "blur");
-      
-    glowFilter.append("feComposite")
-      .attr("in", "SourceGraphic")
-      .attr("in2", "blur")
-      .attr("operator", "over");
-    
-    // Create custom shape definitions for each entity type
-    
-    // Person - Stylized human silhouette
-    defs.append("symbol")
-      .attr("id", "person-symbol")
-      .attr("viewBox", "0 0 100 100")
-      .append("path")
-      .attr("d", "M50,10 C63,10 73,20 73,35 C73,47 65,58 54,60 L54,62 C75,65 90,75 90,85 L10,85 C10,75 25,65 46,62 L46,60 C35,58 27,47 27,35 C27,20 37,10 50,10 Z")
-      .attr("fill", "url(#pattern-person)");
-    
-    // Event - Starburst shape
-    defs.append("symbol")
-      .attr("id", "event-symbol")
-      .attr("viewBox", "0 0 100 100")
-      .append("path")
-      .attr("d", "M50,5 L57,35 L90,35 L65,55 L75,85 L50,70 L25,85 L35,55 L10,35 L43,35 Z")
-      .attr("fill", "url(#pattern-event)");
-      
-    // Place - Stylized location marker
-    defs.append("symbol")
-      .attr("id", "place-symbol")
-      .attr("viewBox", "0 0 100 100")
-      .append("path")
-      .attr("d", "M50,5 C25,5 10,20 10,40 C10,60 50,95 50,95 C50,95 90,60 90,40 C90,20 75,5 50,5 Z M50,25 C60,25 68,33 68,43 C68,53 60,60 50,60 C40,60 32,53 32,43 C32,33 40,25 50,25 Z")
-      .attr("fill", "url(#pattern-place)");
-      
-    // Concept - Abstract brain or idea symbol
-    defs.append("symbol")
-      .attr("id", "concept-symbol")
-      .attr("viewBox", "0 0 100 100")
-      .append("path")
-      .attr("d", "M30,30 C10,45 10,75 30,85 C50,95 80,85 90,65 C100,45 90,15 70,10 C60,5 40,10 40,25 C40,35 50,40 60,40 C70,40 75,30 65,20 M45,65 C35,55 40,45 50,45 C60,45 65,55 55,65 C50,70 40,75 45,65 Z")
-      .attr("fill", "url(#pattern-concept)");
-    
-    // Add patterns for different entity types
-    const patternTypes = [
-      { id: "pattern-person", color: "hsl(280, 70%, 50%)" },
-      { id: "pattern-event", color: "hsl(200, 70%, 50%)" },
-      { id: "pattern-place", color: "hsl(100, 70%, 50%)" },
-      { id: "pattern-concept", color: "hsl(50, 70%, 50%)" }
-    ];
-    
-    patternTypes.forEach(pattern => {
-      // Create pattern
-      const pat = defs.append("pattern")
-        .attr("id", pattern.id)
-        .attr("patternUnits", "userSpaceOnUse")
-        .attr("width", 10)
-        .attr("height", 10)
-        .attr("patternTransform", "rotate(45)");
-        
-      pat.append("rect")
-        .attr("width", 10)
-        .attr("height", 10)
-        .attr("fill", pattern.color)
-        .attr("opacity", 0.2);
-        
-      pat.append("line")
-        .attr("x1", 0)
-        .attr("y1", 0)
-        .attr("x2", 0)
-        .attr("y2", 10)
-        .attr("stroke", pattern.color)
-        .attr("stroke-width", 1);
     });
     
-    // Create background pattern
-    const bgPattern = defs.append("pattern")
-      .attr("id", "bg-pattern")
-      .attr("patternUnits", "userSpaceOnUse")
-      .attr("width", 50)
-      .attr("height", 50);
-      
-    bgPattern.append("rect")
-      .attr("width", 50)
-      .attr("height", 50)
-      .attr("fill", "#121220");
-      
-    bgPattern.append("circle")
-      .attr("cx", 25)
-      .attr("cy", 25)
-      .attr("r", 1)
-      .attr("fill", "#ffffff")
-      .attr("opacity", 0.3);
-    
-    // Add background 
-    svg.append("rect")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("fill", "url(#bg-pattern)")
-      .attr("opacity", 0.2);
-    
-    // Prepare data
-    const nodes = entities.map(entity => ({ ...entity })) as SimulationNode[];
-    
-    // Get all connections with valid source and target from relations
-    const getValidLinks = () => {
-      const validLinks = [];
-      
-      for (const entity of entities) {
-        if (entity.relations && Array.isArray(entity.relations)) {
-          for (const relation of entity.relations) {
-            // Fix the property name from 'target' to 'targetId'
-            const targetId = relation.target || relation.targetId;
-            const targetEntity = entities.find(e => e.id === targetId);
-            if (targetEntity) {
-              validLinks.push({
-                source: entity.id,
-                target: targetEntity.id,
-                type: relation.type || 'default',
-                strength: relation.strength || 1
-              });
-            }
-          }
-        }
-      }
-      
-      return validLinks;
+    return {
+      nodes: Array.from(nodeMap.values()),
+      links,
     };
+  };
+  
+  // Render the graph
+  useEffect(() => {
+    if (!d3Container.current || !entities || entities.length === 0) return;
     
-    const validLinks = getValidLinks();
+    // Clear previous graph
+    d3.select(d3Container.current).selectAll("*").remove();
     
-    // Skip rendering if no valid links
-    if (validLinks.length === 0) {
-      renderGridLayout(svg, nodes, width, height, onEntitySelect);
-      return;
+    const { nodes, links } = processGraphData();
+    
+    if (nodes.length === 0) return;
+    
+    // Calculate responsive dimensions
+    const containerWidth = d3Container.current.clientWidth;
+    const containerHeight = height;
+    const actualWidth = Math.min(containerWidth, width);
+    
+    // Create SVG container
+    const svg = d3.select(d3Container.current)
+      .append("svg")
+      .attr("width", "100%")
+      .attr("height", containerHeight)
+      .attr("viewBox", `0 0 ${actualWidth} ${containerHeight}`)
+      .append("g");
+    
+    // Add zoom functionality
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.5, 5])
+      .on("zoom", (event) => {
+        svg.attr("transform", event.transform);
+      });
+    
+    d3.select(d3Container.current).select("svg")
+      .call(zoom as any);
+    
+    // Create tooltip
+    if (!tooltipRef.current) {
+      const tooltipDiv = document.createElement("div");
+      tooltipDiv.className = "absolute hidden px-2 py-1 text-sm bg-black/80 text-white rounded shadow-lg z-50 pointer-events-none";
+      d3Container.current.appendChild(tooltipDiv);
+      tooltipRef.current = tooltipDiv;
     }
     
-    // Create D3 compatible links (using entity indices)
-    const indexedLinks = validLinks.map(link => ({
-      ...link,
-      source: nodes.findIndex(node => node.id === link.source),
-      target: nodes.findIndex(node => node.id === link.target)
-    }));
+    // Create simulation
+    const simulation = d3.forceSimulation<CustomNode, CustomLink>(nodes)
+      .force("charge", d3.forceManyBody().strength(-120))
+      .force("center", d3.forceCenter(actualWidth / 2, containerHeight / 2))
+      .force("link", d3.forceLink<CustomNode, CustomLink>(links)
+        .id(d => d.id)
+        .distance(d => 100 - Math.min(d.strength * 20, 70))
+      )
+      .force("collide", d3.forceCollide().radius(d => d.radius + 5));
     
-    // Create forces
-    const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(indexedLinks).id((d: any, i) => i))
-      .force("charge", d3.forceManyBody().strength(d => (d as any).significance ? (d as any).significance * -250 : -300))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => ((d as any).significance || 1) * 8 + 20));
-    
-    // Store simulation in ref for zoom adjustments
-    simulationRef.current = simulation;
-    
-    // Create link groups
-    const linkGroups = mainGroup.append("g")
-      .attr("class", "links")
-      .selectAll("g")
-      .data(indexedLinks)
+    // Create links
+    const link = svg.append("g")
+      .selectAll("line")
+      .data(links)
       .enter()
-      .append("g")
-      .attr("class", d => `link-group link-type-${d.type}`);
+      .append("line")
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
+      .attr("stroke-width", d => Math.max(1, d.strength));
     
-    // Create links with different visual styling based on type
-    linkGroups.each(function(d) {
-      const linkElem = d3.select(this);
-      
-      // Base link
-      linkElem.append("path")
-        .attr("class", "link-path")
-        .attr("stroke", d => {
-          switch(d.type) {
-            case "causal": return "rgba(255, 100, 100, 0.4)";
-            case "correlative": return "rgba(100, 100, 255, 0.4)";
-            case "conflicting": return "rgba(255, 200, 0, 0.4)";
-            case "evolutionary": return "rgba(100, 255, 100, 0.4)";
-            default: return "rgba(200, 200, 200, 0.3)";
-          }
-        })
-        .attr("stroke-width", d => Math.max(1, d.strength)) 
-        .attr("fill", "none")
-        .attr("stroke-dasharray", d => {
-          switch(d.type) {
-            case "correlative": return "5,5";
-            case "conflicting": return "2,2";
-            case "evolutionary": return "10,5";
-            default: return null;
-          }
-        })
-        .attr("opacity", 0)
-        .transition()
-        .duration(800)
-        .delay((_, i) => i * 10)
-        .attr("opacity", 0.8);
-      
-      // Add directional flow for causal relationships
-      if (d.type === "causal" || d.type === "evolutionary") {
-        linkElem.append("circle")
-          .attr("r", 2)
-          .attr("fill", "white")
-          .attr("opacity", 0)
-          .attr("class", "flow-particle")
-          .transition()
-          .duration(500)
-          .delay(1000)
-          .attr("opacity", 0.8);
-      }
-    });
-    
-    // Create node groups
-    const nodeGroups = mainGroup.append("g")
-      .attr("class", "nodes")
-      .selectAll(".node")
+    // Create nodes
+    const node = svg.append("g")
+      .selectAll("circle")
       .data(nodes)
       .enter()
-      .append("g")
-      .attr("class", d => `node node-type-${d.type}`)
-      .style("cursor", "pointer")
-      .on("click", (event, d) => {
-        if (onEntitySelect) {
-          onEntitySelect(d);
-        }
-      })
-      .call(d3.drag<SVGGElement, SimulationNode>()
+      .append("circle")
+      .attr("r", d => d.radius)
+      .attr("fill", d => d.color)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1.5)
+      .style("cursor", "pointer");
+    
+    // Add node labels
+    const labels = svg.append("g")
+      .selectAll("text")
+      .data(nodes)
+      .enter()
+      .append("text")
+      .text(d => d.name)
+      .attr("font-size", "10px")
+      .attr("dx", d => d.radius + 5)
+      .attr("dy", 4)
+      .style("pointer-events", "none");
+    
+    // Add interactivity if enabled
+    if (isInteractive) {
+      // Node dragging
+      node.call(d3.drag<SVGCircleElement, CustomNode>()
         .on("start", (event, d) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
@@ -405,322 +221,118 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           if (!event.active) simulation.alphaTarget(0);
           d.fx = null;
           d.fy = null;
-        }) as any);
-    
-    // Add contextual membranes
-    nodeGroups.append("circle")
-      .attr("class", "contextual-membrane")
-      .attr("r", d => ((d.significance || 1) * 8 + 25))
-      .attr("fill", d => {
-        switch (d.type.toLowerCase()) {
-          case "person": return "hsla(280, 70%, 40%, 0.1)";
-          case "event": return "hsla(200, 70%, 40%, 0.1)";
-          case "place": return "hsla(100, 70%, 40%, 0.1)";
-          case "concept": return "hsla(50, 70%, 40%, 0.1)";
-          default: return "hsla(240, 70%, 40%, 0.1)";
-        }
-      })
-      .attr("opacity", 0)
-      .transition()
-      .duration(1000)
-      .delay((_, i) => i * 100)
-      .attr("opacity", 1);
-    
-    // Add attribute rings for significant entities
-    nodeGroups.filter(d => (d.significance || 0) > 5)
-      .append("circle")
-      .attr("class", "attribute-ring")
-      .attr("r", d => ((d.significance || 1) * 8 + 15))
-      .attr("fill", "none")
-      .attr("stroke", d => {
-        switch (d.type.toLowerCase()) {
-          case "person": return "hsla(280, 70%, 50%, 0.3)";
-          case "event": return "hsla(200, 70%, 50%, 0.3)";
-          case "place": return "hsla(100, 70%, 50%, 0.3)";
-          case "concept": return "hsla(50, 70%, 50%, 0.3)";
-          default: return "hsla(240, 70%, 50%, 0.3)";
-        }
-      })
-      .attr("stroke-width", 3)
-      .attr("stroke-dasharray", d => {
-        // Create segments based on the entity's domains of influence
-        const domains = d.domains || ["political", "cultural", "scientific"];
-        const circumference = 2 * Math.PI * ((d.significance || 1) * 8 + 15);
-        const segmentLength = circumference / domains.length;
-        return `${segmentLength * 0.7},${segmentLength * 0.3}`;
-      })
-      .attr("opacity", 0)
-      .transition()
-      .duration(1000)
-      .delay((_, i) => i * 100 + 300)
-      .attr("opacity", 1);
-    
-    // Add custom entity shapes based on type
-    nodeGroups.each(function(d) {
-      const node = d3.select(this);
-      const size = (d.significance || 1) * 8;
-      const symbolSize = size * 2; // Adjust as needed for the symbol scale
+        }) as any
+      );
       
-      switch (d.type.toLowerCase()) {
-        case "person":
-          node.append("use")
-            .attr("href", "#person-symbol")
-            .attr("width", symbolSize)
-            .attr("height", symbolSize)
-            .attr("x", -symbolSize/2)
-            .attr("y", -symbolSize/2)
-            .attr("stroke", "hsl(280, 70%, 50%)")
-            .attr("fill", "url(#pattern-person)")
-            .attr("filter", "url(#entity-glow)");
-          break;
-        case "event":
-          node.append("use")
-            .attr("href", "#event-symbol")
-            .attr("width", symbolSize)
-            .attr("height", symbolSize)
-            .attr("x", -symbolSize/2)
-            .attr("y", -symbolSize/2)
-            .attr("stroke", "hsl(200, 70%, 50%)")
-            .attr("fill", "url(#pattern-event)")
-            .attr("filter", "url(#entity-glow)");
-          break;
-        case "place":
-          node.append("use")
-            .attr("href", "#place-symbol")
-            .attr("width", symbolSize)
-            .attr("height", symbolSize)
-            .attr("x", -symbolSize/2)
-            .attr("y", -symbolSize/2)
-            .attr("stroke", "hsl(100, 70%, 50%)")
-            .attr("fill", "url(#pattern-place)")
-            .attr("filter", "url(#entity-glow)");
-          break;
-        case "concept":
-          node.append("use")
-            .attr("href", "#concept-symbol")
-            .attr("width", symbolSize)
-            .attr("height", symbolSize)
-            .attr("x", -symbolSize/2)
-            .attr("y", -symbolSize/2)
-            .attr("stroke", "hsl(50, 70%, 50%)")
-            .attr("fill", "url(#pattern-concept)")
-            .attr("filter", "url(#entity-glow)");
-          break;
-        default:
-          // Fallback to circle if type is not recognized
-          node.append("circle")
-            .attr("class", "identity-core")
-            .attr("r", size)
-            .attr("fill", "hsl(240, 70%, 50%)")
-            .attr("stroke", "white")
-            .attr("stroke-width", 2)
-            .attr("filter", "url(#entity-glow)");
-      }
-    });
-    
-    // Add temporal signatures
-    nodeGroups.filter(d => d.startDate && d.endDate)
-      .append("path")
-      .attr("class", "temporal-signature")
-      .attr("d", d => {
-        // Create age rings that show duration
-        const radius = (d.significance || 1) * 8;
-        const startAngle = 0;
-        const endAngle = 2 * Math.PI;
+      // Hover effects
+      node.on("mouseover", (event, d) => {
+        const tooltip = tooltipRef.current;
+        if (!tooltip) return;
         
-        return d3.arc()({
-          innerRadius: radius - 3,
-          outerRadius: radius,
-          startAngle,
-          endAngle
+        // Find the original entity for more details
+        const entity = entities.find(e => e.id === d.id);
+        
+        // Create tooltip content
+        let content = `<div class="font-bold">${d.name}</div>`;
+        content += `<div class="text-xs">${d.type}</div>`;
+        
+        if (entity?.startDate || entity?.endDate) {
+          content += `<div class="text-xs">${entity.startDate || ''} ${entity.endDate ? `- ${entity.endDate}` : ''}</div>`;
+        }
+        
+        tooltip.innerHTML = content;
+        tooltip.style.display = "block";
+        tooltip.style.left = `${event.pageX + 10}px`;
+        tooltip.style.top = `${event.pageY + 10}px`;
+        
+        // Highlight connected nodes
+        const connectedNodeIds = new Set<string>();
+        connectedNodeIds.add(d.id);
+        
+        links.forEach(link => {
+          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+          
+          if (sourceId === d.id) connectedNodeIds.add(targetId);
+          if (targetId === d.id) connectedNodeIds.add(sourceId);
+        });
+        
+        node.attr("opacity", node => connectedNodeIds.has(node.id) ? 1 : 0.2);
+        labels.attr("opacity", label => connectedNodeIds.has(label.id) ? 1 : 0.2);
+        link.attr("stroke-opacity", link => {
+          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+          return (sourceId === d.id || targetId === d.id) ? 1 : 0.1;
         });
       })
-      .attr("fill", d => {
-        // Older entities get more "aged" appearance
-        const startYear = new Date(d.startDate || "2000").getFullYear();
-        const currentYear = new Date().getFullYear();
-        const age = currentYear - startYear;
-        const opacity = Math.min(0.8, Math.max(0.2, age / 1000));
+      .on("mouseout", () => {
+        const tooltip = tooltipRef.current;
+        if (tooltip) tooltip.style.display = "none";
         
-        return `rgba(255, 200, 150, ${opacity})`;
+        node.attr("opacity", 1);
+        labels.attr("opacity", 1);
+        link.attr("stroke-opacity", 0.6);
       })
-      .attr("opacity", 0)
-      .transition()
-      .duration(1000)
-      .delay((_, i) => i * 100 + 500)
-      .attr("opacity", 1);
-    
-    // Add labels
-    nodeGroups.append("text")
-      .attr("dy", d => (d.significance || 1) * 8 + 20)
-      .attr("text-anchor", "middle")
-      .attr("font-size", d => 10 + Math.min(3, (d.significance || 1) / 2))
-      .attr("fill", "white")
-      .attr("pointer-events", "none")
-      .text(d => d.name)
-      .attr("opacity", 0)
-      .transition()
-      .duration(800)
-      .delay((_, i) => i * 100 + 400)
-      .attr("opacity", 0.9);
-    
-    // Update positions
-    simulation.on("tick", () => {
-      // Update link paths
-      linkGroups.selectAll(".link-path")
-        .attr("d", (d: any) => {
-          const sourceNode = nodes[d.source as number];
-          const targetNode = nodes[d.target as number];
-          
-          if (!sourceNode || !targetNode || sourceNode.x === undefined || targetNode.x === undefined) return "";
-          
-          // Calculate path with curve
-          const dx = targetNode.x - sourceNode.x;
-          const dy = targetNode.y - sourceNode.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.2;
-          
-          return d.type === "conflicting" 
-            ? `M${sourceNode.x},${sourceNode.y} A${dr},${dr} 0 0,1 ${targetNode.x},${targetNode.y} A${dr * 0.8},${dr * 0.8} 0 0,0 ${sourceNode.x},${sourceNode.y}`
-            : `M${sourceNode.x},${sourceNode.y} A${dr},${dr} 0 0,1 ${targetNode.x},${targetNode.y}`;
-        });
-      
-      // Update flow particles for directional links
-      linkGroups.selectAll(".flow-particle").each(function(d: any) {
-        const sourceNode = nodes[d.source as number];
-        const targetNode = nodes[d.target as number];
-        
-        if (!sourceNode || !targetNode || sourceNode.x === undefined || targetNode.x === undefined) return;
-        
-        // Calculate position along path
-        const offset = (Date.now() % 3000) / 3000; // Moves along path over time
-        const interpolate = d3.interpolate(
-          [sourceNode.x, sourceNode.y],
-          [targetNode.x, targetNode.y]
-        );
-        const pos = interpolate(offset);
-        
-        d3.select(this)
-          .attr("cx", pos[0])
-          .attr("cy", pos[1]);
+      .on("click", (event, d) => {
+        // Find the original entity with full data
+        const entity = entities.find(e => e.id === d.id);
+        if (entity && onEntitySelect) {
+          setSelectedEntity(entity);
+          onEntitySelect(entity);
+        }
       });
+    }
+    
+    // Update positions on simulation tick
+    simulation.on("tick", () => {
+      link
+        .attr("x1", d => typeof d.source === 'string' ? 0 : (d.source as CustomNode).x || 0)
+        .attr("y1", d => typeof d.source === 'string' ? 0 : (d.source as CustomNode).y || 0)
+        .attr("x2", d => typeof d.target === 'string' ? 0 : (d.target as CustomNode).x || 0)
+        .attr("y2", d => typeof d.target === 'string' ? 0 : (d.target as CustomNode).y || 0);
       
-      // Update node positions
-      nodeGroups.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+      node
+        .attr("cx", d => d.x || 0)
+        .attr("cy", d => d.y || 0);
+      
+      labels
+        .attr("x", d => d.x || 0)
+        .attr("y", d => d.y || 0);
     });
     
-    // Stop simulation after a certain time
-    setTimeout(() => {
-      simulation.stop();
-    }, 5000);
+    // Helper function for screenshots (can be used with html2canvas)
+    (window as any).takeKnowledgeGraphScreenshot = () => {
+      try {
+        const svgNode = d3Container.current?.querySelector('svg');
+        if (svgNode) {
+          const serializer = new XMLSerializer();
+          let source = serializer.serializeToString(svgNode);
+          source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+          const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+          const link = document.createElement("a");
+          link.download = "knowledge-graph.svg";
+          link.href = url;
+          link.click();
+          toast.success("Graph downloaded as SVG");
+        }
+      } catch (error) {
+        console.error("Error saving graph:", error);
+        toast.error("Failed to download graph");
+      }
+    };
     
-    // Cleanup on unmount
     return () => {
       simulation.stop();
-      simulationRef.current = null;
+      if (tooltipRef.current) {
+        tooltipRef.current.remove();
+        tooltipRef.current = null;
+      }
     };
-  }, [entities, isVisible, dimensions, onEntitySelect, scale]);
-
-  // Helper function to render a grid layout when no links are available
-  function renderGridLayout(svg, nodes, width, height, onEntitySelect) {
-    const mainGroup = svg.append("g")
-      .attr("class", "main-group");
-      
-    const nodeGroup = mainGroup.append("g")
-      .attr("class", "nodes")
-      .selectAll(".node")
-      .data(nodes)
-      .enter()
-      .append("g")
-      .attr("class", d => `node node-type-${d.type}`)
-      .attr("transform", (d, i) => {
-        const cols = Math.ceil(Math.sqrt(nodes.length));
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        const xSpacing = width / (cols + 1);
-        const ySpacing = height / (Math.ceil(nodes.length / cols) + 1);
-        return `translate(${(col + 1) * xSpacing}, ${(row + 1) * ySpacing})`;
-      })
-      .style("cursor", "pointer")
-      .on("click", (event, d) => {
-        if (onEntitySelect) {
-          onEntitySelect(d);
-        }
-      });
-    
-    // Add identity cores
-    nodeGroup.append("circle")
-      .attr("r", d => (d.significance || 1) * 8)
-      .attr("fill", d => {
-        switch (d.type) {
-          case "person": return "url(#pattern-person)";
-          case "event": return "url(#pattern-event)";
-          case "place": return "url(#pattern-place)";
-          case "concept": return "url(#pattern-concept)";
-          default: return "hsl(240, 70%, 50%)";
-        }
-      })
-      .attr("stroke", d => {
-        switch (d.type) {
-          case "person": return "hsl(280, 70%, 50%)";
-          case "event": return "hsl(200, 70%, 50%)";
-          case "place": return "hsl(100, 70%, 50%)";
-          case "concept": return "hsl(50, 70%, 50%)";
-          default: return "hsl(240, 70%, 50%)";
-        }
-      })
-      .attr("stroke-width", 2)
-      .attr("filter", "url(#entity-glow)")
-      .attr("opacity", 0)
-      .transition()
-      .delay((_, i) => i * 50)
-      .duration(500)
-      .attr("opacity", 0.9);
-    
-    // Add labels
-    nodeGroup.append("text")
-      .attr("dy", d => (d.significance || 1) * 8 + 20)
-      .attr("text-anchor", "middle")
-      .attr("font-size", d => 10 + Math.min(3, (d.significance || 1) / 2))
-      .attr("fill", "white")
-      .text(d => d.name)
-      .attr("opacity", 0)
-      .transition()
-      .delay((_, i) => i * 50 + 300)
-      .duration(500)
-      .attr("opacity", 0.9);
-  }
-
-  // If no data, render placeholder
-  if (!hasData) {
-    return <VisualizationPlaceholder type="knowledge-graph" />;
-  }
-
+  }, [entities, height, width, isInteractive, onEntitySelect]);
+  
   return (
-    <div 
-      ref={containerRef}
-      className={`w-full h-full min-h-[300px] relative glass rounded-lg overflow-hidden ${
-        isFullscreen ? 'fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md p-8' : ''
-      }`}
-      style={isFullscreen ? { height: 'auto' } : { height: '500px' }}
-    >
-      <VisualizationControls
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onToggleFullscreen={toggleFullscreen}
-        onExport={handleExport}
-        isFullscreen={isFullscreen}
-      />
-      
-      <svg
-        ref={svgRef}
-        width="100%"
-        height={isFullscreen ? '80vh' : '100%'}
-        className="knowledge-graph"
-        style={{
-          opacity: isVisible ? 1 : 0,
-          transition: 'opacity 0.5s ease-in-out'
-        }}
-      />
+    <div className="w-full h-full relative">
+      <div ref={d3Container} className="w-full h-full" />
     </div>
   );
 };
