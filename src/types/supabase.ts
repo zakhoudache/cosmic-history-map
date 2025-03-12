@@ -1,3 +1,4 @@
+
 import { User } from "@supabase/supabase-js";
 
 export interface Profile {
@@ -61,6 +62,9 @@ export interface FormattedHistoricalEntity {
   confidence?: number;
   index?: number;
   relations: HistoricalRelation[];
+  // Add the fields that were causing TypeScript errors
+  significance?: number;
+  category?: string;
 }
 
 export interface HistoricalEntity {
@@ -79,4 +83,13 @@ export interface HistoricalEntity {
   confidence?: number;
   index?: number;
   relations?: HistoricalRelation[];
+  // Add these fields to match what's being used elsewhere
+  significance?: number;
+  category?: string;
+  imageUrl?: string;
+}
+
+export interface TranscriptionOptions {
+  useAutoCaption?: boolean;
+  language?: string;
 }

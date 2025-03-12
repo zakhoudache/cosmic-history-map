@@ -1,3 +1,4 @@
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
@@ -24,11 +25,16 @@ Deno.serve(async (req: Request) => {
     // Parse request body
     let requestBody;
     let videoId;
+    let useAutoCaption = true; // Default to using auto-generated captions
     
     try {
       requestBody = await req.json();
       videoId = requestBody.videoId;
-      console.log("Parsed videoId:", videoId);
+      // Check if the request specifies useAutoCaption
+      if (requestBody.useAutoCaption !== undefined) {
+        useAutoCaption = requestBody.useAutoCaption;
+      }
+      console.log(`Parsed videoId: ${videoId}, useAutoCaption: ${useAutoCaption}`);
     } catch (e) {
       console.error("Error reading request body:", e);
       return new Response(
@@ -57,13 +63,21 @@ Deno.serve(async (req: Request) => {
       );
     }
     
-    console.log(`Fetching captions for YouTube video ID: ${videoId}`);
+    console.log(`Fetching captions for YouTube video ID: ${videoId}, preferring ${useAutoCaption ? 'auto-generated' : 'manual'} captions`);
     
     // Fetch video info to get available captions
-    const videoInfoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    
     let videoResponse;
     try {
-      videoResponse = await fetch(videoInfoUrl);
+      console.log(`Fetching YouTube page: ${videoUrl}`);
+      videoResponse = await fetch(videoUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9'
+        }
+      });
+      
       if (!videoResponse.ok) {
         throw new Error(`YouTube request failed with status ${videoResponse.status}`);
       }
@@ -82,9 +96,12 @@ Deno.serve(async (req: Request) => {
     }
     
     const videoHtml = await videoResponse.text();
+    console.log(`Fetched YouTube page, HTML length: ${videoHtml.length}`);
     
     // Extract the captions track URL from the video page
-    let captionsUrl = null;
+    let captionUrl = null;
+    let captionLanguage = null;
+    let captionIsAuto = false;
     
     // Look for the captionTracks in the YouTube page source
     const captionsRegex = /"captionTracks":\s*(\[.*?\])/;
@@ -95,32 +112,71 @@ Deno.serve(async (req: Request) => {
         const captionTracks = JSON.parse(captionsMatch[1]);
         console.log(`Found ${captionTracks.length} caption tracks`);
         
-        // First try to find Arabic captions
-        let arabicTrack = captionTracks.find((track: any) => 
-          track.languageCode === 'ar' && track.kind !== 'asr'
-        );
+        // Log all available tracks for debugging
+        captionTracks.forEach((track: any, index: number) => {
+          console.log(`Track ${index}: ${track.name?.simpleText || 'Unnamed'} (${track.languageCode}) ${track.kind === 'asr' ? '(Auto-generated)' : ''}`);
+        });
         
-        // If no manual Arabic captions, look for auto-generated ones
-        if (!arabicTrack) {
-          arabicTrack = captionTracks.find((track: any) => 
-            track.languageCode === 'ar'
+        // Selection logic based on useAutoCaption preference
+        let selectedTrack = null;
+        
+        if (useAutoCaption) {
+          // First try to find English auto-generated captions
+          selectedTrack = captionTracks.find((track: any) => 
+            track.languageCode === 'en' && track.kind === 'asr'
           );
+          
+          // If no English auto captions, try any auto-generated captions
+          if (!selectedTrack) {
+            selectedTrack = captionTracks.find((track: any) => track.kind === 'asr');
+          }
+          
+          // If still no auto captions, fall back to manual captions
+          if (!selectedTrack) {
+            console.log("No auto-generated captions found, falling back to manual captions");
+            selectedTrack = captionTracks.find((track: any) => track.languageCode === 'en');
+            
+            // If no English manual captions, take the first available track
+            if (!selectedTrack && captionTracks.length > 0) {
+              selectedTrack = captionTracks[0];
+            }
+          }
+        } else {
+          // Prefer manual captions
+          // First try to find English manual captions
+          selectedTrack = captionTracks.find((track: any) => 
+            track.languageCode === 'en' && track.kind !== 'asr'
+          );
+          
+          // If no English manual captions, try any manual captions
+          if (!selectedTrack) {
+            selectedTrack = captionTracks.find((track: any) => track.kind !== 'asr');
+          }
+          
+          // If still no manual captions, fall back to auto-generated
+          if (!selectedTrack) {
+            console.log("No manual captions found, falling back to auto-generated captions");
+            selectedTrack = captionTracks.find((track: any) => track.languageCode === 'en' && track.kind === 'asr');
+            
+            // If no English auto captions, take the first available track
+            if (!selectedTrack && captionTracks.length > 0) {
+              selectedTrack = captionTracks[0];
+            }
+          }
         }
         
-        // If still no Arabic captions, just take the first available track
-        if (!arabicTrack && captionTracks.length > 0) {
-          arabicTrack = captionTracks[0];
-        }
-        
-        if (arabicTrack && arabicTrack.baseUrl) {
-          captionsUrl = arabicTrack.baseUrl;
+        if (selectedTrack) {
+          captionUrl = selectedTrack.baseUrl;
+          captionLanguage = selectedTrack.languageCode;
+          captionIsAuto = selectedTrack.kind === 'asr';
+          console.log(`Selected caption track: ${selectedTrack.name?.simpleText || 'Unnamed'} (${captionLanguage}) ${captionIsAuto ? '(Auto-generated)' : '(Manual)'}`);
         }
       } catch (error) {
         console.error('Error parsing caption tracks:', error);
       }
     }
     
-    if (!captionsUrl) {
+    if (!captionUrl) {
       console.error("No captions found for video:", videoId);
       return new Response(
         JSON.stringify({ error: 'No captions found for this video' }), 
@@ -135,10 +191,10 @@ Deno.serve(async (req: Request) => {
     }
     
     // Fetch the captions XML
-    console.log(`Fetching captions from URL: ${captionsUrl}`);
+    console.log(`Fetching captions from URL: ${captionUrl}`);
     let captionsResponse;
     try {
-      captionsResponse = await fetch(captionsUrl);
+      captionsResponse = await fetch(captionUrl);
       if (!captionsResponse.ok) {
         throw new Error(`Captions request failed with status ${captionsResponse.status}`);
       }
@@ -166,7 +222,10 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         transcription, 
-        videoId 
+        videoId,
+        language: captionLanguage,
+        isAutoGenerated: captionIsAuto,
+        captionType: captionIsAuto ? 'auto-generated' : 'manual'
       }), 
       { 
         headers: { 
@@ -206,6 +265,9 @@ function parseXmlCaptions(xml: string): string {
                .replace(/&gt;/g, '>')
                .replace(/&quot;/g, '"')
                .replace(/&#39;/g, "'");
+    
+    // Remove remaining XML tags if any
+    text = text.replace(/<[^>]*>/g, '');
     
     if (text.trim()) {
       textSegments.push(text.trim());
