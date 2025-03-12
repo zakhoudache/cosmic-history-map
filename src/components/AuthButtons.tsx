@@ -3,12 +3,13 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { LogIn, LogOut, User } from 'lucide-react';
+import { LogIn, LogOut, User, Mail, Github } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
 
 const AuthButtons = () => {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, signInWithGoogle, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -18,6 +19,15 @@ const AuthButtons = () => {
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out. Please try again.');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      toast.error('Failed to sign in with Google. Please try again.');
     }
   };
 
@@ -33,16 +43,28 @@ const AuthButtons = () => {
   // Show login/signup buttons if not authenticated
   if (!user) {
     return (
-      <Link to="/auth" className="inline-block">
+      <div className="flex gap-2">
         <Button 
           variant="outline" 
           size="sm" 
           className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star cursor-pointer"
+          onClick={handleGoogleSignIn}
         >
           <LogIn className="mr-2 h-4 w-4" />
-          Sign In
+          Sign In with Google
         </Button>
-      </Link>
+        
+        <Link to="/auth" className="inline-block">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star cursor-pointer"
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Email Sign In
+          </Button>
+        </Link>
+      </div>
     );
   }
 
@@ -59,9 +81,15 @@ const AuthButtons = () => {
           {user.email ? user.email.split('@')[0] : 'Account'}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2">
-        <div className="space-y-2">
+      <PopoverContent className="w-56 p-2 bg-background/95 backdrop-blur-sm border border-galaxy-nova/30">
+        <div className="space-y-3">
           <p className="text-sm font-medium">{user.email}</p>
+          <p className="text-xs text-muted-foreground">
+            {user.user_metadata?.full_name || user.user_metadata?.name || "User"}
+          </p>
+          
+          <Separator className="bg-galaxy-nova/20" />
+          
           <Button 
             variant="outline" 
             size="sm" 

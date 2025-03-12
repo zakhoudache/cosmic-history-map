@@ -16,6 +16,7 @@ type AuthContextType = {
     error: Error | null;
     data: User | null;
   }>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (session?.user) {
           console.log('User authenticated:', session.user.email);
+          console.log('User metadata:', session.user.user_metadata);
         }
       } catch (err) {
         console.error('Unexpected error in auth initialization:', err);
@@ -103,6 +105,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            // Request YouTube API permissions
+            scope: 'https://www.googleapis.com/auth/youtube.readonly',
+          },
+          redirectTo: window.location.origin + '/youtube-analysis',
+        },
+      });
+
+      if (error) {
+        console.error('Google sign in error:', error);
+        toast.error(error.message || 'Failed to sign in with Google');
+        throw error;
+      }
+    } catch (err) {
+      console.error('Unexpected Google sign in error:', err);
+      toast.error('Google authentication failed. Please try again.');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -152,6 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
   };
 
