@@ -1,3 +1,4 @@
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPADATA_API_KEY = Deno.env.get("SUPADATA_API_KEY");
@@ -8,11 +9,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function getTranscript(videoId: string) {
-  console.log(`Fetching transcript for video ID: ${videoId} using Supadata API`);
+async function getTranscript(videoId: string, useAutoCaption: boolean = false) {
+  console.log(`Fetching transcript for video ID: ${videoId} using Supadata API (autoCaption: ${useAutoCaption})`);
   
   try {
-    const url = `https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}`;
+    // Add auto caption parameter if requested
+    const url = `https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}${useAutoCaption ? '&useAutoCaption=true' : ''}`;
     
     const response = await fetch(url, {
       method: "GET",
@@ -55,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    const { videoId } = body;
+    const { videoId, useAutoCaption } = body;
     
     if (!videoId) {
       return new Response(JSON.stringify({ error: "Missing videoId" }), { 
@@ -71,7 +73,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const transcriptData = await getTranscript(videoId);
+    const transcriptData = await getTranscript(videoId, useAutoCaption);
 
     return new Response(JSON.stringify({ 
       success: true,

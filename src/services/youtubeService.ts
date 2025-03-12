@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { FormattedHistoricalEntity } from "@/types/supabase";
 
@@ -51,16 +52,17 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
 /**
  * Fetches transcription using the Supadata API
  * @param videoId YouTube video ID
+ * @param useAutoCaption Whether to use auto-generated captions
  * @returns Transcription text
  */
-export const fetchSupadataTranscription = async (videoId: string): Promise<string> => {
+export const fetchSupadataTranscription = async (videoId: string, useAutoCaption: boolean = false): Promise<string> => {
   try {
-    console.log(`Calling Supadata transcription function for video ID: ${videoId}`);
+    console.log(`Calling Supadata transcription function for video ID: ${videoId} (useAutoCaption: ${useAutoCaption})`);
     
     // Added try/catch for better error reporting
     try {
       const { data, error } = await supabase.functions.invoke("supadata-youtube-transcription", {
-        body: { videoId }
+        body: { videoId, useAutoCaption }
       });
 
       if (error) {

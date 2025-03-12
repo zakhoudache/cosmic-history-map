@@ -1,4 +1,3 @@
-
 import { User } from "@supabase/supabase-js";
 
 export interface Profile {
@@ -22,10 +21,46 @@ export interface CustomSession {
   expiresAt: number | null;
 }
 
-export interface EntityRelation {
+export type RelationType = 
+  'influenced' | 
+  'allied_with' | 
+  'opposed_to' | 
+  'succeeded' | 
+  'preceded' | 
+  'created' | 
+  'destroyed' | 
+  'participated_in' | 
+  'led' | 
+  'member_of' | 
+  'located_in' | 
+  'contemporary_of' | 
+  'related_to' | 
+  'descendant_of' | 
+  'ancestor_of';
+
+export type HistoricalRelation = {
   targetId: string;
   type: string;
   strength: number;
+};
+
+export interface FormattedHistoricalEntity {
+  id: string;
+  name: string;
+  type: string;
+  startDate?: string;
+  endDate?: string;
+  description: string;
+  imageUrl?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  importance?: number;
+  group?: string;
+  url?: string;
+  confidence?: number;
+  index?: number;
+  relations: HistoricalRelation[];
 }
 
 export interface HistoricalEntity {
@@ -36,40 +71,12 @@ export interface HistoricalEntity {
   endDate?: string;
   description: string;
   location?: string;
-  coordinates?: [number, number];
+  latitude?: number;
+  longitude?: number;
   importance?: number;
-  relations: EntityRelation[];
-  category?: string;
-  subcategory?: string;
-  significance?: number;
+  group?: string;
   url?: string;
-  image?: string;
-  tags?: string[];
-  creator?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  confidence?: number;
   index?: number;
-}
-
-export interface FormattedHistoricalEntity {
-  id: string;
-  name: string;
-  type: string;
-  startDate?: string;
-  endDate?: string;
-  description?: string;
-  location?: string;
-  coordinates?: [number, number];
-  importance?: number;
-  relations: EntityRelation[];
-  category?: string;
-  subcategory?: string;
-  significance?: number;
-  url?: string;
-  image?: string;
-  tags?: string[];
-  creator?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  index?: number;
+  relations?: HistoricalRelation[];
 }

@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { HistoricalEntity, HistoricalRelation, FormattedHistoricalEntity, RelationType } from "@/types/supabase";
+import { FormattedHistoricalEntity, HistoricalEntity, HistoricalRelation, RelationType } from "@/types/supabase";
 import { toast } from "sonner";
 
 // Function to fetch all historical entities and their relations
@@ -271,4 +271,23 @@ const storeAnalyzedEntities = async (analyzedEntities: any[]): Promise<Formatted
     // Fallback to in-memory processing
     return formatAnalyzedEntitiesWithoutStoring(analyzedEntities);
   }
+};
+
+// Function to format entities for display
+export const formatEntitiesForDisplay = (entities: HistoricalEntity[]): FormattedHistoricalEntity[] => {
+  if (!entities || entities.length === 0) return [];
+  
+  return entities.map(entity => {
+    // Make sure we convert property names correctly
+    return {
+      ...entity,
+      startDate: entity.startDate || "", 
+      endDate: entity.endDate || "",
+      description: entity.description || "",
+      group: entity.group || "",
+      imageUrl: entity.imageUrl || "",
+      // Ensure relations is always an array, never undefined
+      relations: entity.relations || []
+    } as FormattedHistoricalEntity;
+  });
 };
