@@ -1,17 +1,13 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-// Access key for Supadata API - this is stored securely in Supabase Edge Function secrets
 const SUPADATA_API_KEY = Deno.env.get("SUPADATA_API_KEY");
 
-// CORS headers for browser compatibility
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Get transcript from Supadata API
 async function getTranscript(videoId: string) {
   console.log(`Fetching transcript for video ID: ${videoId} using Supadata API`);
   
@@ -42,9 +38,7 @@ async function getTranscript(videoId: string) {
   }
 }
 
-// Main API handler
-serve(async (req: Request) => {
-  // Handle CORS preflight
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
       headers: corsHeaders,
@@ -77,7 +71,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // Get transcript from Supadata API
     const transcriptData = await getTranscript(videoId);
 
     return new Response(JSON.stringify({ 
