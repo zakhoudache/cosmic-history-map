@@ -1,7 +1,4 @@
 
-Here's the complete implementation that integrates the Node.js backend with your React frontend for YouTube transcription:
-
-```javascript
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Input } from "@/components/ui/input";
