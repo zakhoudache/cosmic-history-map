@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import MainLayout from "@/layouts/MainLayout";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import {
   fetchYoutubeCaptions, 
   fetchYoutubeApiCaptions, 
   fetchGeminiTranscription,
+  fetchSupadataTranscription,
   analyzeTranscription,
   scrapeYoutubePage
 } from "@/services/youtubeService";
@@ -32,7 +32,7 @@ const YouTubeAnalysis = () => {
   const [entities, setEntities] = useState<FormattedHistoricalEntity[]>([]);
   const [activeTab, setActiveTab] = useState<"video" | "transcription" | "visualization" | "metadata">("video");
   const [error, setError] = useState<string | null>(null);
-  const [transcriptionMethod, setTranscriptionMethod] = useState<"standard" | "alternative" | "api" | "gemini" | "scraping">("scraping");
+  const [transcriptionMethod, setTranscriptionMethod] = useState<"standard" | "alternative" | "api" | "gemini" | "scraping" | "supadata">("supadata");
   const [videoMetadata, setVideoMetadata] = useState<any>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +60,35 @@ const YouTubeAnalysis = () => {
     } else {
       toast.error("Invalid YouTube URL");
       setError("Please enter a valid YouTube URL (e.g., https://www.youtube.com/watch?v=...)");
+    }
+  };
+
+  // Fetch transcription from YouTube video using Supadata API
+  const fetchTranscriptionWithSupadata = async () => {
+    if (!videoId) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const transcriptionText = await fetchSupadataTranscription(videoId);
+      
+      if (transcriptionText) {
+        setTranscription(transcriptionText);
+        setActiveTab("transcription");
+        toast.success("Transcription fetched successfully using Supadata API");
+      } else {
+        throw new Error("No transcription received from Supadata API");
+      }
+    } catch (error) {
+      console.error("Error fetching Supadata transcription:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setError(`Failed to fetch transcription with Supadata: ${errorMessage}. Trying alternative methods...`);
+      toast.error("Supadata transcription failed: " + errorMessage);
+      
+      // Try scraping instead
+      await fetchTranscriptionWithScraping();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -152,6 +181,18 @@ const YouTubeAnalysis = () => {
       let transcriptionText = "";
       
       switch (transcriptionMethod) {
+        case "supadata":
+          try {
+            transcriptionText = await fetchSupadataTranscription(videoId);
+          } catch (error) {
+            console.error("Supadata method failed:", error);
+            setTranscriptionMethod("scraping");
+            toast.info("Supadata method failed, trying scraping method...");
+            await fetchTranscriptionWithScraping();
+            return;
+          }
+          break;
+          
         case "scraping":
           await fetchTranscriptionWithScraping();
           return;
@@ -288,10 +329,10 @@ const YouTubeAnalysis = () => {
 
   // Toggle between transcription methods
   const toggleTranscriptionMethod = () => {
-    const methods = ["scraping", "gemini", "standard", "alternative", "api"] as const;
-    const currentIndex = methods.indexOf(transcriptionMethod);
+    const methods = ["supadata", "scraping", "gemini", "standard", "alternative", "api"] as const;
+    const currentIndex = methods.indexOf(transcriptionMethod as any);
     const nextIndex = (currentIndex + 1) % methods.length;
-    const newMethod = methods[nextIndex];
+    const newMethod = methods[nextIndex] as any;
     
     setTranscriptionMethod(newMethod);
     toast.info(`Using ${newMethod} transcription method`);
@@ -471,17 +512,31 @@ const YouTubeAnalysis = () => {
                     </Button>
                   </div>
                   <Button 
-                    onClick={transcriptionMethod === "scraping" ? fetchTranscriptionWithScraping : fetchTranscription} 
+                    onClick={
+                      transcriptionMethod === "scraping" 
+                        ? fetchTranscriptionWithScraping 
+                        : transcriptionMethod === "supadata" 
+                          ? fetchTranscriptionWithSupadata
+                          : fetchTranscription
+                    } 
                     disabled={loading}
                     className="nebula-button"
                   >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {transcriptionMethod === "scraping" ? "Scraping..." : "Fetching..."}
+                        {transcriptionMethod === "scraping" 
+                          ? "Scraping..." 
+                          : transcriptionMethod === "supadata" 
+                            ? "Fetching from Supadata..." 
+                            : "Fetching..."}
                       </>
                     ) : (
-                      transcriptionMethod === "scraping" ? "Scrape Video Info" : "Fetch Transcription"
+                      transcriptionMethod === "scraping" 
+                        ? "Scrape Video Info" 
+                        : transcriptionMethod === "supadata" 
+                          ? "Fetch with Supadata API" 
+                          : "Fetch Transcription"
                     )}
                   </Button>
                 </CardFooter>

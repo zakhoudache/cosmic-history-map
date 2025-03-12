@@ -49,6 +49,49 @@ export const fetchYoutubeTranscription = async (videoId: string): Promise<string
 };
 
 /**
+ * Fetches transcription using the Supadata API
+ * @param videoId YouTube video ID
+ * @returns Transcription text
+ */
+export const fetchSupadataTranscription = async (videoId: string): Promise<string> => {
+  try {
+    console.log(`Calling Supadata transcription function for video ID: ${videoId}`);
+    
+    // Added try/catch for better error reporting
+    try {
+      const { data, error } = await supabase.functions.invoke("supadata-youtube-transcription", {
+        body: { videoId }
+      });
+
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw new Error(`Function invocation failed: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("Response from Supadata transcription function:", data);
+      
+      if (data && data.transcription) {
+        return data.transcription;
+      } else if (data && data.error) {
+        throw new Error(`Edge function error: ${data.error}`);
+      }
+      
+      throw new Error("No transcription data received from Supadata API");
+    } catch (innerError) {
+      console.error("Detailed error in function invocation:", innerError);
+      throw innerError;
+    }
+  } catch (error) {
+    console.error("Error fetching Supadata transcription:", error);
+    if (error instanceof Error) {
+      throw new Error(`Error fetching Supadata transcription: ${error.message}`);
+    }
+    throw new Error("Unknown error while fetching Supadata transcription");
+  }
+};
+
+/**
  * Fetches the transcription for a YouTube video using the alternative captions endpoint
  * @param videoId YouTube video ID
  * @returns Transcription text

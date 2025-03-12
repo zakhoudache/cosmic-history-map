@@ -43,7 +43,18 @@ const AuthButtons = () => {
   // Show login/signup buttons if not authenticated
   if (!user) {
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Link to="/auth" className="inline-block">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star cursor-pointer"
+          >
+            <Mail className="mr-2 h-4 w-4" />
+            Email Sign In
+          </Button>
+        </Link>
+        
         <Button 
           variant="outline" 
           size="sm" 
@@ -53,17 +64,6 @@ const AuthButtons = () => {
           <LogIn className="mr-2 h-4 w-4" />
           Sign In with Google
         </Button>
-        
-        <Link to="/auth" className="inline-block">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="border-galaxy-nova/30 hover:border-galaxy-nova/60 text-white hover:text-galaxy-star cursor-pointer"
-          >
-            <Mail className="mr-2 h-4 w-4" />
-            Email Sign In
-          </Button>
-        </Link>
       </div>
     );
   }
