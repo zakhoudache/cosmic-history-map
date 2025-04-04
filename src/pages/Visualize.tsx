@@ -25,17 +25,20 @@ import {
   Layers, 
   RefreshCw,
   Camera,
-  RotateCw
+  RotateCw,
+  Globe,
+  Play
 } from "lucide-react";
 import { mockHistoricalData, arabicHistoricalData, arabicHistoricalSubjects, prepareSimulationData, generateEntitiesFromSubject, HistoricalEntity } from "@/utils/mockData";
 import HistoricalVerticalCards from "@/components/HistoricalVerticalCards";
+import { FormattedHistoricalEntity } from "@/types/supabase";
 
 const Visualize = () => {
   const [inputText, setInputText] = useState<string>("");
-  const [entities, setEntities] = useState<HistoricalEntity[]>([]);
+  const [entities, setEntities] = useState<FormattedHistoricalEntity[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [visualizationType, setVisualizationType] = useState<"graph" | "timeline" | "story" | "cards">("graph");
-  const [selectedEntity, setSelectedEntity] = useState<HistoricalEntity | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
   const [useMockData, setUseMockData] = useState<boolean>(false);
   const [useArabicData, setUseArabicData] = useState<boolean>(false);
   const [showArabicSubjects, setShowArabicSubjects] = useState<boolean>(false);
@@ -47,9 +50,9 @@ const Visualize = () => {
   const storyRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
 
-  const handleTextSubmit = (text: string, analyzedEntities: HistoricalEntity[]) => {
+  const handleTextSubmit = (text: string, analysisResult: FormattedHistoricalEntity[]) => {
     setInputText(text);
-    setEntities(analyzedEntities);
+    setEntities(analysisResult);
     setLoading(false);
   };
 
@@ -61,7 +64,7 @@ const Visualize = () => {
     setVisualizationType(type);
   };
 
-  const handleEntitySelect = (entity: HistoricalEntity) => {
+  const handleEntitySelect = (entity: FormattedHistoricalEntity) => {
     setSelectedEntity(entity);
   };
 
@@ -69,7 +72,7 @@ const Visualize = () => {
     setSelectedEntity(null);
   };
 
-  const handleUpdateEntities = (updatedEntities: HistoricalEntity[]) => {
+  const handleUpdateEntities = (updatedEntities: FormattedHistoricalEntity[]) => {
     setEntities(updatedEntities);
   };
 
@@ -105,7 +108,7 @@ const Visualize = () => {
         group: item.group || "Unknown",
         location: item.location || "",
         imageUrl: item.imageUrl || "",
-      }));
+      })) as FormattedHistoricalEntity[];
       
       setEntities(formattedMockData);
       setUseMockData(true);
@@ -159,7 +162,7 @@ const Visualize = () => {
     
     setTimeout(() => {
       const subject = arabicHistoricalSubjects[index];
-      const generatedEntities = generateEntitiesFromSubject(subject);
+      const generatedEntities = generateEntitiesFromSubject(subject) as FormattedHistoricalEntity[];
       
       setEntities(generatedEntities);
       setLoading(false);
@@ -352,115 +355,46 @@ const Visualize = () => {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-galaxy-nova border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-                  <p className="mt-6 text-foreground/70">Analyzing and preparing visualization...</p>
+                  <p className="mt-4 text-muted-foreground">Processing data...</p>
                 </div>
               </div>
             ) : showPlaceholder ? (
-              <div className="p-6">
-                {showArabicSubjects ? (
-                  <div className="p-6 max-h-[600px] overflow-y-auto">
-                    <h2 className="text-2xl font-bold text-center mb-6">المواضيع التاريخية العربية</h2>
-                    {arabicHistoricalSubjects.map((subject, index) => (
-                      <div key={subject.id} className="mb-8 border border-galaxy-nova/20 rounded-lg p-4">
-                        <h3 className="text-xl font-bold mb-2 text-galaxy-nova">{subject.title}</h3>
-                        <p className="text-sm whitespace-pre-line mb-4" dir="rtl">{subject.originalText}</p>
-                        <div className="flex justify-end">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleSelectSubject(index)}
-                            className="border border-galaxy-nova/30 bg-black/30 hover:bg-galaxy-nova/20"
-                          >
-                            <Play className="w-4 h-4 mr-2" />
-                            إنشاء التمثيل البصري
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <VisualizationPlaceholder />
-                )}
-              </div>
+              <VisualizationPlaceholder />
             ) : (
-              <div className="p-2">
-                {visualizationType === "graph" && (
-                  <div ref={cosmicVisualizationRef} className="relative h-full">
-                    <CosmicVisualization 
-                      entities={entities}
-                      visualizationType={visualizationType}
-                      onEntitySelect={handleEntitySelect}
-                    />
-                    
-                    {selectedEntity && (
-                      <div className="absolute bottom-4 right-4 w-72 z-20">
-                        <ElementCard 
-                          entity={selectedEntity} 
-                          onClose={closeDetailsCard} 
-                          onEdit={(updatedEntity) => {
-                            const updatedEntities = entities.map(e => 
-                              e.id === updatedEntity.id ? updatedEntity : e
-                            );
-                            setEntities(updatedEntities);
-                          }}
-                          onDelete={handleDeleteEntity}
-                          onAddRelated={(parentEntity) => {
-                          }}
-                          onExportPDF={handleExportPDF}
-                          allEntities={entities}
-                          onUpdateEntities={handleUpdateEntities}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="w-full h-full">
                 {visualizationType === "timeline" && (
-                  <div ref={timelineRef} className="relative h-full">
+                  <div className="w-full h-[700px]" ref={timelineRef}>
                     <Timeline 
                       entities={entities}
                       onEntitySelect={handleEntitySelect}
                     />
                   </div>
                 )}
-                {visualizationType === "story" && (
-                  <div ref={storyRef} className="relative h-full">
-                    <StorytellingSection 
+                
+                {visualizationType === "graph" && (
+                  <div ref={cosmicVisualizationRef}>
+                    <CosmicVisualization 
                       entities={entities}
-                      text={inputText}
-                    />
-                  </div>
-                )}
-                {visualizationType === "cards" && (
-                  <div ref={cardsRef} className="relative min-h-[700px] overflow-y-auto">
-                    <HistoricalVerticalCards
-                      entities={entities}
-                      onSelectEntity={handleEntitySelect}
-                      title={
-                        selectedSubject !== null 
-                          ? `العناصر التاريخية في ${arabicHistoricalSubjects[selectedSubject].title}` 
-                          : "العناصر التاريخية الرئيسية"
-                      }
+                      onEntitySelect={handleEntitySelect}
+                      visualizationType="graph"
                     />
                   </div>
                 )}
                 
-                {(visualizationType === "timeline" || visualizationType === "cards") && selectedEntity && (
-                  <div className="fixed bottom-4 right-4 w-72 z-50">
-                    <ElementCard 
-                      entity={selectedEntity} 
-                      onClose={closeDetailsCard} 
-                      onEdit={(updatedEntity) => {
-                        const updatedEntities = entities.map(e => 
-                          e.id === updatedEntity.id ? updatedEntity : e
-                        );
-                        setEntities(updatedEntities);
-                      }}
-                      onDelete={handleDeleteEntity}
-                      onAddRelated={(parentEntity) => {
-                      }}
-                      onExportPDF={handleExportPDF}
-                      allEntities={entities}
-                      onUpdateEntities={handleUpdateEntities}
+                {visualizationType === "story" && (
+                  <div className="p-6" ref={storyRef}>
+                    <StorytellingSection 
+                      entities={entities}
+                      onEntitySelect={handleEntitySelect}
+                    />
+                  </div>
+                )}
+                
+                {visualizationType === "cards" && (
+                  <div className="p-6" ref={cardsRef}>
+                    <HistoricalVerticalCards 
+                      entities={entities}
+                      onEntitySelect={handleEntitySelect}
                     />
                   </div>
                 )}
@@ -469,6 +403,20 @@ const Visualize = () => {
           </Card>
         </div>
       </div>
+      
+      {selectedEntity && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-auto animate-in fade-in">
+          <div className="relative bg-black/80 border border-galaxy-nova/30 rounded-lg shadow-xl shadow-galaxy-nova/10 w-full max-w-2xl max-h-[90vh] overflow-auto">
+            <ElementCard 
+              entity={selectedEntity} 
+              onClose={closeDetailsCard}
+              onUpdate={handleUpdateEntities}
+              entities={entities}
+              onDelete={handleDeleteEntity}
+            />
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 };

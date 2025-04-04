@@ -1,525 +1,568 @@
 
 import React, { useState } from 'react';
-import { HistoricalEntity } from '@/utils/mockData';
-import { useAnimateOnMount } from '@/utils/animations';
-import { X, User, CalendarDays, MapPin, LightbulbIcon, Sparkles, Edit, Plus, Trash, FilePlus, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { HistoricalEntity, FormattedHistoricalEntity } from '@/types/supabase';
+import { 
+  X, 
+  Calendar, 
+  MapPin, 
+  BarChart2, 
+  Tag, 
+  BookOpen, 
+  Link2, 
+  Image, 
+  Trash2,
+  Info,
+  Save,
+  Edit3,
+  Eye,
+  EyeOff,
+  PlusCircle,
+  Pencil,
+  Star,
+  Users,
+  Clock,
+  Layers,
+  BookMarked,
+  MessageCircle,
+  ArrowRight,
+  Link
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { v4 as uuidv4 } from 'uuid';
+import { formatDate } from '@/utils/dateUtils';
 
 interface ElementCardProps {
-  entity: HistoricalEntity;
+  entity: FormattedHistoricalEntity;
   onClose: () => void;
-  onEdit?: (entity: HistoricalEntity) => void;
-  onAddRelated?: (parentEntity: HistoricalEntity) => void;
-  onExportPDF?: () => void;
-  onDelete?: (entityId: string) => void;
-  allEntities?: HistoricalEntity[];
-  onUpdateEntities?: (entities: HistoricalEntity[]) => void;
+  onUpdate?: (entities: FormattedHistoricalEntity[]) => void;
+  entities?: FormattedHistoricalEntity[];
+  onDelete?: (id: string) => void;
 }
 
 const ElementCard: React.FC<ElementCardProps> = ({ 
   entity, 
-  onClose,
-  onEdit,
-  onAddRelated,
-  onExportPDF,
-  onDelete,
-  allEntities,
-  onUpdateEntities
+  onClose, 
+  onUpdate, 
+  entities = [],
+  onDelete
 }) => {
-  const isVisible = useAnimateOnMount(100);
-  const [showActions, setShowActions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedEntity, setEditedEntity] = useState<HistoricalEntity>({...entity});
-  const [showAddNodeForm, setShowAddNodeForm] = useState(false);
-  const [newEntity, setNewEntity] = useState<Partial<HistoricalEntity>>({
-    name: '',
-    description: '',
-    type: 'concept',
-    significance: 5,
+  const [editedEntity, setEditedEntity] = useState({ ...entity });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [newRelation, setNewRelation] = useState({
+    targetId: '',
+    type: 'related',
+    strength: 5 // Default strength
   });
+  const [showAddRelation, setShowAddRelation] = useState(false);
   
-  // Find related entities from connections or relations
-  const connections = entity.relations ? entity.relations.map(r => r.targetId) : [];
+  const hasImage = !!entity.imageUrl;
   
-  // We'll use an empty array for related entities instead of trying to find them in mockHistoricalData
-  // This makes the component more reusable with different data sources
-  const relatedEntities: HistoricalEntity[] = allEntities ? 
-    allEntities.filter(e => connections.includes(e.id)) : [];
+  const entityTypes = [
+    'person', 'event', 'place', 'concept', 'period',
+    'artwork', 'document', 'building', 'theory', 
+    'invention', 'process', 'play', 'movement', 'group'
+  ];
   
-  // Format dates
-  const formatDate = (dateStr: string | Date | undefined) => {
-    if (!dateStr) return '';
-    
-    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-    const year = date.getFullYear();
-    
-    // Simplify to just display the year for historical entities
-    return year;
-  };
-  
-  const dateRange = entity.startDate && entity.endDate
-    ? `${formatDate(entity.startDate)} - ${formatDate(entity.endDate)}`
-    : entity.startDate 
-      ? `${formatDate(entity.startDate)}` 
-      : '';
+  const relationTypes = [
+    { value: 'related', label: 'Related to' },
+    { value: 'causal', label: 'Caused' },
+    { value: 'created', label: 'Created' },
+    { value: 'influenced', label: 'Influenced' },
+    { value: 'participated', label: 'Participated in' },
+    { value: 'preceded', label: 'Preceded' },
+    { value: 'succeeded', label: 'Succeeded' },
+    { value: 'contained', label: 'Contained' },
+    { value: 'partOf', label: 'Part of' },
+    { value: 'conflicted', label: 'Conflicted with' },
+    { value: 'allied', label: 'Allied with' },
+    { value: 'studied', label: 'Studied' },
+    { value: 'married', label: 'Married to' },
+    { value: 'parent', label: 'Parent of' },
+    { value: 'child', label: 'Child of' },
+    { value: 'sibling', label: 'Sibling of' },
+    { value: 'founded', label: 'Founded' },
+    { value: 'worked', label: 'Worked at' },
+    { value: 'taught', label: 'Taught' },
+    { value: 'wrote', label: 'Wrote' },
+    { value: 'built', label: 'Built' },
+    { value: 'discovered', label: 'Discovered' },
+    { value: 'invented', label: 'Invented' },
+    { value: 'developed', label: 'Developed' },
+    { value: 'destroyed', label: 'Destroyed' },
+    { value: 'conquered', label: 'Conquered' },
+    { value: 'ruled', label: 'Ruled' },
+    { value: 'located', label: 'Located in' },
+    { value: 'traded', label: 'Traded with' }
+  ];
 
-  // Get entity type specific styles and icons
-  const getEntityTypeStyles = () => {
-    switch(entity.type.toLowerCase()) {
-      case "person":
-        return {
-          icon: <User className="h-6 w-6" />,
-          gradient: "bg-gradient-to-br from-blue-500 to-purple-600",
-          symbolBg: "bg-blue-400/20",
-          border: "border-blue-400/30"
-        };
-      case "event":
-        return {
-          icon: <CalendarDays className="h-6 w-6" />,
-          gradient: "bg-gradient-to-br from-red-500 to-orange-600",
-          symbolBg: "bg-red-400/20",
-          border: "border-red-400/30"
-        };
-      case "place":
-        return {
-          icon: <MapPin className="h-6 w-6" />,
-          gradient: "bg-gradient-to-br from-green-500 to-emerald-600",
-          symbolBg: "bg-green-400/20",
-          border: "border-green-400/30"
-        };
-      case "concept":
-        return {
-          icon: <LightbulbIcon className="h-6 w-6" />,
-          gradient: "bg-gradient-to-br from-amber-500 to-yellow-600",
-          symbolBg: "bg-amber-400/20",
-          border: "border-amber-400/30"
-        };
-      default:
-        return {
-          icon: <Sparkles className="h-6 w-6" />,
-          gradient: "bg-gradient-to-br from-cosmic-light to-cosmic-accent",
-          symbolBg: "bg-cosmic-light/20",
-          border: "border-cosmic-light/30"
-        };
-    }
-  };
-  
-  const typeStyles = getEntityTypeStyles();
-
-  const handleEditClick = () => {
-    if (onEdit) {
-      setIsEditing(true);
-    } else {
-      toast.info("Edit functionality not available in this context");
-    }
+  const handleChange = (field: string, value: any) => {
+    setEditedEntity(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleSaveEdit = () => {
-    if (onUpdateEntities && allEntities) {
-      const updatedEntities = allEntities.map(e => 
-        e.id === editedEntity.id ? editedEntity : e
+  const handleSave = () => {
+    if (onUpdate && entities) {
+      const updatedEntities = entities.map(e => 
+        e.id === entity.id ? editedEntity : e
       );
-      onUpdateEntities(updatedEntities);
-      toast.success("Entity updated successfully");
-      setIsEditing(false);
-    } else if (onEdit) {
-      onEdit(editedEntity);
+      onUpdate(updatedEntities);
       toast.success("Entity updated successfully");
       setIsEditing(false);
     }
   };
 
-  const handleCancelEdit = () => {
-    setEditedEntity({...entity});
-    setIsEditing(false);
-  };
-
-  const handleAddRelatedClick = () => {
-    if (onAddRelated) {
-      setShowAddNodeForm(true);
-    } else {
-      toast.info("Add related entity functionality not available in this context");
-    }
-  };
-
-  const handleExportClick = () => {
-    if (onExportPDF) {
-      onExportPDF();
-    } else {
-      toast.info("Export functionality not available in this context");
-    }
-  };
-
-  const handleDeleteClick = () => {
+  const handleDelete = () => {
     if (onDelete) {
       onDelete(entity.id);
       onClose();
-    } else {
-      toast.info("Delete functionality not available in this context");
     }
   };
 
-  const handleAddNewEntity = () => {
-    if (!newEntity.name) {
-      toast.error("Entity name is required");
-      return;
-    }
-
-    if (onUpdateEntities && allEntities) {
-      const newId = uuidv4();
-      const completeNewEntity: HistoricalEntity = {
-        id: newId,
-        name: newEntity.name || 'New Entity',
-        type: newEntity.type || 'concept',
-        description: newEntity.description || '',
-        significance: newEntity.significance || 5,
-        relations: [{
-          targetId: entity.id,
-          type: 'default'
-        }],
-        // Add other required fields with default values
-        startDate: '',
-        endDate: '',
-        group: '',
-        location: '',
-        imageUrl: ''
-      };
-
-      // Update the parent entity to also have a relation to the new entity
-      const updatedParentEntity = {
-        ...entity,
-        relations: [
-          ...(entity.relations || []),
-          {
-            targetId: newId,
-            type: 'default'
-          }
-        ]
-      };
-
-      const updatedEntities = [
-        ...allEntities.map(e => e.id === entity.id ? updatedParentEntity : e),
-        completeNewEntity
-      ];
-
-      onUpdateEntities(updatedEntities);
-      toast.success("New related entity added");
-      setShowAddNodeForm(false);
-      setNewEntity({
-        name: '',
-        description: '',
-        type: 'concept',
-        significance: 5,
+  const handleAddRelation = () => {
+    // Ensure strength is provided
+    const relationWithStrength = {
+      ...newRelation,
+      strength: newRelation.strength || 5 // Default strength if not provided
+    };
+    
+    if (relationWithStrength.targetId && relationWithStrength.type) {
+      const updatedRelations = [...(editedEntity.relations || []), relationWithStrength];
+      setEditedEntity(prev => ({
+        ...prev,
+        relations: updatedRelations
+      }));
+      
+      setNewRelation({
+        targetId: '',
+        type: 'related',
+        strength: 5
       });
-    } else if (onAddRelated) {
-      onAddRelated(entity);
-      setShowAddNodeForm(false);
+      
+      setShowAddRelation(false);
+      
+      if (onUpdate && entities) {
+        const updatedEntities = entities.map(e => 
+          e.id === entity.id ? {...editedEntity, relations: updatedRelations} : e
+        );
+        onUpdate(updatedEntities);
+        toast.success("Relation added successfully");
+      }
+    } else {
+      toast.error("Please select an entity and relation type");
     }
   };
 
-  const handleCancelAdd = () => {
-    setShowAddNodeForm(false);
-    setNewEntity({
-      name: '',
-      description: '',
-      type: 'concept',
-      significance: 5,
-    });
+  const removeRelation = (index: number) => {
+    const updatedRelations = [...(editedEntity.relations || [])];
+    updatedRelations.splice(index, 1);
+    
+    setEditedEntity(prev => ({
+      ...prev,
+      relations: updatedRelations
+    }));
+    
+    if (onUpdate && entities) {
+      const updatedEntities = entities.map(e => 
+        e.id === entity.id ? {...editedEntity, relations: updatedRelations} : e
+      );
+      onUpdate(updatedEntities);
+      toast.success("Relation removed");
+    }
   };
-  
+
+  const getRelationName = (relationId: string) => {
+    const targetEntity = entities.find(e => e.id === relationId);
+    return targetEntity ? targetEntity.name : relationId;
+  };
+
+  // Get the type color for visualization 
+  const getTypeColor = (type: string) => {
+    const typeColors: Record<string, string> = {
+      person: '#8B5CF6',  // Purple
+      event: '#F97316',   // Orange
+      place: '#10B981',   // Green
+      concept: '#0EA5E9', // Blue
+      period: '#EC4899',  // Pink
+      artwork: '#F43F5E', // Rose
+      document: '#6366F1', // Indigo
+      building: '#4338CA', // Blue
+      theory: '#8B5CF6',  // Purple
+      invention: '#F97316', // Orange
+      process: '#10B981', // Green
+      play: '#0EA5E9',    // Blue
+      movement: '#8B5CF6', // Purple
+      group: '#F43F5E'    // Rose
+    };
+    
+    return typeColors[type.toLowerCase()] || '#9b87f5';
+  };
+
   return (
-    <div 
-      className={`glass rounded-lg overflow-hidden transition-all duration-300 transform ${
-        isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-      }`}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <div className="relative">
-        {/* Close button */}
-        <button 
+    <Card className="border-0 bg-transparent animate-in fade-in duration-300 overflow-hidden">
+      <CardHeader className="relative pb-2 space-y-0">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute right-2 top-2 text-gray-400 hover:text-white hover:bg-black/30" 
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 p-1 rounded-full bg-background/40 backdrop-blur-sm hover:bg-background/60 transition-colors"
-          aria-label="Close"
         >
-          <X className="h-4 w-4" />
-        </button>
+          <X size={18} />
+        </Button>
+        
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getTypeColor(entity.type) }}></div>
+          {isEditing ? (
+            <Select 
+              value={editedEntity.type} 
+              onValueChange={(value) => handleChange('type', value)}
+            >
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {entityTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="text-sm text-galaxy-nova font-medium">
+              {entity.type?.charAt(0).toUpperCase() + entity.type?.slice(1)}
+            </span>
+          )}
+        </div>
         
         {isEditing ? (
-          <div className="p-4 bg-background/80 backdrop-blur-md">
-            <h3 className="text-lg font-medium mb-2">Edit Entity</h3>
+          <Input 
+            value={editedEntity.name} 
+            onChange={(e) => handleChange('name', e.target.value)}
+            className="text-xl font-semibold text-white"
+          />
+        ) : (
+          <CardTitle className="text-2xl font-bold text-white">
+            {entity.name}
+          </CardTitle>
+        )}
+        
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+          <Calendar className="h-3.5 w-3.5" />
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <Input 
+                type="date" 
+                value={editedEntity.startDate} 
+                onChange={(e) => handleChange('startDate', e.target.value)}
+                className="h-7 w-40"
+              />
+              {editedEntity.endDate && (
+                <>
+                  <span>-</span>
+                  <Input 
+                    type="date" 
+                    value={editedEntity.endDate} 
+                    onChange={(e) => handleChange('endDate', e.target.value)}
+                    className="h-7 w-40"
+                  />
+                </>
+              )}
+            </div>
+          ) : (
+            <span>
+              {entity.startDate && formatDate(entity.startDate)}
+              {entity.endDate && ` - ${formatDate(entity.endDate)}`}
+            </span>
+          )}
+        </div>
+        
+        {entity.location && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5" />
+            {isEditing ? (
+              <Input 
+                value={editedEntity.location} 
+                onChange={(e) => handleChange('location', e.target.value)}
+                className="h-7"
+              />
+            ) : (
+              <span>{entity.location}</span>
+            )}
+          </div>
+        )}
+      </CardHeader>
+      
+      <CardContent className="pt-2 space-y-4">
+        {entity.imageUrl && (
+          <div className="aspect-video w-full overflow-hidden rounded-md mb-4">
+            <img 
+              src={entity.imageUrl} 
+              alt={entity.name} 
+              className="w-full h-full object-cover transition-transform hover:scale-105 duration-700"
+            />
+          </div>
+        )}
+        
+        {isEditing ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea 
+                id="description"
+                value={editedEntity.description || ''} 
+                onChange={(e) => handleChange('description', e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
             
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Name</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="significance">Significance (1-10)</Label>
                 <Input 
-                  value={editedEntity.name}
-                  onChange={(e) => setEditedEntity({...editedEntity, name: e.target.value})}
-                  className="w-full"
+                  id="significance"
+                  type="number" 
+                  min="1" 
+                  max="10" 
+                  value={editedEntity.significance || 5} 
+                  onChange={(e) => handleChange('significance', Number(e.target.value))}
                 />
               </div>
               
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Type</label>
-                <select
-                  value={editedEntity.type}
-                  onChange={(e) => setEditedEntity({...editedEntity, type: e.target.value})}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="person">Person</option>
-                  <option value="event">Event</option>
-                  <option value="place">Place</option>
-                  <option value="concept">Concept</option>
-                  <option value="period">Period</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Description</label>
-                <textarea
-                  value={editedEntity.description}
-                  onChange={(e) => setEditedEntity({...editedEntity, description: e.target.value})}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
-                />
-              </div>
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Significance (1-10)</label>
+              <div className="space-y-2">
+                <Label htmlFor="group">Group/Category</Label>
                 <Input 
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={editedEntity.significance}
-                  onChange={(e) => setEditedEntity({...editedEntity, significance: parseInt(e.target.value) || 5})}
-                  className="w-full"
+                  id="group"
+                  value={editedEntity.group || ''} 
+                  onChange={(e) => handleChange('group', e.target.value)}
                 />
-              </div>
-              
-              <div className="flex justify-end gap-2 pt-2">
-                <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleSaveEdit}>
-                  Save Changes
-                </Button>
               </div>
             </div>
-          </div>
-        ) : showAddNodeForm ? (
-          <div className="p-4 bg-background/80 backdrop-blur-md">
-            <h3 className="text-lg font-medium mb-2">Add Related Entity</h3>
             
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Name*</label>
-                <Input 
-                  value={newEntity.name}
-                  onChange={(e) => setNewEntity({...newEntity, name: e.target.value})}
-                  className="w-full"
-                  placeholder="Enter name"
-                />
-              </div>
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Type</label>
-                <select
-                  value={newEntity.type}
-                  onChange={(e) => setNewEntity({...newEntity, type: e.target.value})}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="person">Person</option>
-                  <option value="event">Event</option>
-                  <option value="place">Place</option>
-                  <option value="concept">Concept</option>
-                  <option value="period">Period</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Description</label>
-                <textarea
-                  value={newEntity.description}
-                  onChange={(e) => setNewEntity({...newEntity, description: e.target.value})}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[80px]"
-                  placeholder="Enter description"
-                />
-              </div>
-              
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Significance (1-10)</label>
-                <Input 
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={newEntity.significance}
-                  onChange={(e) => setNewEntity({...newEntity, significance: parseInt(e.target.value) || 5})}
-                  className="w-full"
-                />
-              </div>
-              
-              <div className="flex justify-end gap-2 pt-2">
-                <Button size="sm" variant="outline" onClick={handleCancelAdd}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleAddNewEntity}>
-                  Add Entity
-                </Button>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="imageUrl">Image URL</Label>
+              <Input 
+                id="imageUrl"
+                value={editedEntity.imageUrl || ''} 
+                onChange={(e) => handleChange('imageUrl', e.target.value)}
+              />
             </div>
-          </div>
+          </>
         ) : (
           <>
-            {/* Header with entity-specific styling */}
-            <div className={`p-4 relative overflow-hidden ${typeStyles.gradient}`}>
-              <div className="relative z-10">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className={`inline-flex items-center px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium mb-2`}>
-                      <div className={`w-5 h-5 flex items-center justify-center rounded-full mr-1 ${typeStyles.symbolBg}`}>
-                        {typeStyles.icon}
-                      </div>
-                      <span>{entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}</span>
-                    </div>
-                    
-                    {dateRange && (
-                      <div className="inline-block px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-medium mb-2 ml-2">
-                        {dateRange}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-medium text-white mb-1">{entity.name}</h3>
-                
-                <div className="h-1 w-12 bg-white/30 rounded-full my-2"></div>
-              </div>
-              
-              {/* Background decoration - customized per entity type */}
-              <div className={`absolute top-0 right-0 w-40 h-40 rounded-full ${typeStyles.symbolBg} blur-3xl -translate-y-1/2 translate-x-1/2`}></div>
-              <div className={`absolute bottom-0 left-0 w-20 h-20 rounded-full ${typeStyles.symbolBg} blur-2xl translate-y-1/2 -translate-x-1/2`}></div>
+            <div className="text-sm text-foreground/90 space-y-1">
+              {entity.description && (
+                <p>{entity.description}</p>
+              )}
             </div>
             
-            {/* Content */}
-            <div className="p-4">
-              <p className="text-sm text-foreground/80 leading-relaxed">
-                {entity.description}
-              </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground flex items-center">
+                  <Star className="h-3.5 w-3.5 mr-1" />
+                  Significance
+                </span>
+                <div className="flex items-center gap-1">
+                  <div className="h-2 bg-galaxy-nova/70 rounded-full" style={{ width: `${(entity.significance || 5) * 10}%` }}></div>
+                  <span className="text-xs text-galaxy-nova ml-1">{entity.significance || 5}/10</span>
+                </div>
+              </div>
               
-              {/* Related entities with custom styling based on type */}
-              {relatedEntities.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-sm font-medium mb-2">Related Elements</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {relatedEntities.map(related => {
-                      const relatedTypeStyle = (() => {
-                        switch(related.type.toLowerCase()) {
-                          case "person": return "bg-blue-500/20 text-blue-300 border-blue-500/30";
-                          case "event": return "bg-red-500/20 text-red-300 border-red-500/30";
-                          case "place": return "bg-green-500/20 text-green-300 border-green-500/30";
-                          case "concept": return "bg-amber-500/20 text-amber-300 border-amber-500/30";
-                          default: return "bg-cosmic/20 text-cosmic-light border-cosmic/30";
-                        }
-                      })();
-                      
-                      const relatedIcon = (() => {
-                        switch(related.type.toLowerCase()) {
-                          case "person": return <User className="h-3 w-3 mr-1" />;
-                          case "event": return <CalendarDays className="h-3 w-3 mr-1" />;
-                          case "place": return <MapPin className="h-3 w-3 mr-1" />;
-                          case "concept": return <LightbulbIcon className="h-3 w-3 mr-1" />;
-                          default: return <Sparkles className="h-3 w-3 mr-1" />;
-                        }
-                      })();
-                      
-                      return (
-                        <div 
-                          key={related.id}
-                          className={`inline-flex items-center px-3 py-1 rounded-full border ${relatedTypeStyle} text-xs font-medium`}
-                        >
-                          {relatedIcon}
-                          {related.name}
-                        </div>
-                      );
-                    })}
-                  </div>
+              {entity.group && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center">
+                    <Tag className="h-3.5 w-3.5 mr-1" />
+                    Group
+                  </span>
+                  <span className="text-sm text-foreground">{entity.group}</span>
                 </div>
               )}
-              
-              {/* Significance indicator with entity-specific colors */}
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Historical Significance</span>
-                  <span>{entity.significance}/10</span>
-                </div>
-                <div className="mt-1 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${typeStyles.gradient} rounded-full transition-all duration-1000`}
-                    style={{ 
-                      width: `${(entity.significance || 1) / 10 * 100}%`,
-                      opacity: isVisible ? 1 : 0
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Action buttons for editing, adding related entities, and exporting */}
-              <div className={`mt-4 flex justify-end space-x-2 transition-opacity duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}>
-                {onEdit && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 px-2 text-xs" 
-                    onClick={handleEditClick}
-                  >
-                    <Edit className="h-3.5 w-3.5 mr-1" />
-                    Edit
-                  </Button>
-                )}
-                
-                {onAddRelated && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 px-2 text-xs" 
-                    onClick={handleAddRelatedClick}
-                  >
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add Related
-                  </Button>
-                )}
-                
-                {onDelete && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 px-2 text-xs" 
-                    onClick={handleDeleteClick}
-                  >
-                    <Trash className="h-3.5 w-3.5 mr-1" />
-                    Delete
-                  </Button>
-                )}
-                
-                {onExportPDF && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 px-2 text-xs" 
-                    onClick={handleExportClick}
-                  >
-                    <Download className="h-3.5 w-3.5 mr-1" />
-                    Export
-                  </Button>
-                )}
-              </div>
             </div>
           </>
         )}
-      </div>
-    </div>
+        
+        <Separator className="my-2" />
+        
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-galaxy-nova" />
+              <span className="text-sm font-medium">Relations</span>
+            </div>
+            
+            {isEditing && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-7 px-2 text-xs"
+                onClick={() => setShowAddRelation(true)}
+              >
+                <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
+          
+          {showAddRelation && (
+            <div className="p-3 bg-black/30 rounded-md space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="target-entity" className="text-xs">Target Entity</Label>
+                  <Select onValueChange={(value) => setNewRelation(prev => ({ ...prev, targetId: value }))}>
+                    <SelectTrigger id="target-entity" className="h-8">
+                      <SelectValue placeholder="Select entity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {entities
+                        .filter(e => e.id !== entity.id)
+                        .map(e => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.name}
+                          </SelectItem>
+                        ))
+                      }
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="relation-type" className="text-xs">Relation Type</Label>
+                  <Select onValueChange={(value) => setNewRelation(prev => ({ ...prev, type: value }))}>
+                    <SelectTrigger id="relation-type" className="h-8">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relationTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="relation-strength" className="text-xs">Strength (1-10)</Label>
+                <Input 
+                  id="relation-strength"
+                  type="number" 
+                  min="1" 
+                  max="10" 
+                  className="h-8"
+                  value={newRelation.strength} 
+                  onChange={(e) => setNewRelation(prev => ({ ...prev, strength: Number(e.target.value) }))}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2 mt-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setShowAddRelation(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="h-7 px-2 text-xs"
+                  onClick={handleAddRelation}
+                >
+                  Add Relation
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {entity.relations && entity.relations.length > 0 ? (
+            <div className="space-y-2 mt-2">
+              {entity.relations.map((relation, index) => (
+                <div 
+                  key={`${relation.targetId}-${index}`} 
+                  className="flex items-center justify-between p-2 bg-black/20 rounded-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm">{getRelationName(relation.targetId)}</span>
+                    <span className="text-xs text-muted-foreground">({relation.type})</span>
+                    {relation.strength && (
+                      <span className="text-xs px-1.5 py-0.5 bg-primary/20 text-primary-foreground rounded-full">
+                        {relation.strength}/10
+                      </span>
+                    )}
+                  </div>
+                  
+                  {isEditing && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-muted-foreground" 
+                      onClick={() => removeRelation(index)}
+                    >
+                      <X size={14} />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">No relations found.</p>
+          )}
+        </div>
+      </CardContent>
+      
+      <CardFooter className="flex justify-between pt-2">
+        {isEditing ? (
+          <>
+            <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSave}>
+                <Save className="h-4 w-4 mr-1" />
+                Save
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="w-full flex justify-end">
+            <Button onClick={() => setIsEditing(true)}>
+              <Pencil className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+          </div>
+        )}
+      </CardFooter>
+      
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Entity</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{entity.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 };
 

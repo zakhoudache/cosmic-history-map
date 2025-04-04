@@ -1,338 +1,410 @@
 
-import React, { useEffect, useRef, useState } from "react";
-import * as d3 from "d3";
-import { FormattedHistoricalEntity } from "@/types/supabase";
-import { SimulationNodeDatum } from 'd3';
-import { toast } from "sonner";
+import React, { useEffect, useRef, useState } from 'react';
+import * as d3 from 'd3';
+import { KnowledgeGraphNode, KnowledgeGraphEdge } from '@/types/supabase';
+import { Button } from '@/components/ui/button';
+import { Search, ZoomIn, ZoomOut, Maximize2, Minimize2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import VisualizationPlaceholder from './VisualizationPlaceholder';
 
-// Custom node type for the simulation
-interface CustomNode extends SimulationNodeDatum {
+interface CustomNode extends d3.SimulationNodeDatum {
   id: string;
-  name: string;
+  label: string;
   type: string;
-  color: string;
-  radius: number;
-  group?: string;
-  significance?: number;
-  startDate?: string;
-  endDate?: string;
-  category?: string;
+  properties?: Record<string, any>;
+  x?: number;
+  y?: number;
 }
 
-// Custom link type for the simulation
-interface CustomLink {
-  source: string | CustomNode;
-  target: string | CustomNode;
-  type: string;
-  strength: number;
+interface CustomLink extends d3.SimulationLinkDatum<CustomNode> {
+  source: CustomNode;
+  target: CustomNode;
+  label?: string;
+  type?: string;
 }
 
-// Main component props
 interface KnowledgeGraphProps {
-  entities: FormattedHistoricalEntity[];
-  onEntitySelect?: (entity: FormattedHistoricalEntity) => void;
-  height?: number;
-  width?: number;
-  isInteractive?: boolean;
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
+  onNodeClick?: (node: KnowledgeGraphNode) => void;
+  isLoading?: boolean;
 }
 
-// Helper function to get a color based on entity type
-const getEntityColor = (type: string): string => {
-  const colors: Record<string, string> = {
-    "person": "#4299E1", // Blue
-    "event": "#F56565", // Red
-    "location": "#48BB78", // Green
-    "organization": "#9F7AEA", // Purple
-    "concept": "#ED8936", // Orange
-    "object": "#667EEA", // Indigo
-    "document": "#F687B3", // Pink
-    "time_period": "#D69E2E", // Yellow
-    "culture": "#805AD5", // Purple
-    "discovery": "#38B2AC", // Teal
-    "technology": "#34D399", // Emerald
-    "conflict": "#EF4444", // Red
-    "agreement": "#3B82F6", // Blue
-    "movement": "#EC4899", // Pink
-    "artifact": "#10B981", // Green
-    "work": "#8B5CF6", // Violet
-    "law": "#6366F1", // Indigo
-    "subject_area": "#F59E0B", // Amber
-    "dynasty": "#7C3AED", // Violet
-  };
-  
-  return colors[type.toLowerCase()] || "#A0AEC0"; // Default to gray
-};
-
-// Component definition
 const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ 
-  entities, 
-  onEntitySelect, 
-  height = 600, 
-  width = 800,
-  isInteractive = true,
+  nodes = [], 
+  edges = [], 
+  onNodeClick,
+  isLoading = false
 }) => {
-  const d3Container = useRef<HTMLDivElement>(null);
-  const [selectedEntity, setSelectedEntity] = useState<FormattedHistoricalEntity | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [highlightedNodes, setHighlightedNodes] = useState<string[]>([]);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   
-  // Process entities into nodes and links for the graph
-  const processGraphData = () => {
-    if (!entities || entities.length === 0) return { nodes: [], links: [] };
-    
-    const nodeMap = new Map<string, CustomNode>();
-    const links: CustomLink[] = [];
-    
-    // Create nodes from entities
-    entities.forEach(entity => {
-      nodeMap.set(entity.id, {
-        id: entity.id,
-        name: entity.name || "Unknown",
-        type: entity.type || "unknown",
-        color: getEntityColor(entity.type || "unknown"),
-        radius: entity.importance ? 5 + (entity.importance * 3) : 8,
-        startDate: entity.startDate,
-        endDate: entity.endDate,
-        category: entity.category,
-        significance: entity.significance,
-      });
-      
-      // Create links from entity relationships
-      if (entity.relations && entity.relations.length > 0) {
-        entity.relations.forEach(relation => {
-          // Only add links to entities that exist in our data
-          if (entities.some(e => e.id === relation.targetId)) {
-            links.push({
-              source: entity.id,
-              target: relation.targetId,
-              type: relation.type || "related",
-              strength: relation.strength || 1,
-            });
-          }
-        });
-      }
-    });
-    
-    return {
-      nodes: Array.from(nodeMap.values()),
-      links,
-    };
+  // Ensure nodes and edges have the required properties
+  const processedNodes: CustomNode[] = nodes.map(node => ({
+    ...node,
+    id: node.id,
+    label: node.label || node.id,
+    type: node.type || 'default',
+  }));
+
+  const processedEdges: CustomLink[] = edges.map(edge => ({
+    source: processedNodes.find(n => n.id === edge.source) as CustomNode || processedNodes[0],
+    target: processedNodes.find(n => n.id === edge.target) as CustomNode || processedNodes[0],
+    label: edge.label,
+    type: edge.type
+  }));
+
+  // Function to toggle fullscreen
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
   };
-  
-  // Render the graph
-  useEffect(() => {
-    if (!d3Container.current || !entities || entities.length === 0) return;
+
+  // Function to reset zoom
+  const resetZoom = () => {
+    if (!svgRef.current) return;
     
-    // Clear previous graph
-    d3.select(d3Container.current).selectAll("*").remove();
-    
-    const { nodes, links } = processGraphData();
-    
-    if (nodes.length === 0) return;
-    
-    // Calculate responsive dimensions
-    const containerWidth = d3Container.current.clientWidth;
-    const containerHeight = height;
-    const actualWidth = Math.min(containerWidth, width);
-    
-    // Create SVG container
-    const svg = d3.select(d3Container.current)
-      .append("svg")
-      .attr("width", "100%")
-      .attr("height", containerHeight)
-      .attr("viewBox", `0 0 ${actualWidth} ${containerHeight}`)
-      .append("g");
-    
-    // Add zoom functionality
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.5, 5])
-      .on("zoom", (event) => {
-        svg.attr("transform", event.transform);
-      });
-    
-    d3.select(d3Container.current).select("svg")
-      .call(zoom as any);
-    
-    // Create tooltip
-    if (!tooltipRef.current) {
-      const tooltipDiv = document.createElement("div");
-      tooltipDiv.className = "absolute hidden px-2 py-1 text-sm bg-black/80 text-white rounded shadow-lg z-50 pointer-events-none";
-      d3Container.current.appendChild(tooltipDiv);
-      tooltipRef.current = tooltipDiv;
-    }
-    
-    // Create simulation
-    const simulation = d3.forceSimulation<CustomNode, CustomLink>(nodes)
-      .force("charge", d3.forceManyBody().strength(-120))
-      .force("center", d3.forceCenter(actualWidth / 2, containerHeight / 2))
-      .force("link", d3.forceLink<CustomNode, CustomLink>(links)
-        .id(d => d.id)
-        .distance(d => 100 - Math.min(d.strength * 20, 70))
-      )
-      .force("collide", d3.forceCollide().radius(d => d.radius + 5));
-    
-    // Create links
-    const link = svg.append("g")
-      .selectAll("line")
-      .data(links)
-      .enter()
-      .append("line")
-      .attr("stroke", "#999")
-      .attr("stroke-opacity", 0.6)
-      .attr("stroke-width", d => Math.max(1, d.strength));
-    
-    // Create nodes
-    const node = svg.append("g")
-      .selectAll("circle")
-      .data(nodes)
-      .enter()
-      .append("circle")
-      .attr("r", d => d.radius)
-      .attr("fill", d => d.color)
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1.5)
-      .style("cursor", "pointer");
-    
-    // Add node labels
-    const labels = svg.append("g")
-      .selectAll("text")
-      .data(nodes)
-      .enter()
-      .append("text")
-      .text(d => d.name)
-      .attr("font-size", "10px")
-      .attr("dx", d => d.radius + 5)
-      .attr("dy", 4)
-      .style("pointer-events", "none");
-    
-    // Add interactivity if enabled
-    if (isInteractive) {
-      // Node dragging
-      node.call(d3.drag<SVGCircleElement, CustomNode>()
-        .on("start", (event, d) => {
-          if (!event.active) simulation.alphaTarget(0.3).restart();
-          d.fx = d.x;
-          d.fy = d.y;
-        })
-        .on("drag", (event, d) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
-        .on("end", (event, d) => {
-          if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
-        }) as any
+    d3.select(svgRef.current)
+      .transition()
+      .duration(750)
+      .call(
+        d3.zoom<SVGSVGElement, unknown>().transform as any,
+        d3.zoomIdentity
       );
-      
-      // Hover effects
-      node.on("mouseover", (event, d) => {
-        const tooltip = tooltipRef.current;
-        if (!tooltip) return;
-        
-        // Find the original entity for more details
-        const entity = entities.find(e => e.id === d.id);
-        
-        // Create tooltip content
-        let content = `<div class="font-bold">${d.name}</div>`;
-        content += `<div class="text-xs">${d.type}</div>`;
-        
-        if (entity?.startDate || entity?.endDate) {
-          content += `<div class="text-xs">${entity.startDate || ''} ${entity.endDate ? `- ${entity.endDate}` : ''}</div>`;
-        }
-        
-        tooltip.innerHTML = content;
-        tooltip.style.display = "block";
-        tooltip.style.left = `${event.pageX + 10}px`;
-        tooltip.style.top = `${event.pageY + 10}px`;
-        
-        // Highlight connected nodes
-        const connectedNodeIds = new Set<string>();
-        connectedNodeIds.add(d.id);
-        
-        links.forEach(link => {
-          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-          
-          if (sourceId === d.id) connectedNodeIds.add(targetId);
-          if (targetId === d.id) connectedNodeIds.add(sourceId);
-        });
-        
-        node.attr("opacity", node => connectedNodeIds.has(node.id) ? 1 : 0.2);
-        labels.attr("opacity", label => connectedNodeIds.has(label.id) ? 1 : 0.2);
-        link.attr("stroke-opacity", link => {
-          const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
-          const targetId = typeof link.target === 'string' ? link.target : link.target.id;
-          return (sourceId === d.id || targetId === d.id) ? 1 : 0.1;
-        });
-      })
-      .on("mouseout", () => {
-        const tooltip = tooltipRef.current;
-        if (tooltip) tooltip.style.display = "none";
-        
-        node.attr("opacity", 1);
-        labels.attr("opacity", 1);
-        link.attr("stroke-opacity", 0.6);
-      })
-      .on("click", (event, d) => {
-        // Find the original entity with full data
-        const entity = entities.find(e => e.id === d.id);
-        if (entity && onEntitySelect) {
-          setSelectedEntity(entity);
-          onEntitySelect(entity);
-        }
-      });
+    
+    setZoomLevel(1);
+  };
+
+  // Function to zoom in
+  const zoomIn = () => {
+    if (!svgRef.current) return;
+    
+    d3.select(svgRef.current)
+      .transition()
+      .duration(300)
+      .call(
+        d3.zoom<SVGSVGElement, unknown>().scaleBy as any,
+        1.3
+      );
+    
+    setZoomLevel(prev => prev * 1.3);
+  };
+
+  // Function to zoom out
+  const zoomOut = () => {
+    if (!svgRef.current) return;
+    
+    d3.select(svgRef.current)
+      .transition()
+      .duration(300)
+      .call(
+        d3.zoom<SVGSVGElement, unknown>().scaleBy as any,
+        1 / 1.3
+      );
+    
+    setZoomLevel(prev => prev / 1.3);
+  };
+
+  // Function to handle search
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    
+    if (!term) {
+      setHighlightedNodes([]);
+      return;
     }
     
-    // Update positions on simulation tick
-    simulation.on("tick", () => {
-      link
-        .attr("x1", d => typeof d.source === 'string' ? 0 : (d.source as CustomNode).x || 0)
-        .attr("y1", d => typeof d.source === 'string' ? 0 : (d.source as CustomNode).y || 0)
-        .attr("x2", d => typeof d.target === 'string' ? 0 : (d.target as CustomNode).x || 0)
-        .attr("y2", d => typeof d.target === 'string' ? 0 : (d.target as CustomNode).y || 0);
-      
-      node
-        .attr("cx", d => d.x || 0)
-        .attr("cy", d => d.y || 0);
-      
-      labels
-        .attr("x", d => d.x || 0)
-        .attr("y", d => d.y || 0);
-    });
+    const matchedNodeIds = processedNodes
+      .filter(node => 
+        node.label.toLowerCase().includes(term.toLowerCase()) ||
+        node.type.toLowerCase().includes(term.toLowerCase())
+      )
+      .map(node => node.id);
     
-    // Helper function for screenshots (can be used with html2canvas)
-    (window as any).takeKnowledgeGraphScreenshot = () => {
-      try {
-        const svgNode = d3Container.current?.querySelector('svg');
-        if (svgNode) {
-          const serializer = new XMLSerializer();
-          let source = serializer.serializeToString(svgNode);
-          source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
-          const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-          const link = document.createElement("a");
-          link.download = "knowledge-graph.svg";
-          link.href = url;
-          link.click();
-          toast.success("Graph downloaded as SVG");
-        }
-      } catch (error) {
-        console.error("Error saving graph:", error);
-        toast.error("Failed to download graph");
-      }
+    setHighlightedNodes(matchedNodeIds);
+  };
+
+  // D3 visualization effect
+  useEffect(() => {
+    if (!svgRef.current || !containerRef.current || processedNodes.length === 0) return;
+
+    // Get container dimensions
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    // Clear previous visualization
+    d3.select(svgRef.current).selectAll("*").remove();
+
+    // Set up the SVG
+    const svg = d3.select(svgRef.current)
+      .attr("width", containerWidth)
+      .attr("height", containerHeight)
+      .attr("viewBox", [0, 0, containerWidth, containerHeight])
+      .attr("style", "max-width: 100%; height: auto;");
+
+    // Create a group for the visualization
+    const g = svg.append("g");
+
+    // Define node type colors
+    const nodeColors: Record<string, string> = {
+      person: "#8B5CF6",  // Purple
+      event: "#F97316",   // Orange
+      place: "#10B981",   // Green
+      concept: "#0EA5E9", // Blue
+      time: "#EC4899",    // Pink
+      object: "#F43F5E",  // Rose
+      default: "#6B7280", // Gray
+      document: "#4338CA", // Indigo
+      organization: "#D946EF", // Fuchsia
+      technology: "#0EA5E9", // Light blue
+      process: "#10B981", // Emerald
+      theory: "#8B5CF6"   // Purple
     };
     
+    // Define edge type styles
+    const edgeStyles: Record<string, { color: string, dashed: boolean }> = {
+      related: { color: "#6B7280", dashed: false },
+      causes: { color: "#F97316", dashed: false },
+      partOf: { color: "#0EA5E9", dashed: true },
+      creates: { color: "#10B981", dashed: false },
+      influences: { color: "#8B5CF6", dashed: true },
+      default: { color: "#6B7280", dashed: false }
+    };
+
+    // Create a force simulation
+    const simulation = d3.forceSimulation<CustomNode>(processedNodes)
+      .force("link", d3.forceLink<CustomNode, CustomLink>(processedEdges)
+        .id(d => d.id)
+        .distance(100))
+      .force("charge", d3.forceManyBody().strength(-200))
+      .force("collide", d3.forceCollide().radius(50))
+      .force("center", d3.forceCenter(containerWidth / 2, containerHeight / 2));
+
+    // Create arrow markers for edges
+    svg.append("defs").selectAll("marker")
+      .data(Object.keys(edgeStyles))
+      .enter().append("marker")
+      .attr("id", d => `arrow-${d}`)
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 25)
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("fill", d => edgeStyles[d]?.color || edgeStyles.default.color)
+      .attr("d", "M0,-5L10,0L0,5");
+
+    // Create edges
+    const link = g.append("g")
+      .attr("class", "links")
+      .selectAll("path")
+      .data(processedEdges)
+      .enter().append("path")
+      .attr("stroke", d => edgeStyles[d.type || "default"]?.color || edgeStyles.default.color)
+      .attr("stroke-width", 1.5)
+      .attr("fill", "none")
+      .attr("marker-end", d => `url(#arrow-${d.type || "default"})`)
+      .attr("stroke-dasharray", d => edgeStyles[d.type || "default"]?.dashed ? "5,5" : "")
+      .attr("class", "link");
+
+    // Create edge labels
+    const edgeLabels = g.append("g")
+      .attr("class", "edge-labels")
+      .selectAll("text")
+      .data(processedEdges)
+      .enter().append("text")
+      .attr("dy", -5)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#D1D5DB")
+      .attr("font-size", "8px")
+      .text(d => d.label || "");
+
+    // Create a group for each node
+    const node = g.append("g")
+      .attr("class", "nodes")
+      .selectAll("g")
+      .data(processedNodes)
+      .enter().append("g")
+      .attr("class", "node")
+      .on("click", (event, d) => {
+        if (onNodeClick) onNodeClick(d);
+      })
+      .call(d3.drag<SVGGElement, CustomNode>()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended) as any);
+
+    // Add circles for nodes
+    node.append("circle")
+      .attr("r", d => (d.properties?.importance || 1) * 10)
+      .attr("fill", d => nodeColors[d.type] || nodeColors.default)
+      .attr("stroke", "#2D3748")
+      .attr("stroke-width", 1.5)
+      .attr("class", d => highlightedNodes.includes(d.id) ? "highlighted" : "")
+      .attr("opacity", d => highlightedNodes.length > 0 
+        ? (highlightedNodes.includes(d.id) ? 1 : 0.3) 
+        : 1);
+
+    // Add labels for nodes
+    node.append("text")
+      .attr("dx", 0)
+      .attr("dy", d => (d.properties?.importance || 1) * 10 + 10)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#E5E7EB")
+      .attr("font-size", "10px")
+      .text(d => d.label)
+      .attr("opacity", d => highlightedNodes.length > 0 
+        ? (highlightedNodes.includes(d.id) ? 1 : 0.3) 
+        : 1);
+
+    // Add type labels
+    node.append("text")
+      .attr("dx", 0)
+      .attr("dy", d => (d.properties?.importance || 1) * 10 + 22)
+      .attr("text-anchor", "middle")
+      .attr("fill", d => nodeColors[d.type] || nodeColors.default)
+      .attr("font-size", "8px")
+      .text(d => d.type)
+      .attr("opacity", d => highlightedNodes.length > 0 
+        ? (highlightedNodes.includes(d.id) ? 1 : 0.3) 
+        : 0.7);
+
+    // Update function for simulation
+    simulation.on("tick", () => {
+      // Constrain nodes to the visualization area
+      processedNodes.forEach(d => {
+        d.x = Math.max(50, Math.min(containerWidth - 50, d.x || 0));
+        d.y = Math.max(50, Math.min(containerHeight - 50, d.y || 0));
+      });
+
+      // Update link positions - using explicit type checks to avoid apply errors
+      link.attr("d", d => {
+        if (typeof d.source === 'object' && d.source !== null && 'x' in d.source && 
+            typeof d.target === 'object' && d.target !== null && 'x' in d.target) {
+          const sourceX = d.source.x || 0;
+          const sourceY = d.source.y || 0;
+          const targetX = d.target.x || 0;
+          const targetY = d.target.y || 0;
+          
+          return `M${sourceX},${sourceY}L${targetX},${targetY}`;
+        }
+        return '';
+      });
+
+      // Update edge label positions
+      edgeLabels.attr("transform", d => {
+        if (typeof d.source === 'object' && d.source !== null && 'x' in d.source && 
+            typeof d.target === 'object' && d.target !== null && 'x' in d.target) {
+          const sourceX = d.source.x || 0;
+          const sourceY = d.source.y || 0;
+          const targetX = d.target.x || 0;
+          const targetY = d.target.y || 0;
+          
+          const midX = (sourceX + targetX) / 2;
+          const midY = (sourceY + targetY) / 2;
+          const angle = Math.atan2(targetY - sourceY, targetX - sourceX) * 180 / Math.PI;
+          return `translate(${midX}, ${midY}) rotate(${angle})`;
+        }
+        return '';
+      });
+
+      // Update node positions
+      node.attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`);
+    });
+
+    // Add zoom behavior
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 3])
+      .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+        setZoomLevel(event.transform.k);
+      });
+
+    svg.call(zoom);
+
+    // Drag functions
+    function dragstarted(event: d3.D3DragEvent<SVGGElement, CustomNode, CustomNode>, d: CustomNode) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragged(event: d3.D3DragEvent<SVGGElement, CustomNode, CustomNode>, d: CustomNode) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragended(event: d3.D3DragEvent<SVGGElement, CustomNode, CustomNode>, d: CustomNode) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+
+    // Clean up the simulation when component unmounts
     return () => {
       simulation.stop();
-      if (tooltipRef.current) {
-        tooltipRef.current.remove();
-        tooltipRef.current = null;
-      }
     };
-  }, [entities, height, width, isInteractive, onEntitySelect]);
-  
+  }, [processedNodes, processedEdges, highlightedNodes, onNodeClick]);
+
+  if (isLoading) {
+    return <VisualizationPlaceholder type="knowledge-graph" message="Building knowledge graph..." />;
+  }
+
+  if (nodes.length === 0) {
+    return <VisualizationPlaceholder type="knowledge-graph" message="No knowledge graph data available" />;
+  }
+
   return (
-    <div className="w-full h-full relative">
-      <div ref={d3Container} className="w-full h-full" />
+    <div className={`relative ${isFullScreen ? 'fixed inset-0 z-50 bg-black' : 'w-full h-[600px]'}`}>
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+        <Button
+          size="icon"
+          variant="outline"
+          className="w-8 h-8 bg-black/50"
+          onClick={zoomIn}
+        >
+          <ZoomIn size={14} />
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          className="w-8 h-8 bg-black/50"
+          onClick={zoomOut}
+        >
+          <ZoomOut size={14} />
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          className="w-8 h-8 bg-black/50"
+          onClick={toggleFullScreen}
+        >
+          {isFullScreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        </Button>
+      </div>
+      
+      <div className="absolute top-2 left-2 z-10 flex items-center">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            className="h-8 bg-black/50 border-gray-700 pl-8 pr-4 w-56 text-sm"
+            placeholder="Search nodes..."
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+        </div>
+      </div>
+      
+      <div 
+        ref={containerRef} 
+        className="w-full h-full bg-black/20 rounded-lg overflow-hidden"
+      >
+        <svg ref={svgRef} width="100%" height="100%"></svg>
+      </div>
     </div>
   );
 };
